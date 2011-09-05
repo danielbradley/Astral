@@ -1,0 +1,7 @@
+.DS_Store
+._*
+bin
+obj
+lib
+CVS
+
