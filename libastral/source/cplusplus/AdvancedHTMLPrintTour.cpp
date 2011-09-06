@@ -10,6 +10,7 @@
 #include <openxds.adt.std/Dictionary.h>
 #include <openxds.adt.std/GeneralTour.h>
 #include <openxds.adt.std/Sequence.h>
+#include <openxds.base/Character.h>
 #include <openxds.base/FormattedString.h>
 #include <openxds.base/String.h>
 #include <openxds.base/StringBuffer.h>
@@ -68,7 +69,11 @@ AdvancedHTMLPrintTour::visitPreorder( openxds::adt::IPosition<SourceToken>& p, o
 		writer.print( openxds::base::FormattedString( "<div class='%s inline' name='%s'>", type, token.getValue().getChars() ) );
 		break;
 	case astral::tokenizer::SourceToken::METHODCALL:
-		writer.print( openxds::base::FormattedString( "<div class='%s inline'>", type ) );
+		{
+			String* parameters = this->findMethodParameters( p );
+			token.setValue( parameters );
+		}
+		writer.print( openxds::base::FormattedString( "<div class='%s inline' name='%s'>", type, token.getValue().getChars() ) );
 		break;
 	case astral::tokenizer::SourceToken::PARAMETER:
 		writer.print( openxds::base::FormattedString( "<div class='%s inline'>", type ) );
@@ -184,10 +189,15 @@ AdvancedHTMLPrintTour::visitExternal( openxds::adt::IPosition<SourceToken>& p, o
 			bool is_method_call = (SourceToken::METHODCALL == token.getTokenType());
 			if ( is_method_call )
 			{
-				link = this->resolveMethodCall( value, *this->lastType );
-				this->methodCallTypes->addLast( this->lastType->asString() );
+				IPosition<SourceToken>* methodcall = this->tree.parent( p );
+				const String& parameters = methodcall->getElement().getValue();
+				{
+					link = this->resolveMethodCall( value, *this->lastType, parameters );
+					this->methodCallTypes->addLast( this->lastType->asString() );
 
-				fprintf( stdout, "%s --> %s\n", value, this->lastType->getChars() );
+					fprintf( stdout, "%s --> %s\n", value, this->lastType->getChars() );
+				}
+				delete methodcall;
 			}
 			else
 			{
@@ -216,6 +226,10 @@ AdvancedHTMLPrintTour::visitExternal( openxds::adt::IPosition<SourceToken>& p, o
 			delete this->lastType;
 			this->lastType = link;
 		}
+		break;
+	case SourceToken::METHODNAME:
+		writer.print( openxds::base::FormattedString( "<a name='%s'></a>", value ) );
+		writer.print( openxds::base::FormattedString( "<span class='%s'>%s</span>", ttype, value ) );
 		break;
 	default:
 		writer.print( openxds::base::FormattedString( "<span class='%s'>%s</span>", ttype, value ) );
@@ -280,13 +294,15 @@ AdvancedHTMLPrintTour::resolveInvocationClass( const String& lastType )
 }
 
 String*
-AdvancedHTMLPrintTour::resolveReturnType( const char* invokee, const char* name )
+AdvancedHTMLPrintTour::resolveMethodSignature( const char* invokee, const char* name, const char* parameters )
 {
 	String* ret = new String();
 	{
 		StringBuffer call;
 		call.append( name );
-		call.append( "()" );
+		call.append( "(" );
+		call.append( parameters );
+		call.append( ")" );
 
 		StringBuffer full;
 		full.append( invokee );
@@ -326,7 +342,7 @@ AdvancedHTMLPrintTour::resolveReturnType( const char* invokee, const char* name 
 					if ( ! super->contentEquals( "" ) )
 					{
 						delete ret;
-						ret = this->resolveReturnType( super->getChars(), name );
+						ret = this->resolveMethodSignature( super->getChars(), name, parameters );
 					}
 					delete super;
 				}
@@ -341,9 +357,21 @@ AdvancedHTMLPrintTour::resolveReturnType( const char* invokee, const char* name 
 	return ret;
 }
 
+/*
 
+Resolve method call is called to return the fully qualified signature of a method call.
+The *name* corresponds to the name of the invoked method.
+The *lastType* corresponds to the class type the method was invoked upon -- this may
+be an empty string in the case a method is invoked upon its own class.
+
+
+
+
+
+
+*/
 String*
-AdvancedHTMLPrintTour::resolveMethodCall( const char* name, const String& lastType )
+AdvancedHTMLPrintTour::resolveMethodCall( const char* name, const String& lastType, const String& parameters )
 {
 	String* link = new String();
 	{
@@ -359,8 +387,8 @@ AdvancedHTMLPrintTour::resolveMethodCall( const char* name, const String& lastTy
 		//			4.	Go to 2
 	
 		String* invocation_class = this->resolveInvocationClass( lastType );
-		String* return_type      = this->resolveReturnType( invocation_class->getChars(), name );
-		
+		String* return_type      = this->resolveMethodSignature( invocation_class->getChars(), name, parameters.getChars() );
+
 		StringTokenizer st( *return_type );
 		st.setDelimiter( '|' );
 
@@ -379,6 +407,11 @@ AdvancedHTMLPrintTour::resolveMethodCall( const char* name, const String& lastTy
 				delete rtype;
 			}
 		}
+//		else
+//		{
+//			delete link;
+//			link = invocation_class->asString();
+//		}
 		delete return_type;
 		delete invocation_class;
 	}
@@ -516,6 +549,72 @@ AdvancedHTMLPrintTour::resolveFQType( const char* type )
 	return sb.asString();
 }
 
+String*
+AdvancedHTMLPrintTour::findMethodParameters( IPosition<SourceToken>& methodcall )
+{
+	String* parameters = new String();
+
+	IPIterator<SourceToken>* it = this->tree.children( methodcall );
+	while ( it->hasNext() )
+	{
+		IPosition<SourceToken>* p = it->next();
+		{
+			SourceToken& token = p->getElement();
+			switch ( token.getTokenType() )
+			{
+			case SourceToken::PARAMETERS:
+				delete parameters;
+				parameters = this->resolveMethodCallParametersToTypes( token.getValue() );
+				break;
+			}
+		}
+		delete p;
+	}
+	delete it;
+
+	return parameters;
+}
+
+String*
+AdvancedHTMLPrintTour::resolveMethodCallParametersToTypes( const String& parameters )
+{
+	StringBuffer sb;
+	{
+		StringTokenizer st( parameters );
+		st.setDelimiter( ',' );
+		
+		while ( st.hasMoreTokens() )
+		{
+			String* token = st.nextToken();
+			{
+				if ( token->contentEquals( "VALUE" ) || token->contentEquals( "QUOTE" ) || token->contentEquals( "CHAR" ) )
+				{
+					sb.append( *token );
+					sb.append( ',' );
+				}
+				else
+				{
+					String* type = resolveTypeOfName( token->getChars() );
+					{
+						sb.append( *type );
+						sb.append( ',' );
+					}
+					delete type;
+				}
+			}
+			delete token;
+		}
+	}
+	sb.removeLast();
+	return sb.asString();
+}
+
+
+
+
+
+
+
 static openxds::base::String* extract( const char* value )
 {
 	openxds::base::StringBuffer sb;
@@ -541,3 +640,5 @@ static openxds::base::String* extract( const char* value )
 	
 	return sb.asString();
 }
+
+

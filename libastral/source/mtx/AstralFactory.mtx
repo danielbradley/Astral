@@ -65,6 +65,7 @@ The *AstralFactory* class makes use of the following libraries:
 ~include/astral/AstralFactory.h~
 #include <openxds.adt.h>
 #include <openxds.io.h>
+#include <openxds/Object.h>
 ~
 
 ~include/astral/AstralFactory.h~
@@ -73,6 +74,12 @@ class AstralFactory : openxds::Object
 public:
 	static astral::Astral*
 	createAstral(
+		const openxds::adt::IList<openxds::io::Path>& pathList,
+		const char*                                   extension
+	);
+
+	static astral::AstralExport*
+	createAstralExport(
 		const openxds::adt::IList<openxds::io::Path>& pathList,
 		const char*                                   extension
 	);
@@ -90,6 +97,7 @@ public:
 !
 ~source/cplusplus/AstralFactory.cpp~
 #include "astral/Astral.h"
+#include "astral/AstralExport.h"
 #include "astral/AstralFactory.h"
 ~
 !
@@ -117,7 +125,8 @@ using namespace openxds::io;
 
 !
 ~source/cplusplus/AstralFactory.cpp~
-static void recursivelySearch( Astral& astral, const Path& path, const char* extension );
+static void      processPaths( Astral& astral, const IList<Path>& pathList, const char* extension );
+static void recursivelySearch( Astral& astral, const Path& path,            const char* extension );
 ~
 !
 
@@ -134,19 +143,47 @@ AstralFactory::createAstral( const IList<Path>& pathList, const char* extension 
 {
 	Astral* astral = new Astral();
 	{
-		IPIterator<Path>* it = pathList.positions();
-		while ( it->hasNext() )
-		{
-			IPosition<Path>* p = it->next();
-			{
-				const Path& path = p->getElement();
-				recursivelySearch( *astral, path, extension );
-			}
-			delete p;
-		}
-		delete it;
+		processPaths( *astral, pathList, extension );
 	}
 	return astral;
+}
+~
+
+...			Class method: createAstralExport
+
+The *createAstralExport* method instantiates an *AstralExport* object and populates it by calling *processPaths*.
+
+~source/cplusplus/AstralFactory.cpp~
+AstralExport*
+AstralFactory::createAstralExport( const IList<Path>& pathList, const char* extension )
+{
+	AstralExport* astral = new AstralExport();
+	{
+		processPaths( *astral, pathList, extension );
+	}
+	return astral;
+}
+~
+
+...			Static procedure: processPath
+
+
+The *processPath* method causes each path in the /pathList/ to be recursively searched by calling *recursivelySearch*.
+
+~source/cplusplus/AstralFactory.cpp~
+static void processPaths( Astral& astral, const IList<Path>& pathList, const char* extension )
+{
+	IPIterator<Path>* it = pathList.positions();
+	while ( it->hasNext() )
+	{
+		IPosition<Path>* p = it->next();
+		{
+			const Path& path = p->getElement();
+			recursivelySearch( astral, path, extension );
+		}
+		delete p;
+	}
+	delete it;
 }
 ~
 

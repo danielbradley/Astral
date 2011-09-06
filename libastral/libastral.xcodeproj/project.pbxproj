@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		655AC8FE1416579200143208 /* SymbolDB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 655AC8FD1416579200143208 /* SymbolDB.cpp */; };
+		655AC903141657BE00143208 /* SymbolDB.h in Headers */ = {isa = PBXBuildFile; fileRef = 655AC902141657BE00143208 /* SymbolDB.h */; };
 		655FC7BC1414609200AE5A9F /* AbstractSyntax.h in Headers */ = {isa = PBXBuildFile; fileRef = 655FC7AE1414609200AE5A9F /* AbstractSyntax.h */; };
 		655FC7BD1414609200AE5A9F /* AdvancedHTMLPrintTour.h in Headers */ = {isa = PBXBuildFile; fileRef = 655FC7AF1414609200AE5A9F /* AdvancedHTMLPrintTour.h */; };
 		655FC7BE1414609200AE5A9F /* Astral.h in Headers */ = {isa = PBXBuildFile; fileRef = 655FC7B01414609200AE5A9F /* Astral.h */; };
@@ -34,6 +36,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		655AC8431415BC5300143208 /* mtx */ = {isa = PBXFileReference; lastKnownFileType = folder; path = mtx; sourceTree = "<group>"; };
+		655AC8FD1416579200143208 /* SymbolDB.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SymbolDB.cpp; sourceTree = "<group>"; };
+		655AC902141657BE00143208 /* SymbolDB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SymbolDB.h; sourceTree = "<group>"; };
 		655FC7A014145F3600AE5A9F /* libastral.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libastral.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		655FC7A81414609200AE5A9F /* OpenXDS.link */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = OpenXDS.link; sourceTree = "<group>"; };
 		655FC7A91414609200AE5A9F /* OpenXDS_Core.link */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = OpenXDS_Core.link; sourceTree = "<group>"; };
@@ -88,6 +93,22 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		655AC900141657BE00143208 /* include */ = {
+			isa = PBXGroup;
+			children = (
+				655AC901141657BE00143208 /* astral */,
+			);
+			path = include;
+			sourceTree = "<group>";
+		};
+		655AC901141657BE00143208 /* astral */ = {
+			isa = PBXGroup;
+			children = (
+				655AC902141657BE00143208 /* SymbolDB.h */,
+			);
+			path = astral;
+			sourceTree = "<group>";
+		};
 		655FC79514145F3600AE5A9F = {
 			isa = PBXGroup;
 			children = (
@@ -154,7 +175,9 @@
 		655FC7B41414609200AE5A9F /* source */ = {
 			isa = PBXGroup;
 			children = (
+				655AC8431415BC5300143208 /* mtx */,
 				655FC7B51414609200AE5A9F /* cplusplus */,
+				655AC900141657BE00143208 /* include */,
 			);
 			path = source;
 			sourceTree = "<group>";
@@ -167,6 +190,7 @@
 				655FC7B71414609200AE5A9F /* Astral.cpp */,
 				655FC7B81414609200AE5A9F /* AstralExport.cpp */,
 				655FC7B91414609200AE5A9F /* CompilationUnit.cpp */,
+				655AC8FD1416579200143208 /* SymbolDB.cpp */,
 			);
 			path = cplusplus;
 			sourceTree = "<group>";
@@ -185,6 +209,7 @@
 				655FC7C01414609200AE5A9F /* CompilationUnit.h in Headers */,
 				655FC7C11414609200AE5A9F /* astral.h in Headers */,
 				65941B95141480EB0043B182 /* AstralFactory.h in Headers */,
+				655AC903141657BE00143208 /* SymbolDB.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -240,6 +265,7 @@
 				655FC7C41414609200AE5A9F /* AstralExport.cpp in Sources */,
 				655FC7C51414609200AE5A9F /* CompilationUnit.cpp in Sources */,
 				65941B98141480F80043B182 /* AstralFactory.cpp in Sources */,
+				655AC8FE1416579200143208 /* SymbolDB.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

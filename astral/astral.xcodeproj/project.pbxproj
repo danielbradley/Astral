@@ -1,0 +1,305 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		655AC8281415B80700143208 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 655AC8271415B80700143208 /* main.cpp */; };
+		655AC8361415BA5D00143208 /* libastral_ast.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 655AC8291415BA5D00143208 /* libastral_ast.dylib */; };
+		655AC8371415BA5D00143208 /* libastral_tokenizer.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 655AC82A1415BA5D00143208 /* libastral_tokenizer.dylib */; };
+		655AC8381415BA5D00143208 /* libastral.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 655AC82B1415BA5D00143208 /* libastral.dylib */; };
+		655AC8391415BA5D00143208 /* libopenxds_adt_std.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 655AC82C1415BA5D00143208 /* libopenxds_adt_std.dylib */; };
+		655AC83A1415BA5D00143208 /* libopenxds_adt.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 655AC82D1415BA5D00143208 /* libopenxds_adt.dylib */; };
+		655AC83B1415BA5D00143208 /* libopenxds_base.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 655AC82E1415BA5D00143208 /* libopenxds_base.dylib */; };
+		655AC83C1415BA5D00143208 /* libopenxds_core_adt_std.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 655AC82F1415BA5D00143208 /* libopenxds_core_adt_std.dylib */; };
+		655AC83D1415BA5D00143208 /* libopenxds_core_adt.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 655AC8301415BA5D00143208 /* libopenxds_core_adt.dylib */; };
+		655AC83E1415BA5D00143208 /* libopenxds_core_base.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 655AC8311415BA5D00143208 /* libopenxds_core_base.dylib */; };
+		655AC83F1415BA5D00143208 /* libopenxds_core_io.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 655AC8321415BA5D00143208 /* libopenxds_core_io.dylib */; };
+		655AC8401415BA5D00143208 /* libopenxds_core_threads.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 655AC8331415BA5D00143208 /* libopenxds_core_threads.dylib */; };
+		655AC8411415BA5D00143208 /* libopenxds_io.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 655AC8341415BA5D00143208 /* libopenxds_io.dylib */; };
+		655AC8421415BA5D00143208 /* libopenxds_util.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 655AC8351415BA5D00143208 /* libopenxds_util.dylib */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		655AC80A1415B7E500143208 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		655AC80C1415B7E500143208 /* astral */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = astral; sourceTree = BUILT_PRODUCTS_DIR; };
+		655AC81F1415B80700143208 /* OpenXDS.link */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = OpenXDS.link; sourceTree = "<group>"; };
+		655AC8201415B80700143208 /* OpenXDS_Core.link */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = OpenXDS_Core.link; sourceTree = "<group>"; };
+		655AC8211415B80700143208 /* libastral.link */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = libastral.link; sourceTree = "<group>"; };
+		655AC8221415B80700143208 /* libastral_ast.link */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = libastral_ast.link; sourceTree = "<group>"; };
+		655AC8231415B80700143208 /* libastral_tokenizer.link */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = libastral_tokenizer.link; sourceTree = "<group>"; };
+		655AC8271415B80700143208 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		655AC8291415BA5D00143208 /* libastral_ast.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libastral_ast.dylib; path = "../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug/libastral_ast.dylib"; sourceTree = "<group>"; };
+		655AC82A1415BA5D00143208 /* libastral_tokenizer.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libastral_tokenizer.dylib; path = "../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug/libastral_tokenizer.dylib"; sourceTree = "<group>"; };
+		655AC82B1415BA5D00143208 /* libastral.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libastral.dylib; path = "../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug/libastral.dylib"; sourceTree = "<group>"; };
+		655AC82C1415BA5D00143208 /* libopenxds_adt_std.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_adt_std.dylib; path = "../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug/libopenxds_adt_std.dylib"; sourceTree = "<group>"; };
+		655AC82D1415BA5D00143208 /* libopenxds_adt.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_adt.dylib; path = "../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug/libopenxds_adt.dylib"; sourceTree = "<group>"; };
+		655AC82E1415BA5D00143208 /* libopenxds_base.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_base.dylib; path = "../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug/libopenxds_base.dylib"; sourceTree = "<group>"; };
+		655AC82F1415BA5D00143208 /* libopenxds_core_adt_std.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_core_adt_std.dylib; path = "../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug/libopenxds_core_adt_std.dylib"; sourceTree = "<group>"; };
+		655AC8301415BA5D00143208 /* libopenxds_core_adt.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_core_adt.dylib; path = "../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug/libopenxds_core_adt.dylib"; sourceTree = "<group>"; };
+		655AC8311415BA5D00143208 /* libopenxds_core_base.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_core_base.dylib; path = "../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug/libopenxds_core_base.dylib"; sourceTree = "<group>"; };
+		655AC8321415BA5D00143208 /* libopenxds_core_io.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_core_io.dylib; path = "../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug/libopenxds_core_io.dylib"; sourceTree = "<group>"; };
+		655AC8331415BA5D00143208 /* libopenxds_core_threads.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_core_threads.dylib; path = "../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug/libopenxds_core_threads.dylib"; sourceTree = "<group>"; };
+		655AC8341415BA5D00143208 /* libopenxds_io.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_io.dylib; path = "../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug/libopenxds_io.dylib"; sourceTree = "<group>"; };
+		655AC8351415BA5D00143208 /* libopenxds_util.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_util.dylib; path = "../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug/libopenxds_util.dylib"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		655AC8091415B7E500143208 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				655AC8361415BA5D00143208 /* libastral_ast.dylib in Frameworks */,
+				655AC8371415BA5D00143208 /* libastral_tokenizer.dylib in Frameworks */,
+				655AC8381415BA5D00143208 /* libastral.dylib in Frameworks */,
+				655AC8391415BA5D00143208 /* libopenxds_adt_std.dylib in Frameworks */,
+				655AC83A1415BA5D00143208 /* libopenxds_adt.dylib in Frameworks */,
+				655AC83B1415BA5D00143208 /* libopenxds_base.dylib in Frameworks */,
+				655AC83C1415BA5D00143208 /* libopenxds_core_adt_std.dylib in Frameworks */,
+				655AC83D1415BA5D00143208 /* libopenxds_core_adt.dylib in Frameworks */,
+				655AC83E1415BA5D00143208 /* libopenxds_core_base.dylib in Frameworks */,
+				655AC83F1415BA5D00143208 /* libopenxds_core_io.dylib in Frameworks */,
+				655AC8401415BA5D00143208 /* libopenxds_core_threads.dylib in Frameworks */,
+				655AC8411415BA5D00143208 /* libopenxds_io.dylib in Frameworks */,
+				655AC8421415BA5D00143208 /* libopenxds_util.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		655AC8011415B7E500143208 = {
+			isa = PBXGroup;
+			children = (
+				655AC8291415BA5D00143208 /* libastral_ast.dylib */,
+				655AC82A1415BA5D00143208 /* libastral_tokenizer.dylib */,
+				655AC82B1415BA5D00143208 /* libastral.dylib */,
+				655AC82C1415BA5D00143208 /* libopenxds_adt_std.dylib */,
+				655AC82D1415BA5D00143208 /* libopenxds_adt.dylib */,
+				655AC82E1415BA5D00143208 /* libopenxds_base.dylib */,
+				655AC82F1415BA5D00143208 /* libopenxds_core_adt_std.dylib */,
+				655AC8301415BA5D00143208 /* libopenxds_core_adt.dylib */,
+				655AC8311415BA5D00143208 /* libopenxds_core_base.dylib */,
+				655AC8321415BA5D00143208 /* libopenxds_core_io.dylib */,
+				655AC8331415BA5D00143208 /* libopenxds_core_threads.dylib */,
+				655AC8341415BA5D00143208 /* libopenxds_io.dylib */,
+				655AC8351415BA5D00143208 /* libopenxds_util.dylib */,
+				655AC81E1415B80700143208 /* dep */,
+				655AC8241415B80700143208 /* include */,
+				655AC8251415B80700143208 /* source */,
+				655AC80D1415B7E500143208 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		655AC80D1415B7E500143208 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				655AC80C1415B7E500143208 /* astral */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		655AC81E1415B80700143208 /* dep */ = {
+			isa = PBXGroup;
+			children = (
+				655AC81F1415B80700143208 /* OpenXDS.link */,
+				655AC8201415B80700143208 /* OpenXDS_Core.link */,
+				655AC8211415B80700143208 /* libastral.link */,
+				655AC8221415B80700143208 /* libastral_ast.link */,
+				655AC8231415B80700143208 /* libastral_tokenizer.link */,
+			);
+			path = dep;
+			sourceTree = "<group>";
+		};
+		655AC8241415B80700143208 /* include */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = include;
+			sourceTree = "<group>";
+		};
+		655AC8251415B80700143208 /* source */ = {
+			isa = PBXGroup;
+			children = (
+				655AC8261415B80700143208 /* cplusplus */,
+			);
+			path = source;
+			sourceTree = "<group>";
+		};
+		655AC8261415B80700143208 /* cplusplus */ = {
+			isa = PBXGroup;
+			children = (
+				655AC8271415B80700143208 /* main.cpp */,
+			);
+			path = cplusplus;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		655AC80B1415B7E500143208 /* astral */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 655AC81B1415B7E500143208 /* Build configuration list for PBXNativeTarget "astral" */;
+			buildPhases = (
+				655AC8081415B7E500143208 /* Sources */,
+				655AC8091415B7E500143208 /* Frameworks */,
+				655AC80A1415B7E500143208 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = astral;
+			productName = astral;
+			productReference = 655AC80C1415B7E500143208 /* astral */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		655AC8031415B7E500143208 /* Project object */ = {
+			isa = PBXProject;
+			buildConfigurationList = 655AC8061415B7E500143208 /* Build configuration list for PBXProject "astral" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 655AC8011415B7E500143208;
+			productRefGroup = 655AC80D1415B7E500143208 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				655AC80B1415B7E500143208 /* astral */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		655AC8081415B7E500143208 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				655AC8281415B80700143208 /* main.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		655AC8191415B7E500143208 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = "../../../OpenXDS_Core/0.x/libopenxds_core_base/include\n../../../OpenXDS_Core/0.x/libopenxds_core_threads/include\n../../../OpenXDS_Core/0.x/libopenxds_core_adt/include\n../../../OpenXDS_Core/0.x/libopenxds_core_adt_std/include\n../../../OpenXDS_Core/0.x/libopenxds_core_io/include\n../../../OpenXDS/0.x/libopenxds_base/include\n../../../OpenXDS/0.x/libopenxds_adt/include\n../../../OpenXDS/0.x/libopenxds_adt_std/include\n../../../OpenXDS/0.x/libopenxds_security/include\n../../../OpenXDS/0.x/libopenxds_io/include\n../../../OpenXDS/0.x/libopenxds_util/include\n../../../Astral/0.x/libastral_tokenizer/include\n../../../Astral/0.x/libastral_ast/include\n../../../Astral/0.x/libastral/include";
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				USER_HEADER_SEARCH_PATHS = source/include;
+				USE_HEADERMAP = NO;
+			};
+			name = Debug;
+		};
+		655AC81A1415B7E500143208 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = "../../../OpenXDS_Core/0.x/libopenxds_core_base/include\n../../../OpenXDS_Core/0.x/libopenxds_core_threads/include\n../../../OpenXDS_Core/0.x/libopenxds_core_adt/include\n../../../OpenXDS_Core/0.x/libopenxds_core_adt_std/include\n../../../OpenXDS_Core/0.x/libopenxds_core_io/include\n../../../OpenXDS/0.x/libopenxds_base/include\n../../../OpenXDS/0.x/libopenxds_adt/include\n../../../OpenXDS/0.x/libopenxds_adt_std/include\n../../../OpenXDS/0.x/libopenxds_security/include\n../../../OpenXDS/0.x/libopenxds_io/include\n../../../OpenXDS/0.x/libopenxds_util/include\n../../../Astral/0.x/libastral_tokenizer/include\n../../../Astral/0.x/libastral_ast/include\n../../../Astral/0.x/libastral/include";
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				SDKROOT = macosx;
+				USER_HEADER_SEARCH_PATHS = source/include;
+				USE_HEADERMAP = NO;
+			};
+			name = Release;
+		};
+		655AC81C1415B7E500143208 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug\"",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		655AC81D1415B7E500143208 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug\"",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		655AC8061415B7E500143208 /* Build configuration list for PBXProject "astral" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				655AC8191415B7E500143208 /* Debug */,
+				655AC81A1415B7E500143208 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		655AC81B1415B7E500143208 /* Build configuration list for PBXNativeTarget "astral" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				655AC81C1415B7E500143208 /* Debug */,
+				655AC81D1415B7E500143208 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 655AC8031415B7E500143208 /* Project object */;
+}

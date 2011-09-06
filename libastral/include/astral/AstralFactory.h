@@ -8,12 +8,19 @@
 
 #include <openxds.adt.h>
 #include <openxds.io.h>
+#include <openxds/Object.h>
 
 class AstralFactory : openxds::Object
 {
 public:
 	static astral::Astral*
 	createAstral(
+		const openxds::adt::IList<openxds::io::Path>& pathList,
+		const char*                                   extension
+	);
+
+	static astral::AstralExport*
+	createAstralExport(
 		const openxds::adt::IList<openxds::io::Path>& pathList,
 		const char*                                   extension
 	);

@@ -26,7 +26,7 @@ public:
 	virtual ~CompilationUnit();
 	virtual void initialise();
 	
-	virtual void registerSymbols( openxds::adt::IDictionary<openxds::adt::IEntry<CompilationUnit> >& symbols, openxds::adt::IEntry<CompilationUnit>& e );
+	virtual void registerSymbols( openxds::adt::IDictionary<openxds::adt::IEntry<CompilationUnit> >& symbols, const openxds::adt::IEntry<CompilationUnit>& e ) const;
 	
 	virtual openxds::adt::IDictionary<openxds::adt::IPosition<astral::tokenizer::SourceToken> >&
 		getMethods() const;

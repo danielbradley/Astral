@@ -51,9 +51,11 @@ public:
 	virtual openxds::base::String*      resolveTypeIfLocal( const char* name );
 	virtual openxds::base::String*           resolveFQType( const char* type );
 
-	virtual openxds::base::String*       resolveMethodCall( const char* name, const openxds::base::String& lastType );
+	virtual openxds::base::String*       resolveMethodCall( const char* name, const openxds::base::String& lastType, const openxds::base::String& parameters );
 	virtual openxds::base::String*  resolveInvocationClass( const openxds::base::String& lastType );
-	virtual openxds::base::String*       resolveReturnType( const char* invokee, const char* name );
+	virtual openxds::base::String*  resolveMethodSignature( const char* invokee, const char* name, const char* parameters );
+	virtual openxds::base::String*    findMethodParameters( openxds::adt::IPosition<SourceToken>& p );
+	virtual openxds::base::String*  resolveMethodCallParametersToTypes( const openxds::base::String& parameters );
 };
 	
 };

@@ -8,6 +8,7 @@
 #include <openxds.adt.std/Sequence.h>
 #include <openxds.adt.std/Tree.h>
 #include <openxds.adt/ITree.h>
+#include <openxds.base/Character.h>
 #include <openxds.base/String.h>
 #include <openxds.base/StringBuffer.h>
 
@@ -629,8 +630,6 @@ static void handleMethodCall( ITree<SourceToken>& ast, IPosition<SourceToken>& p
 {
 	IPosition<SourceToken>* methodcall = ast.addChild( parent, new SourceToken( SourceToken::METHODCALL, new String() ) );
 	{
-		//const char* value = tokenizer.peekNextToken().getValue().getChars();
-	
 		SourceToken* token = tokenizer.nextToken();
 		token->setType( SourceToken::METHODCALL );
 		delete ast.addChild( *methodcall, token );
@@ -698,47 +697,71 @@ static void handleStartParameters( ITree<SourceToken>& ast, IPosition<SourceToke
 		static String*
 		parseParameter( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer )
 		{
-			SourceToken* word1 = NULL;
-			SourceToken* word2 = NULL;
-		
-			bool loop = true;
-			while ( loop && tokenizer.hasMoreTokens() )
+			String* parameter_type = new String();
 			{
-				SourceToken::TokenType type = tokenizer.peekNextToken().getTokenType();
-				//const char* value = tokenizer.peekNextToken().getValue().getChars();
-
-				switch ( type )
+				SourceToken* word1 = NULL;
+				SourceToken* word2 = NULL;
+			
+				bool loop = true;
+				while ( loop && tokenizer.hasMoreTokens() )
 				{
-				case SourceToken::ENDEXPRESSION:
-					loop = false;
-					break;
-				case SourceToken::SYMBOL:
-					if ( tokenizer.peekNextToken().getValue().contentEquals( "," ) ) loop = false;
-					delete ast.addChild( parent, tokenizer.nextToken() );
-					break;
-				case SourceToken::TYPE:
-				case SourceToken::WORD:
-					if ( NULL == word1 )
+					SourceToken::TokenType type = tokenizer.peekNextToken().getTokenType();
+					//const char* value = tokenizer.peekNextToken().getValue().getChars();
+
+					switch ( type )
 					{
-						word1 = parseType( tokenizer );
-						//word1 = tokenizer.nextToken();
-						word1->setType( SourceToken::VARIABLE );
-						delete ast.addChild( parent, word1 );
+					case SourceToken::ENDEXPRESSION:
+						loop = false;
+						break;
+					case SourceToken::SYMBOL:
+						if ( tokenizer.peekNextToken().getValue().contentEquals( "," ) ) loop = false;
+						delete ast.addChild( parent, tokenizer.nextToken() );
+						break;
+					case SourceToken::TYPE:
+					case SourceToken::WORD:
+						if ( NULL == word1 )
+						{
+							word1 = parseType( tokenizer );
+							//word1 = tokenizer.nextToken();
+							word1->setType( SourceToken::VARIABLE );
+							delete ast.addChild( parent, word1 );
+						}
+						else
+						{
+							word2 = tokenizer.nextToken();
+							word1->setType( SourceToken::TYPE );
+							word2->setType( SourceToken::VARIABLE );
+							delete ast.addChild( parent, word2 );
+						}
+						break;
+					case SourceToken::NUMBER:
+						delete parameter_type;
+						parameter_type = new String( "VALUE" );
+						delete ast.addChild( parent, tokenizer.nextToken() );
+						break;
+					case SourceToken::DOUBLEQUOTE:
+						delete parameter_type;
+						parameter_type = new String( "QUOTE" );
+						delete ast.addChild( parent, tokenizer.nextToken() );
+						break;
+					case SourceToken::QUOTE:
+						delete parameter_type;
+						parameter_type = new String( "CHAR" );
+						delete ast.addChild( parent, tokenizer.nextToken() );
+						break;
+					default:
+						delete ast.addChild( parent, tokenizer.nextToken() );
 					}
-					else
-					{
-						word2 = tokenizer.nextToken();
-						word1->setType( SourceToken::TYPE );
-						word2->setType( SourceToken::VARIABLE );
-						delete ast.addChild( parent, word2 );
-					}
-					break;
-				default:
-					delete ast.addChild( parent, tokenizer.nextToken() );
+				}
+
+				if ( 0 == parameter_type->getLength() )
+				{
+					delete parameter_type;
+					parameter_type = (word1 != NULL) ? word1->getValue().asString() : new String();
 				}
 			}
 			
-			return (word1 != NULL) ? word1->getValue().asString() : new String();
+			return parameter_type;
 		}
 
 static void handleStop( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer )

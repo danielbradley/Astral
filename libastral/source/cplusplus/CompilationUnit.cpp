@@ -72,7 +72,7 @@ CompilationUnit::initialise()
 }
 
 void
-CompilationUnit::registerSymbols( IDictionary<IEntry<CompilationUnit> >& symbols, IEntry<CompilationUnit>& e )
+CompilationUnit::registerSymbols( IDictionary<IEntry<CompilationUnit> >& symbols, const IEntry<CompilationUnit>& e ) const
 {
 	IEIterator<IPosition<SourceToken> >* ie = this->methods->entries();
 	{

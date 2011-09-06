@@ -737,6 +737,7 @@ SourceTokenizer::sneakyPeek()
 	
 	bool is_package = false;
 	bool is_import  = false;
+	bool is_else    = false;
 	
 	bool loop = true;
 	while ( loop && this->hasMoreTokens() )
@@ -755,6 +756,7 @@ SourceTokenizer::sneakyPeek()
 			keywords++;
 			     if ( token->getValue().contentEquals( "package" ) ) { is_package = true; }
 			else if ( token->getValue().contentEquals( "import"  ) ) { is_import  = true; }
+			else if ( token->getValue().contentEquals( "else"    ) ) { is_else    = true; }
 			break;
 		case SourceToken::TYPE:
 		case SourceToken::WORD:
@@ -817,15 +819,19 @@ SourceTokenizer::sneakyPeek()
 		{
 			//	class/interface, enum, if, else, while, switch.
 
-			if ( exp )
+			if ( exp || is_else )
 			{
 				// if, else if, while, switch
 				ret = SourceToken::STATEMENT;
 			}
-			else
+			else if ( words )
 			{
 				//	class/interface
 				ret = SourceToken::CLASS;
+			}
+			else
+			{
+				ret = SourceToken::STATEMENT;
 			}
 		}
 		else

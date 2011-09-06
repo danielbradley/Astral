@@ -1,6 +1,8 @@
 
 #include "astral/AstralExport.h"
 #include "astral/CompilationUnit.h"
+#include "astral/SymbolDB.h"
+
 #include <openxds.io/FileOutputStream.h>
 #include <openxds.io/File.h>
 #include <openxds.io/Path.h>
@@ -10,6 +12,7 @@
 #include <openxds.adt/IList.h>
 #include <openxds.adt/IPIterator.h>
 #include <openxds.adt/IPosition.h>
+#include <openxds.base/Environment.h>
 #include <openxds.base/FormattedString.h>
 #include <openxds.base/String.h>
 
@@ -30,7 +33,7 @@ AstralExport::~AstralExport()
 void
 AstralExport::printExposedSymbols() const
 {
-	IEIterator<IEntry<CompilationUnit> >* ie = this->getSymbols().entries();
+	IEIterator<IEntry<CompilationUnit> >* ie = this->getSymbolDB().getSymbols().entries();
 	while ( ie->hasNext() )
 	{
 		IEntry<IEntry<CompilationUnit> >* entry = ie->next();
@@ -44,11 +47,17 @@ AstralExport::printExposedSymbols() const
 
 static void top( PrintWriter& printer )
 {
-	printer.print( "<html>\n" );
-	printer.print( "<head>\n" );
-	printer.print( "<link rel='stylesheet' type='text/css' href='/Users/daniel/Documents/Development/_Source/CrossAdaptive/Astral/java2xml/share/css/java.css'>\n" );
-	printer.print( "</head>\n" );
-	printer.print( "<body>\n" );
+	String* exe_dir = Environment::executableDirectory();
+	{
+		FormattedString css( "%s/../share/css/java.css", exe_dir->getChars() );
+	
+		printer.print( "<html>\n" );
+		printer.print( "<head>\n" );
+		printer.printf( "<link rel='stylesheet' type='text/css' href='%s'>\n", css.getChars() );
+		printer.print( "</head>\n" );
+		printer.print( "<body>\n" );
+	}
+	delete exe_dir;
 }
 
 static void bottom( PrintWriter& printer )
@@ -86,8 +95,11 @@ AstralExport::exportHTMLTo( const char* directory, const CompilationUnit& cu ) c
 	PrintWriter* aWriter = createPrintWriter( pathname );
 	{
 		const IList<String>& imports = cu.getImports();
-		IDictionary<IEntry<CompilationUnit> >* imported_symbols = this->processImports( imports );
-		IDictionary<String>* imported_types = this->importedTypes( imports );
+//		IDictionary<IEntry<CompilationUnit> >* imported_symbols = this->processImports( imports );
+//		IDictionary<String>* imported_types = this->importedTypes( imports );
+
+		IDictionary<IEntry<CompilationUnit> >* imported_symbols = this->getSymbolDB().importedSymbols( imports );
+		IDictionary<String>* imported_types = this->getSymbolDB().importedTypes( imports );
 		{
 			top( *aWriter );
 			cu.printHTML( *imported_symbols, *imported_types, *aWriter );
@@ -113,7 +125,7 @@ AstralExport::toXML() const
 {
 	fprintf( stdout, "<names>\n" );
 	{
-		IEIterator<String>* ie = this->getN2NS().entries();
+		IEIterator<String>* ie = this->getSymbolDB().getN2NS().entries();
 		while ( ie->hasNext() )
 		{
 			IEntry<String>* e = ie->next();
@@ -130,7 +142,7 @@ AstralExport::toXML() const
 
 	fprintf( stdout, "<namespaces>\n" );
 	{
-		IEIterator<String>* ie = this->getNS2N().entries();
+		IEIterator<String>* ie = this->getSymbolDB().getNS2N().entries();
 		while ( ie->hasNext() )
 		{
 			IEntry<String>* e = ie->next();
@@ -147,7 +159,7 @@ AstralExport::toXML() const
 
 	fprintf( stdout, "<symbols>\n" );
 	{
-		IEIterator<IEntry<CompilationUnit> >* ie = this->getSymbols().entries();
+		IEIterator<IEntry<CompilationUnit> >* ie = this->getSymbolDB().getSymbols().entries();
 		while ( ie->hasNext() )
 		{
 			IEntry<IEntry<CompilationUnit> >* e = ie->next();
@@ -171,8 +183,8 @@ AstralExport::toXML() const
 				      CompilationUnit& cu       = entry->getValue();
 				const IList<String>&   imports  = cu.getImports();
 
-				IDictionary<IEntry<CompilationUnit> >* imported_symbols = this->processImports( imports );
-				IDictionary<String>* imported_types = this->importedTypes( imports );
+				IDictionary<IEntry<CompilationUnit> >* imported_symbols = this->getSymbolDB().importedSymbols( imports );
+				IDictionary<String>* imported_types = this->getSymbolDB().importedTypes( imports );
 
 				String* xml = cu.toXML( *imported_symbols, *imported_types );
 				{

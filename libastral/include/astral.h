@@ -7,7 +7,9 @@
 namespace astral {
 
 class PUBLIC Astral;
+class PUBLIC AstralExport;
 class PUBLIC CompilationUnit;
+class PUBLIC SymbolDB;
 
 };
 
