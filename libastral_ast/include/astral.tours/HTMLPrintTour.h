@@ -44,17 +44,34 @@ public:
 	{
 		astral::tokenizer::SourceToken& token = p.getElement();
 		const char* type = token.getTokenTypeString().getChars();
+		const char* name = token.getValue().getChars();
 		
-		switch ( token.getTokenType() )
-		{
-		case astral::tokenizer::SourceToken::PARAMETERS:
-		case astral::tokenizer::SourceToken::PARAMETER:
-			writer.print( openxds::base::FormattedString( "<div class='%s inline'>", type ) );
-			break;
-		default:
-			writer.print( openxds::base::FormattedString( "<div class='%s'>", type ) );
-			break;
-		}
+	switch ( token.getTokenType() )
+	{
+	case SourceToken::METHOD:
+		writer.print( openxds::base::FormattedString( "<div class='%s' name='%s'>", type, name ) );
+		break;
+	case astral::tokenizer::SourceToken::PARAMETERS:
+	case astral::tokenizer::SourceToken::ARGUMENTS:
+		writer.print( openxds::base::FormattedString( "<div class='%s inline' name='%s'>", type, name ) );
+		break;
+	case astral::tokenizer::SourceToken::METHODCALL:
+		writer.print( openxds::base::FormattedString( "<div class='%s inline' name='%s'>", type, name ) );
+		break;
+	case astral::tokenizer::SourceToken::PARAMETER:
+	case astral::tokenizer::SourceToken::ARGUMENT:
+		writer.print( openxds::base::FormattedString( "<div class='%s inline' name='%s'>", type, name ) );
+		break;
+	case SourceToken::BLOCK:
+		writer.print( openxds::base::FormattedString( "<div class='%s' name='%s'>", type, name ) );
+		break;
+	case SourceToken::DECLARATION:
+		writer.print( openxds::base::FormattedString( "<div class='%s' name='%s'>", type, name ) );
+		break;
+	default:
+		writer.print( openxds::base::FormattedString( "<div class='%s' name='%s'>", type, name ) );
+		break;
+	}
 		
 		this->depth++;
 	}

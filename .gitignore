@@ -8,3 +8,5 @@ xcuserdata
 html
 tex
 pdf
+*.xcproject
+*.xcworkspace

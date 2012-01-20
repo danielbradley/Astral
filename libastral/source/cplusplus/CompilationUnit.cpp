@@ -1,12 +1,19 @@
 #include <astral/AdvancedHTMLPrintTour.h>
+#include <astral/Codebase.h>
 #include <astral/CompilationUnit.h>
+#include <astral/MethodSignature.h>
+#include <astral/SymbolDB.h>
+#include <astral/VariableScopes.h>
 #include <astral.ast/AST.h>
 #include <astral.tours/HTMLPrintTour.h>
 #include <astral.tours/MemberDiscoveryTour.h>
 #include <astral.tours/MethodDiscoveryTour.h>
 #include <astral.tours/PackageDiscoveryTour.h>
+#include <astral.tours/PrintSourceTour.h>
 #include <astral.tokenizer/SourceToken.h>
 #include <openxds.io/PrintWriter.h>
+#include <openxds.io/OutputStream.h>
+#include <openxds.io/IOBuffer.h>
 #include <openxds.adt/IEIterator.h>
 #include <openxds.adt/IPosition.h>
 #include <openxds.adt/ITree.h>
@@ -16,6 +23,7 @@
 #include <openxds.base/StringBuffer.h>
 #include <openxds.base/StringTokenizer.h>
 #include <openxds.base/FormattedString.h>
+#include <openxds.base/Math.h>
 
 using namespace astral;
 using namespace astral::ast;
@@ -28,8 +36,13 @@ using namespace openxds::exceptions;
 using namespace openxds::io;
 using namespace openxds::io::exceptions;
 
+static String* searchForNameInLocalScopes( const char* name, const ISequence<IDictionary<String > >& scopes );
+static String*                  translate(       String* aString );
+static long              determineMinTabs( const String& aString );
+
 CompilationUnit::CompilationUnit( const char* location )
 {
+	this->location     = new String( location );
 	this->imports      = new Sequence<String>();
 	this->methods      = new Dictionary<IPosition<SourceToken> >();
 	this->members      = new Dictionary<IPosition<SourceToken> >();
@@ -37,6 +50,8 @@ CompilationUnit::CompilationUnit( const char* location )
 	this->packageName  = NULL;
 	this->className    = NULL;
 	this->extendsClass = NULL;
+	
+	this->importedTypes = new Dictionary<String>();
 }
 
 CompilationUnit::~CompilationUnit()
@@ -47,6 +62,8 @@ CompilationUnit::~CompilationUnit()
 	delete this->packageName;
 	delete this->className;
 	delete this->extendsClass;
+	
+	delete this->importedTypes;
 }
 
 void
@@ -60,6 +77,7 @@ CompilationUnit::initialise()
 		pdt.doGeneralTour( *root );
 		this->packageName  = pdt.getPackageName().asString();
 		this->className    = pdt.getClassName().asString();
+		this->fqName       = new FormattedString( "%s.%s", this->packageName->getChars(), this->className->getChars() );
 		this->extendsClass = pdt.getExtendsClass().asString();
 
 		MethodDiscoveryTour mdt1( this->ast->getTree(), *this->methods );
@@ -67,12 +85,21 @@ CompilationUnit::initialise()
 		
 		MemberDiscoveryTour mdt2( this->ast->getTree(), *this->members );
 		mdt2.doGeneralTour( *root );
+		
+		this->imports->insertLast( new String( this->getNamespace() ) );
 	}
 	delete root;
 }
 
 void
-CompilationUnit::registerSymbols( IDictionary<IEntry<CompilationUnit> >& symbols, const IEntry<CompilationUnit>& e ) const
+CompilationUnit::resetImportedTypes( const SymbolDB& symbolDB )
+{
+	delete this->importedTypes;
+	this->importedTypes = symbolDB.importedTypes( this->getImports() );
+}
+
+void
+CompilationUnit::registerSymbols( IDictionary<const IEntry<CompilationUnit> >& symbols, const IEntry<CompilationUnit>& e ) const
 {
 	IEIterator<IPosition<SourceToken> >* ie = this->methods->entries();
 	{
@@ -91,6 +118,8 @@ CompilationUnit::registerSymbols( IDictionary<IEntry<CompilationUnit> >& symbols
 					sb.append( this->getName() );
 					sb.append( '.' );
 					sb.append( *name );
+
+					//fprintf( stdout, "CU::registerSymbols: symbols.insert( \"%s\", e )\n", sb.getChars() );
 
 					delete symbols.insert( sb.getChars(), e.copy() );
 				}
@@ -131,17 +160,103 @@ CompilationUnit::registerSymbols( IDictionary<IEntry<CompilationUnit> >& symbols
 	delete ie;
 }
 
-IDictionary<IPosition<SourceToken> >&
-CompilationUnit::getMethods() const
+String*
+CompilationUnit::resolveFQTypeOfName( const char* name, const VariableScopes& scopes ) const
 {
-	return *this->methods;
+	String* type = this->resolveTypeOfName( name, scopes );
+
+	if ( ! type->contentEquals( "" ) )
+	{
+		const char* _type = type->getChars();
+
+		String* fq_type = this->resolveFQTypeOfType( _type );
+		if ( ! fq_type->contentEquals( "" ) )
+		{
+			delete type;
+			type = new String( *fq_type );
+		}
+		delete fq_type;
+	}
+	
+	//fprintf( stderr, "CompilationUnit::resolveFQTypeOfName( %s, scopes ) | %s\n", name, type->getChars() );
+	
+	return type;
 }
 
-IDictionary<IPosition<SourceToken> >&
-CompilationUnit::getMembers() const
+String*
+CompilationUnit::resolveFQTypeOfType( const char* type ) const
 {
-	return *this->members;
+	StringBuffer sb;
+
+	try
+	{
+		const IEntry<String>* e = this->importedTypes->find( type );
+		{
+			sb.append( e->getValue() );
+			sb.append( "." );
+			sb.append( type );
+		}
+		delete e;
+	}
+	catch ( NoSuchElementException* ex )
+	{
+		delete ex;
+	}
+
+	return sb.asString();
 }
+
+String*
+CompilationUnit::resolveTypeOfName( const char* name, const VariableScopes& scopes ) const
+{
+	String* type = NULL;
+
+	String _name( name );
+	if ( _name.contentEquals( "this" ) )
+	{
+		type = new String( this->getName() );
+	}
+	else
+	{
+		type = scopes.searchForTypeOfName( name );
+		if ( type->contentEquals( "" ) )
+		{
+			delete type;
+			type = this->resolveMemberType( name );
+		}
+	}
+
+	//fprintf( stderr, "CompilationUnit::resolveTypeOfName( %s, scopes ) | %s\n", name, type->getChars() );
+
+	return type;
+}
+
+//openxds::base::String* searchForNameInLocalScopes( const char* name, const VariableScopes& scopes )
+//{
+//	String* type = new String();
+//
+//	long nr = scopes.size() - 1;
+//	while ( 0 <= nr )
+//	{
+//		try
+//		{
+//			const IEntry<String>* e = scopes.get( (int) nr ).find( name );
+//			{
+//				delete type;
+//				type = new String( e->getValue() );
+//			}
+//			delete e;
+//			nr = -1;
+//		}
+//		catch ( NoSuchElementException* ex )
+//		{
+//			delete ex;
+//		}
+//		nr--;
+//	}
+//
+//	return type;
+//}
 
 String*
 CompilationUnit::resolveMemberType( const char* name ) const
@@ -195,158 +310,271 @@ CompilationUnit::resolveMethodType( const char* name ) const
 	return ret;
 }
 
-String&
-CompilationUnit::getNamespace() const
-{
-	return *this->packageName;
-}
-
-String&
-CompilationUnit::getName() const
-{
-	return *this->className;
-}
-
-String&
-CompilationUnit::getSuperclass() const
-{
-	return *this->extendsClass;
-}
-
-IList<String>&
-CompilationUnit::getImports() const
-{
-	return *this->imports;
-}
-
-void
-CompilationUnit::printHTML( IDictionary<IEntry<CompilationUnit> >& symbols, IDictionary<String>& importedTypes, PrintWriter& writer ) const
-{
-	ITree<SourceToken>&     ast  = this->ast->getTree();
-	IPosition<SourceToken>* root = ast.root();
-	{
-		AdvancedHTMLPrintTour* print_tour = new AdvancedHTMLPrintTour( ast, *this, symbols, importedTypes, writer );
-		print_tour->doGeneralTour( *root );
-		delete print_tour;
-	}
-	delete root;
-}
-
 String*
-CompilationUnit::toXML( IDictionary<IEntry<CompilationUnit> >& iSymbols, IDictionary<String>& iTypes )
+CompilationUnit::resolveMethodCallParametersToTypes( const String& parameters, const VariableScopes& scopes ) const
 {
 	StringBuffer sb;
 	{
-		const char* packageName  = this->packageName->getChars();
-		const char* className    = this->className->getChars();
-		const char* extendsClass = this->extendsClass->getChars();
-	
-		FormattedString tag( "\n<compilationUnit package='%s' class='%s' extends='%s'>\n", packageName, className, extendsClass );
-		sb.append( tag );
+		StringTokenizer st( parameters );
+		st.setDelimiter( ',' );
+		
+		while ( st.hasMoreTokens() )
 		{
+			String* token = st.nextToken();
 			{
-				IPIterator<String>* it = this->imports->positions();
+				if ( token->contentEquals( "VALUE" ) || token->contentEquals( "QUOTE" ) || token->contentEquals( "CHAR" ) )
 				{
-					while ( it->hasNext() )
-					{
-						IPosition<String>* p = it->next();
-						{
-							FormattedString import( "<import value='%s' />\n", p->getElement().getChars() );
-							sb.append( import );
-						}
-						delete p;
-					}
+					sb.append( *token );
+					sb.append( ',' );
 				}
-				delete it;
-			}
-			{
-				sb.append( "<importedTypes>\n" );
-				IEIterator<String>* ie = iTypes.entries();
+				else
 				{
-					while ( ie->hasNext() )
+					const char* name = token->getChars();
+					String* type = this->resolveTypeOfName( name, scopes );
 					{
-						IEntry<String>* e = ie->next();
-						{
-							FormattedString iType( "<importedType value='%s.%s' />\n", e->getValue().getChars(), e->getKey() );
-							sb.append( iType );
-						}
-						delete e;
+						sb.append( *type );
+						sb.append( ',' );
 					}
+					delete type;
 				}
-				delete ie;
-				sb.append( "</importedTypes>\n" );
 			}
-			{
-				sb.append( "<importedSymbols>\n" );
-				IEIterator<IEntry<CompilationUnit> >* ie = iSymbols.entries();
-				{
-					while ( ie->hasNext() )
-					{
-						IEntry<IEntry<CompilationUnit> >* e = ie->next();
-						{
-							FormattedString iSymbol( "<importedSymbol value='%s' />\n", e->getKey() );
-							sb.append( iSymbol );
-						}
-						delete e;
-					}
-				}
-				delete ie;
-				sb.append( "</importedSymbols>\n" );
-			}
-			{
-				IEIterator<IPosition<SourceToken> >* ie = this->methods->entries();
-				{
-					while ( ie->hasNext() )
-					{
-						IEntry<IPosition<SourceToken> >* entry = ie->next();
-						{
-							FormattedString method( "<method signature='%s' />\n", entry->getKey() );
-							sb.append( method );
-						}
-						delete entry;
-					}
-				}
-				delete ie;
-			}
-			{
-				IEIterator<IPosition<SourceToken> >* ie = this->members->entries();
-				{
-					while ( ie->hasNext() )
-					{
-						IEntry<IPosition<SourceToken> >* entry = ie->next();
-						{
-							FormattedString member( "<member signature='%s' />\n", entry->getKey() );
-							sb.append( member );
-						}
-						delete entry;
-					}
-				}
-				delete ie;
-			}
+			delete token;
 		}
-		sb.append( "</compilationUnit>" );
 	}
+	sb.removeLast();
+
+//	fprintf( stderr, "CompilationUnit::resolveMethodCallParametersToTypes( \"%s\", scopes ) | \"%s\"\n", parameters.getChars(), sb.getChars() );
+
 	return sb.asString();
 }
 
-void
-CompilationUnit::printMethods() const
+String*
+CompilationUnit::retrieveMethodContent( const MethodSignature& aMethodSignature ) const
 {
-	IEIterator<IPosition<SourceToken> >* ie = this->methods->entries();
+	String* ret = NULL;
+	try
 	{
-		while ( ie->hasNext() )
+		const char* _method = aMethodSignature.getMethodKey().getChars();
+		const IEntry<IPosition<SourceToken> >* e_method = this->methods->find( _method );
 		{
-			IEntry<IPosition<SourceToken> >* entry = ie->next();
+			const ITree<SourceToken>&     ast      = this->ast->getTree();
+			const IPosition<SourceToken>& p_method = e_method->getValue();
 			{
-				fprintf( stdout, "%s\n", entry->getKey() );
+				PrintWriter* writer = new PrintWriter( new OutputStream( new IOBuffer() ) );
+				PrintSourceTour* print_tour = new PrintSourceTour( ast, *writer );
+				{
+					print_tour->doGeneralTour( p_method );
+					ret = translate( dynamic_cast<IOBuffer&>( writer->getOutputStream().getIOEndPoint() ).toString() );
+				}
+				delete print_tour;
+				delete writer;
 			}
-			delete entry;
 		}
-	
+		delete e_method;
 	}
-	delete ie;
+	catch ( NoSuchElementException* ex )
+	{
+		delete ex;
+		ret = new String();
+	}
+
+	return ret;
 }
 
-void
-CompilationUnit::printMembers() const
-{}
+static String* translate( String* aString )
+{
+	long min_tabs = determineMinTabs( *aString );
+	
+	StringBuffer sb;
+	{
+		      long  t      = 0;
+		      long  max    = aString->getLength();
+		const char* string = aString->getChars();
+		for ( long i=0; i < max; i++ )
+		{
+			char ch = string[i];
+			switch ( ch )
+			{
+			case '\n':
+				sb.append( ch );
+				t = min_tabs;
+				while ( t && ('\t' == string[i+1]) )
+				{
+					t--;
+					i++;
+				}
+				break;
+			case '\t':
+				if ( 0 != i ) sb.append( ch );
+				break;
+			default:
+				sb.append( ch );
+			}
+		}
+	}
+	delete aString;
+	return sb.asString();
+}
+
+static long determineMinTabs( const String& aString )
+{
+	long min_tabs = 0;
+	long tabs     = 0;
+
+	long max      = aString.getLength();
+	for ( long i=0; i < max; i++ )
+	{
+		char ch = aString.charAt( i );
+		switch ( ch )
+		{
+		case '\t':
+			tabs++;
+			break;
+		case '\n':
+			min_tabs = Math::min( min_tabs, tabs );
+			break;
+		}
+	}
+	return Math::max( 1, min_tabs );
+}
+
+String*
+CompilationUnit::resolveMethodCallReturnType( const CodeBase& codebase, const ITree<SourceToken>& tree, const IPosition<SourceToken>& methodcall, const VariableScopes& scopes, const String& invocationClass ) const
+{
+	const char* name = methodcall.getElement().getValue().getChars();
+
+	String* return_type = new String();
+	{
+		String* arguments = this->resolveMethodCallArgumentTypes( codebase, tree, methodcall, scopes );
+		{
+			MethodSignature* method_signature = codebase.completeMethodSignature( invocationClass.getChars(), name, arguments->getChars() );
+			delete return_type;
+			return_type = new String( method_signature->getReturnType() );
+		}
+		delete arguments;
+	}
+	
+	fprintf( stderr, "CU::resolveMethodCallReturnType( codebase, tree, (%s), scopes, %s ) | %s\n", name, invocationClass.getChars(), return_type->getChars() );
+	
+	return return_type;
+}
+
+String*
+CompilationUnit::resolveMethodCallArgumentTypes( const CodeBase& codebase, const ITree<SourceToken>& tree, const IPosition<SourceToken>& methodcall, const VariableScopes& scopes ) const
+{
+	String* arguments = new String();
+
+	const IPIterator<SourceToken>* it = tree.children( methodcall );
+	while ( it->hasNext() )
+	{
+		const IPosition<SourceToken>* p = it->next();
+		{
+			switch ( p->getElement().getTokenType() )
+			{
+			case SourceToken::ARGUMENTS:
+				delete arguments;
+				arguments = this->recurseMethodArguments( codebase, tree, *p, scopes );
+				break;
+			default:
+				break;
+			}
+		}
+		delete p;
+	}
+	
+	return arguments;
+}
+
+String*
+CompilationUnit::recurseMethodArguments( const CodeBase& codebase, const ITree<SourceToken>& tree, const IPosition<SourceToken>& arguments, const VariableScopes& scopes ) const
+{
+	StringBuffer sb;
+
+	const IPIterator<SourceToken>* it = tree.children( arguments );
+	while ( it->hasNext() )
+	{
+		const IPosition<SourceToken>* p = it->next();
+		{
+			switch ( p->getElement().getTokenType() )
+			{
+			case SourceToken::ARGUMENT:
+				{
+					String* argument_type = this->recurseMethodArgument( codebase, tree, *p, scopes );
+					{
+						sb.append( *argument_type );
+						sb.append( "," );
+					}
+					delete argument_type;
+				}
+				break;
+			default:
+				break;
+			}
+		}
+		delete p;
+	}
+	
+	sb.removeLast();
+	const_cast<SourceToken&>( arguments.getElement() ).setValue( sb.asString() );
+	
+	return sb.asString();
+}
+
+String*
+CompilationUnit::recurseMethodArgument( const CodeBase& codebase, const ITree<SourceToken>& tree, const IPosition<SourceToken>& argument, const VariableScopes& scopes ) const
+{
+	String* argument_type = new String();
+	{
+		bool is_array = false;
+		String* invocation_class = new String( this->getFQName() );
+		const IPIterator<SourceToken>* it = tree.children( argument );
+		while ( it->hasNext() )
+		{
+			const IPosition<SourceToken>* p = it->next();
+			{
+				const char* value = p->getElement().getValue().getChars();
+			
+				switch ( p->getElement().getTokenType() )
+				{
+				case SourceToken::KEYWORD:
+					delete invocation_class;
+					invocation_class = this->resolveFQTypeOfName( value, scopes );
+					break;
+				case SourceToken::NAME:
+					delete invocation_class;
+					delete argument_type;
+					invocation_class = this->resolveTypeOfName( value, scopes );
+					argument_type    = new String( *invocation_class );
+					break;
+				case SourceToken::SYMBOL:
+					if ( p->getElement().getValue().contentEquals( "[" ) )
+					{
+						is_array = true;
+					}
+					break;
+				case SourceToken::FLOAT:
+				case SourceToken::INTEGER:
+					if ( ! is_array )
+					{
+						delete argument_type;
+						argument_type = new String( p->getElement().getTokenTypeString() );
+					}
+					break;
+				case SourceToken::METHODCALL:
+					delete argument_type;
+					argument_type = this->resolveMethodCallReturnType( codebase, tree, *p, scopes, *invocation_class );
+				default:
+					break;
+				}
+			}
+			delete p;
+		}
+		delete it;
+		delete invocation_class;
+	}
+
+	const_cast<SourceToken&>( argument.getElement() ).setValue( new String( *argument_type ) );
+	
+	return argument_type;
+}
+

@@ -21,12 +21,15 @@ MemberDiscoveryTour::visitPreorder( IPosition<SourceToken>& p, Result& r )
 	case SourceToken::MEMBER:
 		this->addMemberToDirectory( p );
 		break;
+	default:
+		break;
 	}
 }
 
 void
 MemberDiscoveryTour::addMemberToDirectory( IPosition<SourceToken>& p )
 {
+	String* mod  = new String();
 	String* type = new String();
 	String* name = new String();
 	{
@@ -45,6 +48,12 @@ MemberDiscoveryTour::addMemberToDirectory( IPosition<SourceToken>& p )
 					delete name;
 					name = new String( px->getElement().getValue() );
 					break;
+				case SourceToken::MODIFIER:
+					delete mod;
+					mod = new String( px->getElement().getValue() );
+					break;
+				default:
+					break;
 				}
 			}
 			delete px;
@@ -53,8 +62,13 @@ MemberDiscoveryTour::addMemberToDirectory( IPosition<SourceToken>& p )
 
 		StringBuffer sb;
 		{
+//			if ( 0 < mod->getLength() )
+//			{
+//				sb.append( *mod  );
+//				sb.append( ' '   );
+//			}
 			sb.append( *name );
-			sb.append( '|' );
+			sb.append( '|'   );
 			sb.append( *type );
 			delete this->members.insert( sb.getChars(), p.copy() );
 		}

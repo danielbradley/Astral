@@ -1,0 +1,37 @@
+.	Introduction
+
+The /Astral/ library provides an abstraction layer on top of the /Astral AST/ library,
+which parsing Java source files in /Abstract Syntax Trees/ (ASTs).
+The /Astral/ library presents ASTs encapsulated within /CompilationUnit/ classes,
+which may be federated using a /CodeBase/ class.
+
+This allows either the entire code base, or individual compilation units, to be interrogated for symbols.
+
+.	Object Life cycle
+
+A /CodeBase/ object is instantiated, then source files are added either inidividually - via /addSourceFile/ - or collectively - via - /addBaseDirectory/.
+The method /addBaseDirectory/ recursively searches for Java files from the specified base directory.
+
+The /sync/ method should be called after all source files have been added.
+This causes each compilation unit to have its imported symbols resolved.
+
+The Astral libraries are built upon the foundation of the open source OpenXDS libraries (see www.openxds.org).
+
+~
+#include <astral.h>
+#include <astral/CodeBase.h>
+#include <openxds.base/Environment.h>
+
+using namespace astral;
+using namespace openxds::base;
+
+int main( int argc, const char** argv )
+{
+	Environment::init( argc, argv );
+
+	CodeBase code_base;
+	code_base.addSourceFile( "some/source/File.java" );
+	code_base.addBaseDirectory( "." );
+	code_base.refreshImports();
+}
+~

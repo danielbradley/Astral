@@ -1,5 +1,9 @@
 #include "astral/AdvancedHTMLPrintTour.h"
+#include "astral/CodeBase.h"
 #include "astral/CompilationUnit.h"
+#include "astral/MemberSignature.h"
+#include "astral/MethodSignature.h"
+#include "astral/VariableScopes.h"
 
 #include <openxds.io/PrintWriter.h>
 #include <openxds.adt/IDictionary.h>
@@ -25,20 +29,19 @@ using namespace openxds::base;
 using namespace openxds::exceptions;
 using namespace openxds::io;
 
-static openxds::base::String* extract( const char* value );
+static openxds::base::String* extractJavadocWithoutFirstTab( const char* value );
 
 AdvancedHTMLPrintTour::AdvancedHTMLPrintTour(
 	      ITree<SourceToken>& tree,
-	const CompilationUnit& aCu,
-	const IDictionary<IEntry<CompilationUnit> >& symbols,
-	const IDictionary<String>& importedTypes,
-	PrintWriter& aWriter
+	const    CompilationUnit& aCu,
+    const           CodeBase& codebase,
+	             PrintWriter& aWriter
 )
-: openxds::adt::std::GeneralTour<SourceToken>( tree ), cu( aCu ), symbols( symbols ), importedTypes( importedTypes ), writer( aWriter )
+: openxds::adt::std::GeneralTour<SourceToken>( tree ), cu( aCu ), codebase( codebase), writer( aWriter )
 {
 	this->depth = -1;
 	
-	this->scopes = new Sequence<IDictionary<String> >();
+	this->scopes = new VariableScopes( this->tree );
 	this->lastType = new String();
 	this->methodCallTypes = new Sequence<String>();
 
@@ -60,32 +63,44 @@ AdvancedHTMLPrintTour::visitPreorder( openxds::adt::IPosition<SourceToken>& p, o
 	switch ( token.getTokenType() )
 	{
 	case SourceToken::METHOD:
-		delete this->scopes;
-		this->scopes = new Sequence<IDictionary<String> >();
-		this->scopes->addLast( new Dictionary<String>() );
-		writer.print( openxds::base::FormattedString( "<div class='%s'>", type ) );
+		this->scopes->reset();
+		this->scopes->addScope();
+		this->scopes->addMethodParameters( p );
+
+		writer.print( openxds::base::FormattedString( "<div class='%s' name='%s'>", type, token.getValue().getChars() ) );
+		writer.print( openxds::base::FormattedString( "<a name='%s'></a>", token.getValue().getChars() ) );
 		break;
+		
 	case astral::tokenizer::SourceToken::PARAMETERS:
+	case astral::tokenizer::SourceToken::ARGUMENTS:
 		writer.print( openxds::base::FormattedString( "<div class='%s inline' name='%s'>", type, token.getValue().getChars() ) );
 		break;
+
 	case astral::tokenizer::SourceToken::METHODCALL:
+	case astral::tokenizer::SourceToken::CONSTRUCTOR:
 		{
-			String* parameters = this->findMethodParameters( p );
-			token.setValue( parameters );
+//			String* parameters = this->cu.resolveMethodCallArgumentTypes( codebase, this->tree, p, *scopes );
+//			writer.print( openxds::base::FormattedString( "<div class='%s inline' name='%s' title='%s'>", type, token.getValue().getChars(), parameters->getChars() ) );
+//			token.setValue( parameters );
+			writer.print( openxds::base::FormattedString( "<div class='%s inline' name='%s'>", type, token.getValue().getChars() ) );
 		}
+		break;
+
+	case astral::tokenizer::SourceToken::PARAMETER:
+	case astral::tokenizer::SourceToken::ARGUMENT:
 		writer.print( openxds::base::FormattedString( "<div class='%s inline' name='%s'>", type, token.getValue().getChars() ) );
 		break;
-	case astral::tokenizer::SourceToken::PARAMETER:
-		writer.print( openxds::base::FormattedString( "<div class='%s inline'>", type ) );
-		break;
+
 	case SourceToken::BLOCK:
-		this->scopes->addLast( new Dictionary<String>() );
+		this->scopes->addScope();
 		writer.print( openxds::base::FormattedString( "<div class='%s'>", type ) );
 		break;
+
 	case SourceToken::DECLARATION:
-		this->addDeclarationToScope( p );
+		this->scopes->addVariableDeclaration( p );
 		writer.print( openxds::base::FormattedString( "<div class='%s'>", type ) );
 		break;
+
 	default:
 		writer.print( openxds::base::FormattedString( "<div class='%s'>", type ) );
 		break;
@@ -104,24 +119,18 @@ AdvancedHTMLPrintTour::visitPostorder( openxds::adt::IPosition<SourceToken>& p, 
 	switch ( token.getTokenType() )
 	{
 	case SourceToken::METHOD:
-		delete this->scopes;
-		this->scopes = new Sequence<IDictionary<String> >();
+		this->scopes->reset();
 		writer.print( "</div>" );
 		break;
 	case SourceToken::BLOCK:
-		if ( ! this->scopes->isEmpty() )
-		{
-			delete this->scopes->removeLast();
-		}
+		this->scopes->removeInnermostScope();
 		writer.print( "</div>" );
 		break;
 	case SourceToken::METHODCALL:
+	case SourceToken::CONSTRUCTOR:
 		delete this->lastType;
 		this->lastType = this->methodCallTypes->removeLast();
 		writer.print( "</div>" );
-
-		fprintf( stdout, "retrieving: %s\n", this->lastType->getChars() );
-
 		break;
 	default:
 		writer.print( "</div>" );
@@ -131,6 +140,8 @@ AdvancedHTMLPrintTour::visitPostorder( openxds::adt::IPosition<SourceToken>& p, 
 void
 AdvancedHTMLPrintTour::visitExternal( openxds::adt::IPosition<SourceToken>& p, openxds::adt::std::Result& r )
 {
+	bool constructor = false;
+
 	astral::tokenizer::SourceToken& token = p.getElement();
 	const char* value = token.getValue().getChars();
 	const char* ttype = token.getTokenTypeString().getChars();
@@ -149,7 +160,7 @@ AdvancedHTMLPrintTour::visitExternal( openxds::adt::IPosition<SourceToken>& p, o
 			this->lastType = new String();
 		}
 	}
-	
+
 	switch ( token.getTokenType() )
 	{
 	case SourceToken::SPACE:
@@ -170,65 +181,122 @@ AdvancedHTMLPrintTour::visitExternal( openxds::adt::IPosition<SourceToken>& p, o
 		writer.print( "<span>}</span>" );
 		break;
 	case SourceToken::STARTEXPRESSION:
-		writer.print( "<span>(</span>" );
+		writer.print( "<span class='STARTEXPRESSION'>(</span>" );
 		break;
 	case SourceToken::ENDEXPRESSION:
-		writer.print( "<span>)</span>" );
+		writer.print( "<span class='ENDEXPRESSION'>)</span>" );
 		break;
 	case SourceToken::COMMENT:
 	case SourceToken::JAVADOC:
-		str = extract( value );
+		str = extractJavadocWithoutFirstTab( value );
 		writer.print( openxds::base::FormattedString( "<pre class='%s'>%s</pre>", ttype, str->getChars() ) );
 		delete str;
 		break;
+	case SourceToken::CONSTRUCTOR:
+		constructor = true;
+	case SourceToken::KEYWORD:
 	case SourceToken::METHODCALL:
 	case SourceToken::NAME:
 		{
-			openxds::base::String* link = NULL;
+			String this_keyword( "this" );
+			openxds::base::String* fq_type = NULL;
 
-			bool is_method_call = (SourceToken::METHODCALL == token.getTokenType());
-			if ( is_method_call )
-			{
-				IPosition<SourceToken>* methodcall = this->tree.parent( p );
-				const String& parameters = methodcall->getElement().getValue();
-				{
-					link = this->resolveMethodCall( value, *this->lastType, parameters );
-					this->methodCallTypes->addLast( this->lastType->asString() );
+			bool is_keyword     = (SourceToken::KEYWORD    == token.getTokenType());
+			bool is_method_call = (SourceToken::METHODCALL == token.getTokenType()) || (SourceToken::CONSTRUCTOR == token.getTokenType());
 
-					fprintf( stdout, "%s --> %s\n", value, this->lastType->getChars() );
-				}
-				delete methodcall;
-			}
-			else
+			if ( is_keyword )
 			{
-				link = this->resolveLink( value, *this->lastType );
-			}
-			{
-				if ( link->contentEquals( "" ) )
+				if ( this_keyword.contentEquals( value ) )
 				{
-					writer.print( openxds::base::FormattedString( "<span class='%s'>%s</span>", ttype, value ) );
+					fq_type = this->cu.resolveFQTypeOfName( value, *this->scopes );
+				} else {
+					fq_type = new String();
 				}
-				else if ( is_method_call )
+			}
+			else if ( ! is_method_call )
+			{
+				//	If not a SourceToken::METHOD_CALL determines the fully qualified type of the SourceToken::NAME.
+				if ( this->lastType->contentEquals( "" ) )
 				{
-					StringBuffer sb;
-					sb.append( *link );
-					sb.append( ".html" );
-					sb.append( "#" );
-					sb.append( value );
-				
-					writer.print( openxds::base::FormattedString( "<a class='%s' href='%s'>%s</a>", ttype, sb.getChars(), value ) );
+					fq_type = this->cu.resolveFQTypeOfName( value, *this->scopes );
 				}
 				else
 				{
-					writer.print( openxds::base::FormattedString( "<a class='%s' href='%s.html'>%s</a>", ttype, link->getChars(), value ) );
+					MemberSignature* member_signature = this->codebase.completeMemberSignature( this->lastType->getChars(), value );
+					{
+						fq_type = this->cu.resolveFQTypeOfType( member_signature->getType().getChars() );
+					}
+					delete member_signature;
+				}
+			}
+			else if ( is_method_call )
+			{
+				IPosition<SourceToken>* parent = this->tree.parent( p );
+				{
+					if ( p.getElement().getValue().contentEquals( "createReaderFromFile" ) )
+					{
+						fprintf( stderr, "AHPT: Break\n" );
+					}
+
+					String* parameters  = this->cu.resolveMethodCallArgumentTypes( codebase, this->tree, *parent, *scopes );
+					{
+						String* invocation_class = this->lastType->contentEquals( "" ) ? new String( this->cu.getFQName() ) : new String( *this->lastType );
+						{
+							if ( constructor )
+							{
+								delete invocation_class;
+								invocation_class = this->cu.resolveFQTypeOfType( value );
+								//fprintf( stderr, "Astral::visitExternal: Constructor: %s.%s\n", invocation_class->getChars(), value );
+							}
+							MethodSignature* method_signature = this->codebase.completeMethodSignature( invocation_class->getChars(), value, parameters->getChars() );
+							{
+								this->lastType = this->cu.resolveFQTypeOfType( method_signature->getReturnType().getChars() );
+								this->methodCallTypes->addLast( this->lastType->asString() );
+								fq_type = new String( method_signature->getFQClass() );
+							}
+							delete method_signature;
+
+							if ( 0 < fq_type->getLength() )
+							{
+								FormattedString str( "%s.html#%s(%s)", fq_type->getChars(), value, parameters->getChars() );
+								writer.print( openxds::base::FormattedString( "<a class='%s' href='%s'>%s</a>", ttype, str.getChars(), value ) );
+							} else {
+								writer.print( openxds::base::FormattedString( "<a class='%s'>%s</a>", ttype, value ) );
+							}
+						}
+						delete invocation_class;
+					}
+					delete parameters;
+				}
+				delete parent;
+			}
+
+			{
+				if ( is_method_call )
+				{
+				}
+				else if ( this_keyword.contentEquals( value ) )
+				{
+					writer.print( openxds::base::FormattedString( "<span class='%s' title='%s'>%s</span>", ttype, fq_type->getChars(), value ) );
+				}
+				else if ( fq_type->contentEquals( "" ) )
+				{
+					writer.print( openxds::base::FormattedString( "<span class='%s'>%s</span>", ttype, value ) );
+				}
+				else if ( this->codebase.containsType( fq_type->getChars() ) )
+				{
+					writer.print( openxds::base::FormattedString( "<a class='%s' href='%s.html'>%s</a>", ttype, fq_type->getChars(), value ) );
+				}
+				else
+				{
+					writer.print( openxds::base::FormattedString( "<span class='%s'>%s</span>", ttype, value ) );
 				}
 			}
 			delete this->lastType;
-			this->lastType = link;
+			this->lastType = fq_type;
 		}
 		break;
 	case SourceToken::METHODNAME:
-		writer.print( openxds::base::FormattedString( "<a name='%s'></a>", value ) );
 		writer.print( openxds::base::FormattedString( "<span class='%s'>%s</span>", ttype, value ) );
 		break;
 	default:
@@ -236,386 +304,7 @@ AdvancedHTMLPrintTour::visitExternal( openxds::adt::IPosition<SourceToken>& p, o
 	}
 }
 
-void
-AdvancedHTMLPrintTour::addDeclarationToScope( openxds::adt::IPosition<SourceToken>& p )
-{
-	String* type = new String();
-	String* name = new String();
-	{
-		IPIterator<SourceToken>* it = this->tree.children( p );
-		while ( it->hasNext() )
-		{
-			IPosition<SourceToken>* pos = it->next();
-			{
-				switch ( pos->getElement().getTokenType() )
-				{
-				case SourceToken::TYPE:
-					delete type;
-					type = new String( pos->getElement().getValue() );
-					break;
-				case SourceToken::VARIABLE:
-					delete name;
-					name = new String( pos->getElement().getValue() );
-					break;
-				}
-			}
-			delete pos;
-		}
-		delete it;
-		
-		if ( ! this->scopes->isEmpty() )
-		{
-			this->scopes->getLast().insert( name->getChars(), new String( *type ) );
-		}
-	}
-	delete type;
-	delete name;
-}
-
-String*
-AdvancedHTMLPrintTour::resolveInvocationClass( const String& lastType )
-{
-	String* invocation_class = NULL;
-
-	if ( lastType.contentEquals( "" ) )
-	{
-		StringBuffer fq;
-		fq.append( this->cu.getNamespace() );
-		fq.append( '.' );
-		fq.append( this->cu.getName() );
-		invocation_class = fq.asString();
-	}
-	else
-	{
-		invocation_class = new String( lastType );
-	}
-
-	return invocation_class;
-}
-
-String*
-AdvancedHTMLPrintTour::resolveMethodSignature( const char* invokee, const char* name, const char* parameters )
-{
-	String* ret = new String();
-	{
-		StringBuffer call;
-		call.append( name );
-		call.append( "(" );
-		call.append( parameters );
-		call.append( ")" );
-
-		StringBuffer full;
-		full.append( invokee );
-		full.append( '.' );
-		full.append( call.getChars() );
-
-		try
-		{
-			IEntry<IEntry<CompilationUnit> >* entry = symbols.startsWith( full.getChars() );
-			{
-				CompilationUnit& cu = entry->getValue().getValue();
-				String* rtype = cu.resolveMethodType( call.getChars() );
-				{
-					StringBuffer sb;
-					sb.append( invokee );
-					sb.append( '|' );
-					sb.append( *rtype );
-
-					delete ret;
-					ret = sb.asString();
-				}
-				delete rtype;
-			}
-			delete entry;
-		}
-		catch ( NoSuchElementException* ex )
-		{
-			delete ex;
-			
-			try
-			{
-				IEntry<IEntry<CompilationUnit> >* entry = symbols.startsWith( invokee );
-				{
-					CompilationUnit& cu = entry->getValue().getValue();
-					const String& superclass = cu.getSuperclass();
-					String* super = this->resolveFQType( superclass.getChars() );
-					if ( ! super->contentEquals( "" ) )
-					{
-						delete ret;
-						ret = this->resolveMethodSignature( super->getChars(), name, parameters );
-					}
-					delete super;
-				}
-				delete entry;
-			}
-			catch ( NoSuchElementException* ex )
-			{
-				delete ex;
-			}
-		}
-	}
-	return ret;
-}
-
-/*
-
-Resolve method call is called to return the fully qualified signature of a method call.
-The *name* corresponds to the name of the invoked method.
-The *lastType* corresponds to the class type the method was invoked upon -- this may
-be an empty string in the case a method is invoked upon its own class.
-
-
-
-
-
-
-*/
-String*
-AdvancedHTMLPrintTour::resolveMethodCall( const char* name, const String& lastType, const String& parameters )
-{
-	String* link = new String();
-	{
-		//	1)	Get type invoked upon from either lastType or this cu.
-		
-		//	2)	Append method call and retrieve cu.
-		
-		//		a)	If cu is returned (a match) complete.
-		//		b)	If no cu is returned:
-		//			1.	relookup cu using type invoked upon.
-		//			2.	get superclass
-		//			3.  resolve to full type using resolveFQType
-		//			4.	Go to 2
-	
-		String* invocation_class = this->resolveInvocationClass( lastType );
-		String* return_type      = this->resolveMethodSignature( invocation_class->getChars(), name, parameters.getChars() );
-
-		StringTokenizer st( *return_type );
-		st.setDelimiter( '|' );
-
-		if ( st.hasMoreTokens() )
-		{
-			delete link;
-			link = st.nextToken();
-			
-			if ( st.hasMoreTokens() )
-			{
-				String* rtype = st.nextToken();
-				{
-					delete this->lastType;
-					this->lastType = this->resolveFQType( rtype->getChars() );
-				}
-				delete rtype;
-			}
-		}
-//		else
-//		{
-//			delete link;
-//			link = invocation_class->asString();
-//		}
-		delete return_type;
-		delete invocation_class;
-	}
-	return link;
-}
-	
-openxds::base::String*
-AdvancedHTMLPrintTour::resolveLink( const char* name, const String& lastType )
-{
-	String* link = new String();
-
-	if ( lastType.contentEquals( "" ) )
-	{
-		String* type = this->resolveTypeOfName( name );
-
-		if ( ! type->contentEquals( "" ) )
-		{
-			delete link;
-			link = this->resolveFQType( type->getChars() );
-		}
-		delete type;
-	}
-	else
-	{
-		// lastType = com.demo.other.Other
-		//	name = identifier
-		StringBuffer sb;
-		sb.append( lastType );
-		sb.append( '.' );
-		sb.append( name );
-		
-//		if ( isMethodCall )
-//		{
-//			sb.append( "()" );
-//		}
-		
-		try
-		{
-			IEntry<IEntry<CompilationUnit> >* e = this->symbols.find( sb.getChars() );
-			{
-				CompilationUnit& cu = e->getValue().getValue();
-				
-				String* type = NULL;
-
-//				if ( isMethodCall )
-//				{
-//					printf( "AHPT: Searching for: %s\n", sb.getChars() );
-//					type = cu.resolveMethodType( name );
-//				}
-//				else
-				{
-					type = cu.resolveMemberType( name );
-				}
-				if ( ! type->contentEquals( "" ) )
-				{
-					printf( "AHPT: found: %s\n", type->getChars() );
-
-					delete link;
-					link = this->resolveFQType( type->getChars() );
-				}
-				delete type;
-			}
-			delete e;
-		}
-		catch ( NoSuchElementException* ex )
-		{
-			delete ex;
-		}
-	}
-	
-	return link;
-}
-
-openxds::base::String*
-AdvancedHTMLPrintTour::resolveTypeOfName( const char* name )
-{
-	String* type = this->resolveTypeIfLocal( name );
-
-	if ( type->contentEquals( "" ) )
-	{
-		delete type;
-		type = this->cu.resolveMemberType( name );
-	}
-	return type;
-}
-
-openxds::base::String*
-AdvancedHTMLPrintTour::resolveTypeIfLocal( const char* name )
-{
-	String* type = new String();
-
-	int nr = this->scopes->size() - 1;
-	while ( 0 <= nr )
-	{
-		try
-		{
-			IEntry<String>* e = this->scopes->get( nr ).find( name );
-			{
-				delete type;
-				type = new String( e->getValue() );
-			}
-			delete e;
-			nr = -1;
-		}
-		catch ( NoSuchElementException* ex )
-		{
-			delete ex;
-		}
-		nr--;
-	}
-
-	return type;
-}
-
-String*
-AdvancedHTMLPrintTour::resolveFQType( const char* type )
-{
-	StringBuffer sb;
-
-	try
-	{
-		IEntry<String>* e = this->importedTypes.find( type );
-		{
-			sb.append( e->getValue() );
-			sb.append( "." );
-			sb.append( type );
-		}
-		delete e;
-	}
-	catch ( NoSuchElementException* ex )
-	{
-		delete ex;
-	}
-
-	return sb.asString();
-}
-
-String*
-AdvancedHTMLPrintTour::findMethodParameters( IPosition<SourceToken>& methodcall )
-{
-	String* parameters = new String();
-
-	IPIterator<SourceToken>* it = this->tree.children( methodcall );
-	while ( it->hasNext() )
-	{
-		IPosition<SourceToken>* p = it->next();
-		{
-			SourceToken& token = p->getElement();
-			switch ( token.getTokenType() )
-			{
-			case SourceToken::PARAMETERS:
-				delete parameters;
-				parameters = this->resolveMethodCallParametersToTypes( token.getValue() );
-				break;
-			}
-		}
-		delete p;
-	}
-	delete it;
-
-	return parameters;
-}
-
-String*
-AdvancedHTMLPrintTour::resolveMethodCallParametersToTypes( const String& parameters )
-{
-	StringBuffer sb;
-	{
-		StringTokenizer st( parameters );
-		st.setDelimiter( ',' );
-		
-		while ( st.hasMoreTokens() )
-		{
-			String* token = st.nextToken();
-			{
-				if ( token->contentEquals( "VALUE" ) || token->contentEquals( "QUOTE" ) || token->contentEquals( "CHAR" ) )
-				{
-					sb.append( *token );
-					sb.append( ',' );
-				}
-				else
-				{
-					String* type = resolveTypeOfName( token->getChars() );
-					{
-						sb.append( *type );
-						sb.append( ',' );
-					}
-					delete type;
-				}
-			}
-			delete token;
-		}
-	}
-	sb.removeLast();
-	return sb.asString();
-}
-
-
-
-
-
-
-
-static openxds::base::String* extract( const char* value )
+static openxds::base::String* extractJavadocWithoutFirstTab( const char* value )
 {
 	openxds::base::StringBuffer sb;
 	bool add = false;

@@ -29,6 +29,7 @@
 		656BD6A51413498600EAAF2C /* MemberDiscoveryTour.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 656BD6981413498600EAAF2C /* MemberDiscoveryTour.cpp */; };
 		656BD6A61413498600EAAF2C /* MethodDiscoveryTour.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 656BD6991413498600EAAF2C /* MethodDiscoveryTour.cpp */; };
 		656BD6A71413498600EAAF2C /* PackageDiscoveryTour.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 656BD69A1413498600EAAF2C /* PackageDiscoveryTour.cpp */; };
+		65A1717F147F7B5600467DB8 /* PrintSourceTour.h in Headers */ = {isa = PBXBuildFile; fileRef = 65A1717E147F7B5600467DB8 /* PrintSourceTour.h */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -59,6 +60,7 @@
 		656BD6981413498600EAAF2C /* MemberDiscoveryTour.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MemberDiscoveryTour.cpp; sourceTree = "<group>"; };
 		656BD6991413498600EAAF2C /* MethodDiscoveryTour.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MethodDiscoveryTour.cpp; sourceTree = "<group>"; };
 		656BD69A1413498600EAAF2C /* PackageDiscoveryTour.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PackageDiscoveryTour.cpp; sourceTree = "<group>"; };
+		65A1717E147F7B5600467DB8 /* PrintSourceTour.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PrintSourceTour.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -149,6 +151,7 @@
 				656BD6921413498600EAAF2C /* MemberDiscoveryTour.h */,
 				656BD6931413498600EAAF2C /* MethodDiscoveryTour.h */,
 				656BD6941413498600EAAF2C /* PackageDiscoveryTour.h */,
+				65A1717E147F7B5600467DB8 /* PrintSourceTour.h */,
 			);
 			path = astral.tours;
 			sourceTree = "<group>";
@@ -186,6 +189,7 @@
 				656BD6A11413498600EAAF2C /* MemberDiscoveryTour.h in Headers */,
 				656BD6A21413498600EAAF2C /* MethodDiscoveryTour.h in Headers */,
 				656BD6A31413498600EAAF2C /* PackageDiscoveryTour.h in Headers */,
+				65A1717F147F7B5600467DB8 /* PrintSourceTour.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -214,6 +218,9 @@
 /* Begin PBXProject section */
 		656BD6761413492600EAAF2C /* Project object */ = {
 			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0420;
+			};
 			buildConfigurationList = 656BD6791413492600EAAF2C /* Build configuration list for PBXProject "libastral_ast" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
@@ -301,10 +308,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				EXECUTABLE_PREFIX = "";
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug\"",
-				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -313,10 +317,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				EXECUTABLE_PREFIX = "";
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug\"",
-				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

@@ -42,6 +42,8 @@ PackageDiscoveryTour::visitPreorder( IPosition<SourceToken>& p, Result& r )
 	case SourceToken::IMPORT:
 		this->addImport( p );
 		break;
+	default:
+		break;
 	}
 }
 
@@ -75,6 +77,8 @@ PackageDiscoveryTour::visitExternal( IPosition<SourceToken>& p, Result& r )
 			this->extendsClass = new String( _token );
 			this->capture = false;
 		}
+		break;
+	default:
 		break;
 	}
 }
@@ -138,6 +142,8 @@ PackageDiscoveryTour::extractSelection( IPosition<SourceToken>& p )
 				break;
 			case SourceToken::SELECTOR:
 				sb.append( p1->getElement().getValue() );
+				break;
+			default:
 				break;
 			}
 		}

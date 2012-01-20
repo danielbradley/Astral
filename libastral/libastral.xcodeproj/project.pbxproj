@@ -7,18 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		655AC8FE1416579200143208 /* SymbolDB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 655AC8FD1416579200143208 /* SymbolDB.cpp */; };
-		655AC903141657BE00143208 /* SymbolDB.h in Headers */ = {isa = PBXBuildFile; fileRef = 655AC902141657BE00143208 /* SymbolDB.h */; };
-		655FC7BC1414609200AE5A9F /* AbstractSyntax.h in Headers */ = {isa = PBXBuildFile; fileRef = 655FC7AE1414609200AE5A9F /* AbstractSyntax.h */; };
-		655FC7BD1414609200AE5A9F /* AdvancedHTMLPrintTour.h in Headers */ = {isa = PBXBuildFile; fileRef = 655FC7AF1414609200AE5A9F /* AdvancedHTMLPrintTour.h */; };
-		655FC7BE1414609200AE5A9F /* Astral.h in Headers */ = {isa = PBXBuildFile; fileRef = 655FC7B01414609200AE5A9F /* Astral.h */; };
-		655FC7BF1414609200AE5A9F /* AstralExport.h in Headers */ = {isa = PBXBuildFile; fileRef = 655FC7B11414609200AE5A9F /* AstralExport.h */; };
-		655FC7C01414609200AE5A9F /* CompilationUnit.h in Headers */ = {isa = PBXBuildFile; fileRef = 655FC7B21414609200AE5A9F /* CompilationUnit.h */; };
-		655FC7C11414609200AE5A9F /* astral.h in Headers */ = {isa = PBXBuildFile; fileRef = 655FC7B31414609200AE5A9F /* astral.h */; };
-		655FC7C21414609200AE5A9F /* AdvancedHTMLPrintTour.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 655FC7B61414609200AE5A9F /* AdvancedHTMLPrintTour.cpp */; };
-		655FC7C31414609200AE5A9F /* Astral.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 655FC7B71414609200AE5A9F /* Astral.cpp */; };
-		655FC7C41414609200AE5A9F /* AstralExport.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 655FC7B81414609200AE5A9F /* AstralExport.cpp */; };
-		655FC7C51414609200AE5A9F /* CompilationUnit.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 655FC7B91414609200AE5A9F /* CompilationUnit.cpp */; };
+		655ADA49148F2606001C87D1 /* AdvancedHTMLPrintTour.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 655ADA41148F2606001C87D1 /* AdvancedHTMLPrintTour.cpp */; };
+		655ADA4A148F2606001C87D1 /* AstralExport.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 655ADA42148F2606001C87D1 /* AstralExport.cpp */; };
+		655ADA4B148F2606001C87D1 /* AstralFactory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 655ADA43148F2606001C87D1 /* AstralFactory.cpp */; };
+		655ADA4C148F2606001C87D1 /* CodeBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 655ADA44148F2606001C87D1 /* CodeBase.cpp */; };
+		655ADA4D148F2606001C87D1 /* CompilationUnit.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 655ADA45148F2606001C87D1 /* CompilationUnit.cpp */; };
+		655ADA4E148F2606001C87D1 /* MemberSignature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 655ADA46148F2606001C87D1 /* MemberSignature.cpp */; };
+		655ADA4F148F2606001C87D1 /* MethodSignature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 655ADA47148F2606001C87D1 /* MethodSignature.cpp */; };
+		655ADA50148F2606001C87D1 /* SymbolDB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 655ADA48148F2606001C87D1 /* SymbolDB.cpp */; };
 		655FC7D4141460B900AE5A9F /* libastral_ast.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 655FC7C7141460B900AE5A9F /* libastral_ast.dylib */; };
 		655FC7D5141460B900AE5A9F /* libastral_tokenizer.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 655FC7C8141460B900AE5A9F /* libastral_tokenizer.dylib */; };
 		655FC7D6141460B900AE5A9F /* libopenxds_adt_std.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 655FC7C9141460B900AE5A9F /* libopenxds_adt_std.dylib */; };
@@ -31,29 +27,20 @@
 		655FC7DD141460B900AE5A9F /* libopenxds_core_threads.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 655FC7D0141460B900AE5A9F /* libopenxds_core_threads.dylib */; };
 		655FC7DE141460B900AE5A9F /* libopenxds_io.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 655FC7D1141460B900AE5A9F /* libopenxds_io.dylib */; };
 		655FC7E0141460B900AE5A9F /* libopenxds_util.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 655FC7D3141460B900AE5A9F /* libopenxds_util.dylib */; };
-		65941B95141480EB0043B182 /* AstralFactory.h in Headers */ = {isa = PBXBuildFile; fileRef = 65941B94141480EB0043B182 /* AstralFactory.h */; };
-		65941B98141480F80043B182 /* AstralFactory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 65941B97141480F80043B182 /* AstralFactory.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		655AC8431415BC5300143208 /* mtx */ = {isa = PBXFileReference; lastKnownFileType = folder; path = mtx; sourceTree = "<group>"; };
-		655AC8FD1416579200143208 /* SymbolDB.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SymbolDB.cpp; sourceTree = "<group>"; };
-		655AC902141657BE00143208 /* SymbolDB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SymbolDB.h; sourceTree = "<group>"; };
+		655ADA3F148F25C8001C87D1 /* source */ = {isa = PBXFileReference; lastKnownFileType = folder; path = source; sourceTree = "<group>"; };
+		655ADA40148F25D0001C87D1 /* include */ = {isa = PBXFileReference; lastKnownFileType = folder; path = include; sourceTree = "<group>"; };
+		655ADA41148F2606001C87D1 /* AdvancedHTMLPrintTour.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AdvancedHTMLPrintTour.cpp; path = source/cplusplus/AdvancedHTMLPrintTour.cpp; sourceTree = "<group>"; };
+		655ADA42148F2606001C87D1 /* AstralExport.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AstralExport.cpp; path = source/cplusplus/AstralExport.cpp; sourceTree = "<group>"; };
+		655ADA43148F2606001C87D1 /* AstralFactory.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AstralFactory.cpp; path = source/cplusplus/AstralFactory.cpp; sourceTree = "<group>"; };
+		655ADA44148F2606001C87D1 /* CodeBase.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CodeBase.cpp; path = source/cplusplus/CodeBase.cpp; sourceTree = "<group>"; };
+		655ADA45148F2606001C87D1 /* CompilationUnit.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CompilationUnit.cpp; path = source/cplusplus/CompilationUnit.cpp; sourceTree = "<group>"; };
+		655ADA46148F2606001C87D1 /* MemberSignature.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MemberSignature.cpp; path = source/cplusplus/MemberSignature.cpp; sourceTree = "<group>"; };
+		655ADA47148F2606001C87D1 /* MethodSignature.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MethodSignature.cpp; path = source/cplusplus/MethodSignature.cpp; sourceTree = "<group>"; };
+		655ADA48148F2606001C87D1 /* SymbolDB.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SymbolDB.cpp; path = source/cplusplus/SymbolDB.cpp; sourceTree = "<group>"; };
 		655FC7A014145F3600AE5A9F /* libastral.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libastral.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		655FC7A81414609200AE5A9F /* OpenXDS.link */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = OpenXDS.link; sourceTree = "<group>"; };
-		655FC7A91414609200AE5A9F /* OpenXDS_Core.link */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = OpenXDS_Core.link; sourceTree = "<group>"; };
-		655FC7AA1414609200AE5A9F /* libastral_ast.link */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = libastral_ast.link; sourceTree = "<group>"; };
-		655FC7AB1414609200AE5A9F /* libastral_tokenizer.link */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = libastral_tokenizer.link; sourceTree = "<group>"; };
-		655FC7AE1414609200AE5A9F /* AbstractSyntax.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AbstractSyntax.h; sourceTree = "<group>"; };
-		655FC7AF1414609200AE5A9F /* AdvancedHTMLPrintTour.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AdvancedHTMLPrintTour.h; sourceTree = "<group>"; };
-		655FC7B01414609200AE5A9F /* Astral.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Astral.h; sourceTree = "<group>"; };
-		655FC7B11414609200AE5A9F /* AstralExport.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AstralExport.h; sourceTree = "<group>"; };
-		655FC7B21414609200AE5A9F /* CompilationUnit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CompilationUnit.h; sourceTree = "<group>"; };
-		655FC7B31414609200AE5A9F /* astral.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = astral.h; sourceTree = "<group>"; };
-		655FC7B61414609200AE5A9F /* AdvancedHTMLPrintTour.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AdvancedHTMLPrintTour.cpp; sourceTree = "<group>"; };
-		655FC7B71414609200AE5A9F /* Astral.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Astral.cpp; sourceTree = "<group>"; };
-		655FC7B81414609200AE5A9F /* AstralExport.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AstralExport.cpp; sourceTree = "<group>"; };
-		655FC7B91414609200AE5A9F /* CompilationUnit.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CompilationUnit.cpp; sourceTree = "<group>"; };
 		655FC7C7141460B900AE5A9F /* libastral_ast.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libastral_ast.dylib; path = "../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug/libastral_ast.dylib"; sourceTree = "<group>"; };
 		655FC7C8141460B900AE5A9F /* libastral_tokenizer.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libastral_tokenizer.dylib; path = "../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug/libastral_tokenizer.dylib"; sourceTree = "<group>"; };
 		655FC7C9141460B900AE5A9F /* libopenxds_adt_std.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_adt_std.dylib; path = "../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug/libopenxds_adt_std.dylib"; sourceTree = "<group>"; };
@@ -66,8 +53,6 @@
 		655FC7D0141460B900AE5A9F /* libopenxds_core_threads.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_core_threads.dylib; path = "../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug/libopenxds_core_threads.dylib"; sourceTree = "<group>"; };
 		655FC7D1141460B900AE5A9F /* libopenxds_io.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_io.dylib; path = "../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug/libopenxds_io.dylib"; sourceTree = "<group>"; };
 		655FC7D3141460B900AE5A9F /* libopenxds_util.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_util.dylib; path = "../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug/libopenxds_util.dylib"; sourceTree = "<group>"; };
-		65941B94141480EB0043B182 /* AstralFactory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AstralFactory.h; sourceTree = "<group>"; };
-		65941B97141480F80043B182 /* AstralFactory.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AstralFactory.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -93,25 +78,17 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		655AC900141657BE00143208 /* include */ = {
-			isa = PBXGroup;
-			children = (
-				655AC901141657BE00143208 /* astral */,
-			);
-			path = include;
-			sourceTree = "<group>";
-		};
-		655AC901141657BE00143208 /* astral */ = {
-			isa = PBXGroup;
-			children = (
-				655AC902141657BE00143208 /* SymbolDB.h */,
-			);
-			path = astral;
-			sourceTree = "<group>";
-		};
 		655FC79514145F3600AE5A9F = {
 			isa = PBXGroup;
 			children = (
+				655ADA41148F2606001C87D1 /* AdvancedHTMLPrintTour.cpp */,
+				655ADA42148F2606001C87D1 /* AstralExport.cpp */,
+				655ADA43148F2606001C87D1 /* AstralFactory.cpp */,
+				655ADA44148F2606001C87D1 /* CodeBase.cpp */,
+				655ADA45148F2606001C87D1 /* CompilationUnit.cpp */,
+				655ADA46148F2606001C87D1 /* MemberSignature.cpp */,
+				655ADA47148F2606001C87D1 /* MethodSignature.cpp */,
+				655ADA48148F2606001C87D1 /* SymbolDB.cpp */,
 				655FC7C7141460B900AE5A9F /* libastral_ast.dylib */,
 				655FC7C8141460B900AE5A9F /* libastral_tokenizer.dylib */,
 				655FC7C9141460B900AE5A9F /* libopenxds_adt_std.dylib */,
@@ -124,9 +101,8 @@
 				655FC7D0141460B900AE5A9F /* libopenxds_core_threads.dylib */,
 				655FC7D1141460B900AE5A9F /* libopenxds_io.dylib */,
 				655FC7D3141460B900AE5A9F /* libopenxds_util.dylib */,
-				655FC7A71414609200AE5A9F /* dep */,
-				655FC7AC1414609200AE5A9F /* include */,
-				655FC7B41414609200AE5A9F /* source */,
+				655ADA40148F25D0001C87D1 /* include */,
+				655ADA3F148F25C8001C87D1 /* source */,
 				655FC7A114145F3600AE5A9F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -139,62 +115,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		655FC7A71414609200AE5A9F /* dep */ = {
-			isa = PBXGroup;
-			children = (
-				655FC7A81414609200AE5A9F /* OpenXDS.link */,
-				655FC7A91414609200AE5A9F /* OpenXDS_Core.link */,
-				655FC7AA1414609200AE5A9F /* libastral_ast.link */,
-				655FC7AB1414609200AE5A9F /* libastral_tokenizer.link */,
-			);
-			path = dep;
-			sourceTree = "<group>";
-		};
-		655FC7AC1414609200AE5A9F /* include */ = {
-			isa = PBXGroup;
-			children = (
-				655FC7AD1414609200AE5A9F /* astral */,
-				655FC7B31414609200AE5A9F /* astral.h */,
-			);
-			path = include;
-			sourceTree = "<group>";
-		};
-		655FC7AD1414609200AE5A9F /* astral */ = {
-			isa = PBXGroup;
-			children = (
-				65941B94141480EB0043B182 /* AstralFactory.h */,
-				655FC7AE1414609200AE5A9F /* AbstractSyntax.h */,
-				655FC7AF1414609200AE5A9F /* AdvancedHTMLPrintTour.h */,
-				655FC7B01414609200AE5A9F /* Astral.h */,
-				655FC7B11414609200AE5A9F /* AstralExport.h */,
-				655FC7B21414609200AE5A9F /* CompilationUnit.h */,
-			);
-			path = astral;
-			sourceTree = "<group>";
-		};
-		655FC7B41414609200AE5A9F /* source */ = {
-			isa = PBXGroup;
-			children = (
-				655AC8431415BC5300143208 /* mtx */,
-				655FC7B51414609200AE5A9F /* cplusplus */,
-				655AC900141657BE00143208 /* include */,
-			);
-			path = source;
-			sourceTree = "<group>";
-		};
-		655FC7B51414609200AE5A9F /* cplusplus */ = {
-			isa = PBXGroup;
-			children = (
-				65941B97141480F80043B182 /* AstralFactory.cpp */,
-				655FC7B61414609200AE5A9F /* AdvancedHTMLPrintTour.cpp */,
-				655FC7B71414609200AE5A9F /* Astral.cpp */,
-				655FC7B81414609200AE5A9F /* AstralExport.cpp */,
-				655FC7B91414609200AE5A9F /* CompilationUnit.cpp */,
-				655AC8FD1416579200143208 /* SymbolDB.cpp */,
-			);
-			path = cplusplus;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -202,14 +122,6 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				655FC7BC1414609200AE5A9F /* AbstractSyntax.h in Headers */,
-				655FC7BD1414609200AE5A9F /* AdvancedHTMLPrintTour.h in Headers */,
-				655FC7BE1414609200AE5A9F /* Astral.h in Headers */,
-				655FC7BF1414609200AE5A9F /* AstralExport.h in Headers */,
-				655FC7C01414609200AE5A9F /* CompilationUnit.h in Headers */,
-				655FC7C11414609200AE5A9F /* astral.h in Headers */,
-				65941B95141480EB0043B182 /* AstralFactory.h in Headers */,
-				655AC903141657BE00143208 /* SymbolDB.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -238,6 +150,9 @@
 /* Begin PBXProject section */
 		655FC79714145F3600AE5A9F /* Project object */ = {
 			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0420;
+			};
 			buildConfigurationList = 655FC79A14145F3600AE5A9F /* Build configuration list for PBXProject "libastral" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
@@ -260,12 +175,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				655FC7C21414609200AE5A9F /* AdvancedHTMLPrintTour.cpp in Sources */,
-				655FC7C31414609200AE5A9F /* Astral.cpp in Sources */,
-				655FC7C41414609200AE5A9F /* AstralExport.cpp in Sources */,
-				655FC7C51414609200AE5A9F /* CompilationUnit.cpp in Sources */,
-				65941B98141480F80043B182 /* AstralFactory.cpp in Sources */,
-				655AC8FE1416579200143208 /* SymbolDB.cpp in Sources */,
+				655ADA49148F2606001C87D1 /* AdvancedHTMLPrintTour.cpp in Sources */,
+				655ADA4A148F2606001C87D1 /* AstralExport.cpp in Sources */,
+				655ADA4B148F2606001C87D1 /* AstralFactory.cpp in Sources */,
+				655ADA4C148F2606001C87D1 /* CodeBase.cpp in Sources */,
+				655ADA4D148F2606001C87D1 /* CompilationUnit.cpp in Sources */,
+				655ADA4E148F2606001C87D1 /* MemberSignature.cpp in Sources */,
+				655ADA4F148F2606001C87D1 /* MethodSignature.cpp in Sources */,
+				655ADA50148F2606001C87D1 /* SymbolDB.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -329,10 +246,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				EXECUTABLE_PREFIX = "";
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug\"",
-				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -341,10 +255,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				EXECUTABLE_PREFIX = "";
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug\"",
-				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

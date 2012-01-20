@@ -66,6 +66,17 @@ SourceTokenizer::pushback( SourceToken* token )
 	this->tokenQueue->addFirst( token );
 }
 
+static SourceToken::TokenType determineNumberType( const String& str )
+{
+	SourceToken::TokenType ttype = SourceToken::INTEGER;
+
+	if ( str.contains( "." ) )
+	{
+		ttype = SourceToken::FLOAT;
+	}
+	return ttype;
+}
+
 bool
 SourceTokenizer::hasMoreTokens() throw (IOException*)
 {
@@ -88,7 +99,7 @@ SourceTokenizer::hasMoreTokens() throw (IOException*)
 				this->tokenQueue->addLast( new SourceToken( SourceToken::ESCAPED, str ) );
 				break;
 			case ITextToken::NUMBER:
-				this->tokenQueue->addLast( new SourceToken( SourceToken::NUMBER, str ) );
+				this->tokenQueue->addLast( new SourceToken( determineNumberType( *str ), str ) );
 				break;
 			case ITextToken::NEWLINE:
 				this->tokenQueue->addLast( new SourceToken( SourceToken::NEWLINE, str ) );
@@ -138,6 +149,8 @@ SourceTokenizer::parseWhitespace( const ITextToken& token )
 			break;
 		case ITextToken::WHITESPACE:
 			sttype = SourceToken::WHITESPACE;
+			break;
+		default:
 			break;
 		}
 
@@ -628,6 +641,8 @@ SourceTokenizer::parseComment( openxds::base::String* word )
 							}
 							delete ws;
 						}
+					default:
+						break;
 					}
 					loop = false;
 				}
@@ -708,6 +723,8 @@ static bool processExpression( ISequence<SourceToken>& tokens, SourceTokenizer& 
 		case SourceToken::ENDEXPRESSION:
 			level--;
 			break;
+		default:
+			break;
 		}
 		
 		if ( 0 == level) loop = false;
@@ -722,6 +739,9 @@ static bool processExpression( ISequence<SourceToken>& tokens, SourceTokenizer& 
 SourceToken::TokenType
 SourceTokenizer::sneakyPeek()
 {
+	StringBuffer sb;
+	const char*  str = "";
+
 	SourceToken::TokenType ret = SourceToken::STATEMENT;
 	
 	Sequence<SourceToken> tokens;
@@ -738,13 +758,20 @@ SourceTokenizer::sneakyPeek()
 	bool is_package = false;
 	bool is_import  = false;
 	bool is_else    = false;
+	bool is_throws  = false;
 	
 	bool loop = true;
 	while ( loop && this->hasMoreTokens() )
 	{
 		SourceToken* token = this->nextToken();
 		tokens.addLast( token );
-
+		
+		//	DEBUG
+		{
+			sb.append( token->getValue() );
+			str = sb.getChars();
+		}
+		
 		switch ( token->getTokenType() )
 		{
 		case SourceToken::SPACE:
@@ -757,6 +784,7 @@ SourceTokenizer::sneakyPeek()
 			     if ( token->getValue().contentEquals( "package" ) ) { is_package = true; }
 			else if ( token->getValue().contentEquals( "import"  ) ) { is_import  = true; }
 			else if ( token->getValue().contentEquals( "else"    ) ) { is_else    = true; }
+			else if ( token->getValue().contentEquals( "throws"  ) ) { is_throws  = true; }
 			break;
 		case SourceToken::TYPE:
 		case SourceToken::WORD:
@@ -799,9 +827,14 @@ SourceTokenizer::sneakyPeek()
 			blocks++;
 			loop = false;
 			break;
+		case SourceToken::ENDBLOCK:
+			loop = false;
+			break;
 		case SourceToken::STOP:
 			stops++;
 			loop = false;
+			break;
+		default:
 			break;
 		}
 	}
@@ -819,7 +852,12 @@ SourceTokenizer::sneakyPeek()
 		{
 			//	class/interface, enum, if, else, while, switch.
 
-			if ( exp || is_else )
+			if ( is_throws )
+			{
+				//	method
+				ret = SourceToken::METHOD;
+			}
+			else if ( exp || is_else )
 			{
 				// if, else if, while, switch
 				ret = SourceToken::STATEMENT;
@@ -851,7 +889,22 @@ SourceTokenizer::sneakyPeek()
 	{
 		//	package, import, declaration (member, local), statement, lval, rval.
 		
-		if ( words )
+		if ( keywords )
+		{
+			if ( is_package )
+			{
+				ret = SourceToken::PACKAGE;
+			}
+			else if ( is_import )
+			{
+				ret = SourceToken::IMPORT;
+			}
+			else
+			{
+				ret = SourceToken::STATEMENT;
+			}
+		}
+		else if ( words )
 		{
 			if ( is_package )
 			{

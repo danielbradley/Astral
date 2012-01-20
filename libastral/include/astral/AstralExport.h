@@ -1,7 +1,7 @@
 #ifndef ASTRAL_ASTRALEXPORT_H
 #define ASTRAL_ASTRALEXPORT_H
 
-#include "astral/Astral.h"
+#include "astral/CodeBase.h"
 #include "astral.h"
 #include <openxds.base.h>
 #include <openxds.adt.h>
@@ -9,11 +9,11 @@
 
 namespace astral {
 	
-class AstralExport : public Astral
+class XAstralExport : public CodeBase
 {
 public:
-	AstralExport();
-	virtual ~AstralExport();
+	XAstralExport();
+	virtual ~XAstralExport();
 
 	virtual void printExposedSymbols() const;
 

@@ -2,6 +2,12 @@
 <Workspace
    version = "1.0">
    <FileRef
+      location = "group:java2html/java2html.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:classinfo/classinfo.xcodeproj">
+   </FileRef>
+   <FileRef
       location = "group:astral/astral.xcodeproj">
    </FileRef>
    <FileRef
@@ -12,6 +18,9 @@
    </FileRef>
    <FileRef
       location = "group:libastral_tokenizer/libastral_tokenizer.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:../../../../../XCode/OpenXDS/libopenxds_cocoa/libopenxds_cocoa.xcodeproj">
    </FileRef>
    <FileRef
       location = "group:../../OpenXDS/0.x/libopenxds_util/libopenxds_util.xcodeproj">

@@ -25,6 +25,8 @@ MethodDiscoveryTour::visitPreorder( IPosition<SourceToken>& p, Result& r )
 		
 			delete this->current;
 			this->current = new StringBuffer();
+			delete this->type;
+			this->type = new String();
 //			this->current->append( *this->packageName );
 //			this->current->append( '.' );
 //			this->current->append( *this->className );
@@ -35,6 +37,8 @@ MethodDiscoveryTour::visitPreorder( IPosition<SourceToken>& p, Result& r )
 		break;
 	case SourceToken::PACKAGE:
 		this->setPackageName( p );
+		break;
+	default:
 		break;
 	}
 }
@@ -57,6 +61,10 @@ MethodDiscoveryTour::visitPostorder( IPosition<SourceToken>& p, Result& r )
 			this->current->append( '|' );
 			this->current->append( *this->type );
 			
+			#ifdef DEBUG_ASTRAL_AST
+			fprintf( stderr, "methods.insert( %s, p )\n", this->current->getChars() );
+			#endif
+			
 			delete this->methods.insert( this->current->getChars(), this->methodP->copy() );
 			delete this->current;
 			this->current = new StringBuffer();
@@ -67,6 +75,8 @@ MethodDiscoveryTour::visitPostorder( IPosition<SourceToken>& p, Result& r )
 			this->methodP = NULL;
 		}
 		this->inParameters = false;
+		break;
+	default:
 		break;
 	}
 }
@@ -85,16 +95,38 @@ MethodDiscoveryTour::visitExternal( IPosition<SourceToken>& p, Result& r )
 	case SourceToken::METHODNAME:
 		this->current->append( token.getValue() );
 		this->current->append( '(' );
+		
+		if ( token.getValue().contentEquals( *this->className ) )
+		{
+			delete this->type;
+			this->type = new String( *this->className );
+		}
 		break;
 	case SourceToken::TYPE:
 		if ( this->inParameters )
 		{
-			this->current->append( token.getValue() );
+			const String& value = token.getValue();
+			if ( value.contentEquals( "long" ) || value.contentEquals( "int" ) || value.contentEquals( "short" ) )
+			{
+				this->current->append( "INTEGER" );
+			}
+			else if ( value.contentEquals( "double" ) || value.contentEquals( "float" ) )
+			{
+				this->current->append( "FLOAT" );
+			}
+			else
+			{
+				this->current->append( token.getValue() );
+			}
 			this->current->append( ',' );
-		} else {
+		}
+		else if ( 0 == this->current->getLength() )
+		{
 			delete this->type;
 			this->type = token.getValue().asString();
 		}
+		break;
+	default:
 		break;
 	}
 }
@@ -116,6 +148,8 @@ MethodDiscoveryTour::setPackageName( IPosition<SourceToken>& p )
 				break;
 			case SourceToken::SELECTOR:
 				sb.append( p1->getElement().getValue() );
+				break;
+			default:
 				break;
 			}
 		}

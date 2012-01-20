@@ -1,3 +1,5 @@
+BODY          { font-family:menlo; font-size:12px; }
+
 DIV           { margin-left: 20px; }
 DIV.inline    { display:inline-block; margin-left:0; }
 DIV.PACKAGE   { margin-left:0; }

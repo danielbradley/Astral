@@ -35,6 +35,8 @@ public:
 		_ENDEXPRESSION,
 		_PARAMETERS,
 		_PARAMETER,
+		_ARGUMENTS,
+		_ARGUMENT,
 		_STATEMENT,
 		_DECLARATION,
 		_COMMENT,
@@ -49,6 +51,7 @@ public:
 		_VARIABLE,
 		_NAME,
 		_METHODCALL,
+		_CONSTRUCTOR,
 		_OPERATOR,
 		_ASSIGNMENTOP,
 		_PREFIXOP,
@@ -58,6 +61,8 @@ public:
 		_PREPOSTFIXOP,
 		_SELECTOR,
 		_VALUE,
+		_FLOAT,
+		_INTEGER,
 		_NUMBER,
 		_DOUBLEQUOTE,
 		_QUOTE,
@@ -108,6 +113,8 @@ public:
 	static const TokenType ENDEXPRESSION   = _ENDEXPRESSION;
 	static const TokenType PARAMETERS      = _PARAMETERS;
 	static const TokenType PARAMETER       = _PARAMETER;
+	static const TokenType ARGUMENTS       = _ARGUMENTS;
+	static const TokenType ARGUMENT        = _ARGUMENT;
 	static const TokenType STATEMENT       = _STATEMENT;
 	static const TokenType DECLARATION     = _DECLARATION;
 	static const TokenType COMMENT         = _COMMENT;
@@ -122,6 +129,7 @@ public:
 	static const TokenType VARIABLE        = _VARIABLE;
 	static const TokenType NAME            = _NAME;
 	static const TokenType METHODCALL      = _METHODCALL;
+	static const TokenType CONSTRUCTOR     = _CONSTRUCTOR;
 	static const TokenType OPERATOR        = _OPERATOR;
 	static const TokenType ASSIGNMENTOP    = _ASSIGNMENTOP;
 	static const TokenType PREFIXOP        = _PREFIXOP;
@@ -131,6 +139,8 @@ public:
 	static const TokenType PREPOSTFIXOP    = _PREPOSTFIXOP;
 	static const TokenType SELECTOR        = _SELECTOR;
 	static const TokenType VALUE           = _VALUE;
+	static const TokenType FLOAT           = _FLOAT;
+	static const TokenType INTEGER         = _INTEGER;
 	static const TokenType NUMBER          = _NUMBER;
 	static const TokenType DOUBLEQUOTE     = _DOUBLEQUOTE;
 	static const TokenType QUOTE           = _QUOTE;
@@ -166,6 +176,8 @@ private:
 	static const openxds::base::String* EndExpression;
 	static const openxds::base::String* Parameters;
 	static const openxds::base::String* Parameter;
+	static const openxds::base::String* Arguments;
+	static const openxds::base::String* Argument;
 	static const openxds::base::String* Statement;
 	static const openxds::base::String* Declaration;
 	static const openxds::base::String* Comment;
@@ -180,6 +192,7 @@ private:
 	static const openxds::base::String* Variable;
 	static const openxds::base::String* Name;
 	static const openxds::base::String* MethodCall;
+	static const openxds::base::String* Constructor;
 	static const openxds::base::String* Operator;
 	static const openxds::base::String* AssignmentOp;
 	static const openxds::base::String* PrefixOp;
@@ -189,6 +202,8 @@ private:
 	static const openxds::base::String* PrePostfixOp;
 	static const openxds::base::String* Selector;
 	static const openxds::base::String* Value;
+	static const openxds::base::String* Float;
+	static const openxds::base::String* Integer;
 	static const openxds::base::String* Number;
 	static const openxds::base::String* DoubleQuote;
 	static const openxds::base::String* Quote;

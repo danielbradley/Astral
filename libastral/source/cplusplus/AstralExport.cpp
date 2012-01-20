@@ -1,6 +1,7 @@
 
 #include "astral/AstralExport.h"
 #include "astral/CompilationUnit.h"
+#include "astral/Export.h"
 #include "astral/SymbolDB.h"
 
 #include <openxds.io/FileOutputStream.h>
@@ -24,19 +25,19 @@ using namespace openxds::io;
 
 static PrintWriter* createPrintWriter( const String& pathname );
 
-AstralExport::AstralExport()
+XAstralExport::XAstralExport()
 {}
 
-AstralExport::~AstralExport()
+XAstralExport::~XAstralExport()
 {}
 
 void
-AstralExport::printExposedSymbols() const
+XAstralExport::printExposedSymbols() const
 {
-	IEIterator<IEntry<CompilationUnit> >* ie = this->getSymbolDB().getSymbols().entries();
+	IEIterator<const IEntry<CompilationUnit> >* ie = this->getSymbolDB().getSymbols().entries();
 	while ( ie->hasNext() )
 	{
-		IEntry<IEntry<CompilationUnit> >* entry = ie->next();
+		IEntry<const IEntry<CompilationUnit> >* entry = ie->next();
 		{
 			fprintf( stdout, "%s\n", entry->getKey() );
 		}
@@ -66,16 +67,16 @@ static void bottom( PrintWriter& printer )
 }
 
 void
-AstralExport::exportHTMLTo( const char* directory ) const
+XAstralExport::exportHTMLTo( const char* directory ) const
 {
-	IEIterator<CompilationUnit>* ie = this->getFiles().entries();
+	const IEIterator<CompilationUnit>* ie = this->getFiles().entries();
 	{
 		while ( ie->hasNext() )
 		{
-			IEntry<CompilationUnit>* entry = ie->next();
+			const IEntry<CompilationUnit>* entry = ie->next();
 			{
 				//const char* filename = entry->getKey();
-				CompilationUnit& cu  = entry->getValue();
+				const CompilationUnit& cu  = entry->getValue();
 				this->exportHTMLTo( directory, cu );
 			}
 			delete entry;
@@ -85,7 +86,7 @@ AstralExport::exportHTMLTo( const char* directory ) const
 }
 
 void
-AstralExport::exportHTMLTo( const char* directory, const CompilationUnit& cu ) const
+XAstralExport::exportHTMLTo( const char* directory, const CompilationUnit& cu ) const
 {
 	FormattedString pathname( "%s/%s.%s.html", directory, cu.getNamespace().getChars(), cu.getName().getChars() );
 	{
@@ -98,11 +99,11 @@ AstralExport::exportHTMLTo( const char* directory, const CompilationUnit& cu ) c
 //		IDictionary<IEntry<CompilationUnit> >* imported_symbols = this->processImports( imports );
 //		IDictionary<String>* imported_types = this->importedTypes( imports );
 
-		IDictionary<IEntry<CompilationUnit> >* imported_symbols = this->getSymbolDB().importedSymbols( imports );
+		IDictionary<const IEntry<CompilationUnit> >* imported_symbols = this->getSymbolDB().importedSymbols( imports );
 		IDictionary<String>* imported_types = this->getSymbolDB().importedTypes( imports );
 		{
 			top( *aWriter );
-			cu.printHTML( *imported_symbols, *imported_types, *aWriter );
+			//Export::printHTML( cu, this, *imported_symbols, *imported_types, *aWriter );
 			bottom( *aWriter );
 		}
 		delete imported_symbols;
@@ -121,7 +122,7 @@ static PrintWriter* createPrintWriter( const String& pathname )
 } 
 
 void
-AstralExport::toXML() const
+XAstralExport::toXML() const
 {
 	fprintf( stdout, "<names>\n" );
 	{
@@ -159,10 +160,10 @@ AstralExport::toXML() const
 
 	fprintf( stdout, "<symbols>\n" );
 	{
-		IEIterator<IEntry<CompilationUnit> >* ie = this->getSymbolDB().getSymbols().entries();
+		IEIterator<const IEntry<CompilationUnit> >* ie = this->getSymbolDB().getSymbols().entries();
 		while ( ie->hasNext() )
 		{
-			IEntry<IEntry<CompilationUnit> >* e = ie->next();
+			IEntry<const IEntry<CompilationUnit> >* e = ie->next();
 			{
 				const char*   name = e->getKey();
 				fprintf( stdout, "<symbol name='%s' />\n", name );
@@ -173,20 +174,20 @@ AstralExport::toXML() const
 	}
 	fprintf( stdout, "</symbols>\n" );
 
-	IEIterator<CompilationUnit>* ie = this->getFiles().entries();
+	const IEIterator<CompilationUnit>* ie = this->getFiles().entries();
 	{
 		while ( ie->hasNext() )
 		{
-			IEntry<CompilationUnit>* entry = ie->next();
+			const IEntry<CompilationUnit>* entry = ie->next();
 			{
 				//const char*            filename = entry->getKey();
-				      CompilationUnit& cu       = entry->getValue();
+				const CompilationUnit& cu       = entry->getValue();
 				const IList<String>&   imports  = cu.getImports();
 
-				IDictionary<IEntry<CompilationUnit> >* imported_symbols = this->getSymbolDB().importedSymbols( imports );
+				IDictionary<const IEntry<CompilationUnit> >* imported_symbols = this->getSymbolDB().importedSymbols( imports );
 				IDictionary<String>* imported_types = this->getSymbolDB().importedTypes( imports );
 
-				String* xml = cu.toXML( *imported_symbols, *imported_types );
+				String* xml = Export::toXML( cu, *imported_symbols, *imported_types );
 				{
 					fprintf( stdout, "%s\n", xml->getChars() );
 				}

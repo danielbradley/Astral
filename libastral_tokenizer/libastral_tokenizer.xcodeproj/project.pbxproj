@@ -36,17 +36,17 @@
 		656BD54214133ACE00EAAF2C /* JavaTokenizer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JavaTokenizer.cpp; sourceTree = "<group>"; };
 		656BD54314133ACE00EAAF2C /* SourceToken.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SourceToken.cpp; sourceTree = "<group>"; };
 		656BD54414133ACE00EAAF2C /* SourceTokenizer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SourceTokenizer.cpp; sourceTree = "<group>"; };
-		656BD65D1413461900EAAF2C /* libopenxds_adt_std.dylib */ = {isa = PBXFileReference; lastKnownFileType = file; name = libopenxds_adt_std.dylib; path = ../../../OpenXDS/0.x/libopenxds_adt_std/build/Release/libopenxds_adt_std.dylib; sourceTree = "<group>"; };
+		656BD65D1413461900EAAF2C /* libopenxds_adt_std.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_adt_std.dylib; path = ../../../OpenXDS/0.x/libopenxds_adt_std/build/Release/libopenxds_adt_std.dylib; sourceTree = "<group>"; };
 		656BD65E1413461900EAAF2C /* libopenxds_adt.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_adt.dylib; path = "../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug/libopenxds_adt.dylib"; sourceTree = "<group>"; };
-		656BD65F1413461900EAAF2C /* libopenxds_base.dylib */ = {isa = PBXFileReference; lastKnownFileType = file; name = libopenxds_base.dylib; path = ../../../OpenXDS/0.x/libopenxds_base/build/Release/libopenxds_base.dylib; sourceTree = "<group>"; };
-		656BD6601413461900EAAF2C /* libopenxds_core_adt_std.dylib */ = {isa = PBXFileReference; lastKnownFileType = file; name = libopenxds_core_adt_std.dylib; path = ../../../OpenXDS_Core/0.x/libopenxds_core_adt_std/build/Release/libopenxds_core_adt_std.dylib; sourceTree = "<group>"; };
+		656BD65F1413461900EAAF2C /* libopenxds_base.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_base.dylib; path = ../../../OpenXDS/0.x/libopenxds_base/build/Release/libopenxds_base.dylib; sourceTree = "<group>"; };
+		656BD6601413461900EAAF2C /* libopenxds_core_adt_std.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_core_adt_std.dylib; path = ../../../OpenXDS_Core/0.x/libopenxds_core_adt_std/build/Release/libopenxds_core_adt_std.dylib; sourceTree = "<group>"; };
 		656BD6611413461900EAAF2C /* libopenxds_core_adt.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_core_adt.dylib; path = "../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug/libopenxds_core_adt.dylib"; sourceTree = "<group>"; };
-		656BD6621413461900EAAF2C /* libopenxds_core_base.dylib */ = {isa = PBXFileReference; lastKnownFileType = file; name = libopenxds_core_base.dylib; path = ../../../OpenXDS_Core/0.x/libopenxds_core_base/build/Release/libopenxds_core_base.dylib; sourceTree = "<group>"; };
-		656BD6631413461900EAAF2C /* libopenxds_core_io.dylib */ = {isa = PBXFileReference; lastKnownFileType = file; name = libopenxds_core_io.dylib; path = ../../../OpenXDS_Core/0.x/libopenxds_core_io/build/Release/libopenxds_core_io.dylib; sourceTree = "<group>"; };
-		656BD6641413461900EAAF2C /* libopenxds_core_threads.dylib */ = {isa = PBXFileReference; lastKnownFileType = file; name = libopenxds_core_threads.dylib; path = ../../../OpenXDS_Core/0.x/libopenxds_core_threads/build/Release/libopenxds_core_threads.dylib; sourceTree = "<group>"; };
-		656BD6651413461900EAAF2C /* libopenxds_io.dylib */ = {isa = PBXFileReference; lastKnownFileType = file; name = libopenxds_io.dylib; path = ../../../OpenXDS/0.x/libopenxds_io/build/Release/libopenxds_io.dylib; sourceTree = "<group>"; };
-		656BD6661413461900EAAF2C /* libopenxds_security.dylib */ = {isa = PBXFileReference; lastKnownFileType = file; name = libopenxds_security.dylib; path = ../../../OpenXDS/0.x/libopenxds_security/build/Release/libopenxds_security.dylib; sourceTree = "<group>"; };
-		656BD6671413461900EAAF2C /* libopenxds_util.dylib */ = {isa = PBXFileReference; lastKnownFileType = file; name = libopenxds_util.dylib; path = ../../../OpenXDS/0.x/libopenxds_util/build/Release/libopenxds_util.dylib; sourceTree = "<group>"; };
+		656BD6621413461900EAAF2C /* libopenxds_core_base.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_core_base.dylib; path = ../../../OpenXDS_Core/0.x/libopenxds_core_base/build/Release/libopenxds_core_base.dylib; sourceTree = "<group>"; };
+		656BD6631413461900EAAF2C /* libopenxds_core_io.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_core_io.dylib; path = ../../../OpenXDS_Core/0.x/libopenxds_core_io/build/Release/libopenxds_core_io.dylib; sourceTree = "<group>"; };
+		656BD6641413461900EAAF2C /* libopenxds_core_threads.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_core_threads.dylib; path = ../../../OpenXDS_Core/0.x/libopenxds_core_threads/build/Release/libopenxds_core_threads.dylib; sourceTree = "<group>"; };
+		656BD6651413461900EAAF2C /* libopenxds_io.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_io.dylib; path = ../../../OpenXDS/0.x/libopenxds_io/build/Release/libopenxds_io.dylib; sourceTree = "<group>"; };
+		656BD6661413461900EAAF2C /* libopenxds_security.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_security.dylib; path = ../../../OpenXDS/0.x/libopenxds_security/build/Release/libopenxds_security.dylib; sourceTree = "<group>"; };
+		656BD6671413461900EAAF2C /* libopenxds_util.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenxds_util.dylib; path = ../../../OpenXDS/0.x/libopenxds_util/build/Release/libopenxds_util.dylib; sourceTree = "<group>"; };
 		65DB081114123529004B1E7E /* libastral_tokenizer.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libastral_tokenizer.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -185,6 +185,9 @@
 /* Begin PBXProject section */
 		65DB080814123529004B1E7E /* Project object */ = {
 			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0420;
+			};
 			buildConfigurationList = 65DB080B14123529004B1E7E /* Build configuration list for PBXProject "libastral_tokenizer" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
@@ -299,10 +302,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				EXECUTABLE_PREFIX = "";
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug\"",
-				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -311,10 +311,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				EXECUTABLE_PREFIX = "";
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../../../../../../Library/Developer/Xcode/DerivedData/Astral-cghyibuacfpwrpculjufuenboasu/Build/Products/Debug\"",
-				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
