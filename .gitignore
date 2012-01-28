@@ -10,3 +10,7 @@ tex
 pdf
 *.xcproject
 *.xcworkspace
+
+libastral/dep
+libastral/include
+libastral/source/cplusplus

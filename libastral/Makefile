@@ -7,6 +7,7 @@ clean:
 	rm -rf include
 	rm -rf lib
 	rm -rf obj
+	rm -rf source/cplusplus
 
 dirs:
 	mkdir -p documentation/{html,pdf,tex}
