@@ -35,6 +35,7 @@ class PUBLIC CodeBase;
 class PUBLIC CompilationUnit;
 class PUBLIC SymbolDB;
 class PUBLIC MemberSignature;
+class PUBLIC Method;
 class PUBLIC MethodSignature;
 class PUBLIC VariableScopes;
 class PUBLIC Export;
@@ -52,4 +53,22 @@ For documentation for each class:
 <tr><td><a href='./SymbolDB.html'>SymbolDB</a></td></tr>
 <tr><td><a href='./MethodSignature.html'>MethodSignature</a></td></tr>
 </table>
+~
+
+..		Dependencies
+
+~!dep/OpenXDS.link~
+$BUILD_PATH/OpenXDS
+~
+
+~!dep/OpenXDS_Core.link~
+$BUILD_PATH/OpenXDS_Core/0.x
+~
+
+~!dep/libastral_ast.link~
+$BUILD_PATH/Astral/0.x/libastral_ast
+~
+
+~!dep/libastral_tokenizer.link~
+$BUILD_PATH/Astral/0.x/libastral_tokenizer
 ~

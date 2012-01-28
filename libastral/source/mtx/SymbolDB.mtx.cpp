@@ -108,6 +108,7 @@ public: openxds::adt::IDictionary<const openxds::adt::IEntry<CompilationUnit> >*
 The following provide other classes with direct access to the data structures.
 
 ~include/astral/SymbolDB.h~
+public: openxds::adt::IDictionary<const openxds::adt::IEntry<CompilationUnit> >& getSymbols()       { return *this->symbols; }
 public: openxds::adt::IDictionary<const openxds::adt::IEntry<CompilationUnit> >& getSymbols() const { return *this->symbols; }
 public: openxds::adt::IDictionary<openxds::base::String>&                     getN2NS() const { return *this->name2namespace; }
 public: openxds::adt::IDictionary<openxds::base::String>&                     getNS2N() const { return *this->namespace2name; }

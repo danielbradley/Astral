@@ -1,6 +1,7 @@
 #include <astral/AdvancedHTMLPrintTour.h>
 #include <astral/Codebase.h>
 #include <astral/CompilationUnit.h>
+#include <astral/Method.h>
 #include <astral/MethodSignature.h>
 #include <astral/SymbolDB.h>
 #include <astral/VariableScopes.h>
@@ -11,6 +12,10 @@
 #include <astral.tours/PackageDiscoveryTour.h>
 #include <astral.tours/PrintSourceTour.h>
 #include <astral.tokenizer/SourceToken.h>
+#include <openxds.io/File.h>
+#include <openxds.io/FileOutputStream.h>
+#include <openxds.io/IO.h>
+#include <openxds.io/Path.h>
 #include <openxds.io/PrintWriter.h>
 #include <openxds.io/OutputStream.h>
 #include <openxds.io/IOBuffer.h>
@@ -46,12 +51,13 @@ CompilationUnit::CompilationUnit( const char* location )
 	this->imports      = new Sequence<String>();
 	this->methods      = new Dictionary<IPosition<SourceToken> >();
 	this->members      = new Dictionary<IPosition<SourceToken> >();
-	this->ast          = new AST( location );
+	this->ast          = new AST();
 	this->packageName  = NULL;
 	this->className    = NULL;
 	this->extendsClass = NULL;
 	
 	this->importedTypes = new Dictionary<String>();
+	this->methodObjects = new Dictionary<Method>();
 }
 
 CompilationUnit::~CompilationUnit()
@@ -69,7 +75,7 @@ CompilationUnit::~CompilationUnit()
 void
 CompilationUnit::initialise()
 {
-	this->ast->parseFile();
+	this->ast->parseFile( this->location->getChars() );
 
 	IPosition<SourceToken>* root = this->ast->getTree().root();
 	{
@@ -576,5 +582,74 @@ CompilationUnit::recurseMethodArgument( const CodeBase& codebase, const ITree<So
 	const_cast<SourceToken&>( argument.getElement() ).setValue( new String( *argument_type ) );
 	
 	return argument_type;
+}
+
+Method&
+CompilationUnit::getMethod( const MethodSignature& aMethodSignature )
+throw (NoSuchElementException*)
+{
+	Method* method = null;
+	const char* method_key = aMethodSignature.getMethodKey().getChars();
+
+	try
+	{
+		IEntry<Method>* e = this->methodObjects->find( method_key );
+		{
+			method = &e->getValue();
+		}
+		delete e;
+	}
+	catch ( NoSuchElementException* ex )
+	{
+		delete ex;
+		const IEntry<IPosition<SourceToken> >* e = this->methods->find( method_key );
+		{
+			AST* method_ast = this->ast->copySubtree( e->getValue() );
+			method = new Method( method_ast, *this, aMethodSignature );
+			this->methodObjects->insert( method_key, method );
+		}
+		delete e;
+	}
+	
+	return *method;
+}
+
+const Method&
+CompilationUnit::getMethod( const MethodSignature& aMethodSignature ) const
+throw (NoSuchElementException*)
+{
+	return const_cast<CompilationUnit*>( this )->getMethod( aMethodSignature );
+}
+
+void
+CompilationUnit::save()
+{
+	fprintf( stdout, "CompilationUnit::save() to: %s\n", this->location->getChars() );
+	
+	Path             target_path( *this->location );
+	File             target_file( target_path );
+	FileOutputStream         fos( target_file );
+	PrintWriter           writer( fos );
+	
+	if ( target_file.exists() )
+	{
+		fprintf( stdout, "\t target file exists\n" );
+		{
+			PrintSourceTour pst( this->getAST().getTree(), IO::out() );
+			IPosition<SourceToken>* root = this->getAST().getTree().root();
+			{
+				pst.doGeneralTour( *root );
+			}
+			delete root;
+		}
+		{
+			PrintSourceTour pst( this->getAST().getTree(), writer );
+			IPosition<SourceToken>* root = this->getAST().getTree().root();
+			{
+				pst.doGeneralTour( *root );
+			}
+			delete root;
+		}
+	}
 }
 

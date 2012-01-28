@@ -67,15 +67,21 @@ CodeBase::refreshImports()
 	delete ie;
 }
 
-const CompilationUnit&
-CodeBase::getCompilationUnit( const MethodSignature& aMethodSignature ) const
+CompilationUnit&
+CodeBase::getCompilationUnit( const MethodSignature& aMethodSignature )
 {
 	const char* method_signature = aMethodSignature.getMethodCall().getChars();
-	const IEntry<const IEntry<CompilationUnit> >* e = this->symbolDB->getSymbols().find( method_signature );
+	IEntry<const IEntry<CompilationUnit> >* e = this->symbolDB->getSymbols().find( method_signature );
 	const CompilationUnit& cu = e->getValue().getValue();
 	delete e;
 	
-	return cu;
+	return const_cast<CompilationUnit&>( cu );
+}
+
+const CompilationUnit&
+CodeBase::getCompilationUnit( const MethodSignature& aMethodSignature ) const
+{
+	return const_cast<CodeBase*>( this )->getCompilationUnit( aMethodSignature );
 }
 
 MemberSignature*

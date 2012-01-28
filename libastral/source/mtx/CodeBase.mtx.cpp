@@ -84,6 +84,7 @@ public:
 	virtual       void                                            refreshImports();
 	
 //	virtual const CompilationUnit&                            getCompilationUnit( const openxds::base::String& methodSignature ) const;
+	virtual       CompilationUnit&                            getCompilationUnit( const MethodSignature& aMethodSignature );
 	virtual const CompilationUnit&                            getCompilationUnit( const MethodSignature& aMethodSignature ) const;
 
 	virtual       MemberSignature*                       completeMemberSignature( const char* cls, const char* member ) const;
@@ -349,15 +350,23 @@ a reference to the /CompilationUnit/ containing the specified method.
 Implementation
 
 ~source/cplusplus/CodeBase.cpp~
-const CompilationUnit&
-CodeBase::getCompilationUnit( const MethodSignature& aMethodSignature ) const
+CompilationUnit&
+CodeBase::getCompilationUnit( const MethodSignature& aMethodSignature )
 {
 	const char* method_signature = aMethodSignature.getMethodCall().getChars();
-	const IEntry<const IEntry<CompilationUnit> >* e = this->symbolDB->getSymbols().find( method_signature );
+	IEntry<const IEntry<CompilationUnit> >* e = this->symbolDB->getSymbols().find( method_signature );
 	const CompilationUnit& cu = e->getValue().getValue();
 	delete e;
 	
-	return cu;
+	return const_cast<CompilationUnit&>( cu );
+}
+~
+
+~source/cplusplus/CodeBase.cpp~
+const CompilationUnit&
+CodeBase::getCompilationUnit( const MethodSignature& aMethodSignature ) const
+{
+	return const_cast<CodeBase*>( this )->getCompilationUnit( aMethodSignature );
 }
 ~
 
