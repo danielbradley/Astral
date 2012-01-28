@@ -38,6 +38,12 @@ SourceTokenizer::SourceTokenizer( ITextTokenizer* aTextTokenizer )
 	this->tokenQueue = new Sequence<SourceToken>();
 }
 
+SourceTokenizer::SourceTokenizer( Reader* reader )
+{
+	this->tt = new TextTokenizer( reader );
+	this->tokenQueue = new Sequence<SourceToken>();
+}
+
 SourceTokenizer::~SourceTokenizer()
 {
 	delete this->tt;

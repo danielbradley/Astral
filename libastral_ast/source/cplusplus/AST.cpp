@@ -11,6 +11,9 @@
 #include <openxds.base/Character.h>
 #include <openxds.base/String.h>
 #include <openxds.base/StringBuffer.h>
+#include <openxds.io/InputStream.h>
+#include <openxds.io/InputStreamReader.h>
+#include <openxds.io/IOBuffer.h>
 
 using namespace astral::ast;
 using namespace astral::tokenizer;
@@ -41,12 +44,10 @@ static void pushbackTokens( SourceTokenizer& tokenizer, Sequence<SourceToken>& t
 
 static bool           isMemberLevel( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
 
-AST::AST( const char* location )
+AST::AST()
 {
-	this->location = new String( location );
 	this->ast      = new Tree<SourceToken>();
-
-	delete ast->addRoot( new SourceToken( SourceToken::FILE, this->location->asString() ) );
+	this->location = new String();
 }
 
 AST::~AST()
@@ -62,19 +63,48 @@ AST::getTree() const
 }
 
 void
-AST::parseFile()
+AST::parseString( const String& content )
+{
+	delete ast->addRoot( new SourceToken( SourceToken::OTHER, new String() ) );
+
+	SourceTokenizer* t = new JavaTokenizer( new InputStreamReader( new InputStream( new IOBuffer( content ) ) ) );
+	{
+		parseFromTokenizer( *t );
+	}
+	delete t;
+}
+
+
+
+
+void
+AST::parseFile( const char* location )
+{
+	delete this->location;
+	this->location = new String( location );
+
+	delete ast->addRoot( new SourceToken( SourceToken::FILE, this->location->asString() ) );
+
+	SourceTokenizer* tokenizer = new JavaTokenizer( *this->location );
+	{
+		this->parseFromTokenizer( *tokenizer );
+	}
+	delete tokenizer;
+}
+
+
+
+
+void
+AST::parseFromTokenizer( SourceTokenizer& tokenizer )
 {
 	try
 	{
-		SourceTokenizer* tokenizer = new JavaTokenizer( *this->location );
+		IPosition<SourceToken>* root = this->ast->root();
 		{
-			IPosition<SourceToken>* root = this->ast->root();
-			{
-				parseAll( *this->ast, *root, *tokenizer );
-			}
-			delete root;
+			parseAll( *this->ast, *root, tokenizer );
 		}
-		delete tokenizer;
+		delete root;
 	}
 	catch ( FileNotFoundException* ex )
 	{
@@ -772,4 +802,38 @@ static void parseTrailingWhitespace( ITree<SourceToken>& ast, IPosition<SourceTo
 			loop = false;
 		}
 	}
+}
+
+AST*
+AST::copySubtree( const IPosition<SourceToken>& p ) const
+{
+	AST* ast = new AST();
+	delete ast->ast;
+	ast->ast = this->ast->copyAsTree( p );
+	
+	return ast;
+}
+
+void
+AST::replaceSubtree( IPosition<SourceToken>& p, const AST& ast ) const
+{
+	IPosition<SourceToken>*  root = ast.ast->root();
+	IPIterator<SourceToken>* it   = ast.ast->children( *root );
+	{
+		IPosition<SourceToken>* m = it->next();
+		{
+			ITree<SourceToken>* method_tree = ast.ast->copyAsTree( *m );
+			{
+				IPosition<SourceToken>* p2 = method_tree->root();
+				{
+					this->ast->swapSubtrees( p, *method_tree, *p2 );
+				}
+				delete p2;
+			}
+			delete method_tree;
+		}
+		delete m;
+	}
+	delete it;
+	delete root;
 }

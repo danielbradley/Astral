@@ -42,8 +42,25 @@ public:
 	
 	virtual void visitExternal( openxds::adt::IPosition<SourceToken>& p, openxds::adt::std::Result& r )
 	{
+	
 		astral::tokenizer::SourceToken& token = p.getElement();
-		writer.print( token.getValue() );
+		if ( null != &token.getValue() )
+		{
+			const openxds::base::String& value = token.getValue();
+			
+			if ( null != value.getChars() )
+			{
+				writer.print( value );
+			}
+			else
+			{
+				writer.print( "null" );
+			}
+		}
+		else
+		{
+				writer.print( "NULL" );
+		}
 	}
 
 	virtual void visitPreorder( const openxds::adt::IPosition<SourceToken>& p, openxds::adt::std::Result& r ) const

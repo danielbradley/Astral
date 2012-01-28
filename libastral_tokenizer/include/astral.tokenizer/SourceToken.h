@@ -82,6 +82,7 @@ private:
 
 public:
 	         SourceToken( TokenType aType, openxds::base::String* aValue );
+	         SourceToken( const SourceToken& aSourceToken );
 	virtual	~SourceToken();
 	
 	virtual void setType( SourceToken::TokenType aType );

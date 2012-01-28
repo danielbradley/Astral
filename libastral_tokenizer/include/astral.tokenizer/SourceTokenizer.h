@@ -23,6 +23,7 @@ private:
 public:
 	         SourceTokenizer( const openxds::base::String& location );
 	         SourceTokenizer( openxds::util::ITextTokenizer* aTextTokenizer );
+	         SourceTokenizer( openxds::io::Reader* reader );
 	virtual ~SourceTokenizer();
 
 	virtual       SourceToken*     nextToken() throw (openxds::io::exceptions::IOException*,openxds::exceptions::NoSuchElementException*);

@@ -14,6 +14,7 @@ class JavaTokenizer : public SourceTokenizer
 public:
 	         JavaTokenizer( const openxds::base::String& location ) : SourceTokenizer( location ) {};
 	         JavaTokenizer( openxds::util::ITextTokenizer* aTextTokenizer ) : SourceTokenizer( aTextTokenizer ) {};
+	         JavaTokenizer( openxds::io::Reader* aReader ) : SourceTokenizer( aReader ) {};
 	virtual ~JavaTokenizer() {};
 
 protected:

@@ -72,12 +72,19 @@ const String* SourceToken::Other           = new String( "OTHER" );
 SourceToken::SourceToken( TokenType aType, openxds::base::String* aValue )
 {
 	this->type  = aType;
-	this->value = aValue;
+	this->value = aValue->asString();
+	delete aValue;
+}
+
+SourceToken::SourceToken( const SourceToken& aSourceToken )
+{
+	this->type  = aSourceToken.type;
+	this->value = aSourceToken.value->asString();
 }
 
 SourceToken::~SourceToken()
 {
-	delete this->value;
+	delete this->value; this->value = null;
 }
 
 void
