@@ -33,6 +33,7 @@ namespace astral {
 
 class PUBLIC CodeBase;
 class PUBLIC CompilationUnit;
+class PUBLIC InvocationClass;
 class PUBLIC SymbolDB;
 class PUBLIC MemberSignature;
 class PUBLIC Method;

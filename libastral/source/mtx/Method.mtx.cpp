@@ -158,7 +158,8 @@ private: bool               modified;
 
 ~include/astral/Method.h~
 protected:
-	 Method( astral::ast::AST* methodAST, CompilationUnit& cu, const MethodSignature& aMethodSignature );
+	 Method( CompilationUnit& cu, const MethodSignature& aMethodSignature );
+	 Method( CompilationUnit& cu, const MethodSignature& aMethodSignature, astral::ast::AST* methodAST );
 ~
 
 
@@ -179,7 +180,7 @@ public:
 ~include/astral/Method.h~
 public:
 	virtual       void reparseMethod( const openxds::base::String& content );
-	virtual       void          sync();
+	virtual       bool          sync();
 	virtual       void        revert();
 
 	virtual       astral::ast::AST& getMethodAST() { return *this->methodAST; }
@@ -193,6 +194,7 @@ public:
 ~include/astral/Method.h~
 	virtual const astral::ast::AST& getMethodAST() const { return *this->methodAST; }
 	virtual       bool                isModified() const { return this->modified; }
+	virtual       bool                   isValid() const;
 ~
 
 
@@ -218,8 +220,13 @@ public:
 #include <openxds.adt/IDictionary.h>
 #include <openxds.adt/IEntry.h>
 #include <openxds.adt/IPosition.h>
+#include <openxds.base/FormattedString.h>
 #include <openxds.base/String.h>
+#include <openxds.base/StringBuffer.h>
 #include <openxds/Exception.h>
+#include <openxds.exceptions/NoSuchElementException.h>
+
+#include <stdio.h>
 ~
 
 
@@ -233,13 +240,36 @@ using namespace astral::tokenizer;
 using namespace openxds;
 using namespace openxds::adt;
 using namespace openxds::base;
+using namespace openxds::exceptions;
 ~
 
 
 
 
 ~source/cplusplus/Method.cpp~
-Method::Method( AST* methodAST, CompilationUnit& cu, const MethodSignature& aMethodSignature ) : cu( cu )
+Method::Method( CompilationUnit& cu, const MethodSignature& aMethodSignature ) : cu( cu )
+{
+	this->methodAST = new AST();
+	this->signature = new MethodSignature( aMethodSignature );
+	this->modified  = false;
+	
+	const char* return_type = aMethodSignature.getReturnType().getChars();
+	const char* method      = aMethodSignature.getMethod().getChars();
+	
+	StringBuffer sb;
+	sb.append( FormattedString( "public %s %s\n", return_type, method ) );
+	sb.append( "{\n" );
+	sb.append( "}\n" );
+	
+	this->reparseMethod( sb.getContent() );
+}
+~
+
+
+
+
+~source/cplusplus/Method.cpp~
+Method::Method( CompilationUnit& cu, const MethodSignature& aMethodSignature, AST* methodAST ) : cu( cu )
 {
 	this->methodAST = methodAST;
 	this->signature = new MethodSignature( aMethodSignature );
@@ -272,6 +302,8 @@ Method::reparseMethod( const String& content )
 		delete this->methodAST;
 		this->methodAST = pAST;
 		this->modified = true;
+		
+		fprintf( stdout, "Method::reparseMethod: isValid %i\n", this->isValid() );
 	}
 	catch ( Exception* ex )
 	{
@@ -285,17 +317,45 @@ Method::reparseMethod( const String& content )
 
 
 ~source/cplusplus/Method.cpp~
-void
+bool
 Method::sync()
 {
-	const char* method_key = this->signature->getMethodKey().getChars();
-	IEntry<IPosition<SourceToken> >* e = this->cu.getMethods().find( method_key );
+	bool can_save = this->isValid();
+
+	//	!!! Danger Will Robinson !!!
+	//
+	//	For an unknown reason if the Method is synced back to the main AST before being
+	//	modified it corrupts the main AST.
+	//
+	//	TODO	Fix in the future.
+
+	if ( can_save && this->modified )
 	{
-		this->cu.getAST().replaceSubtree( e->getValue(), *this->methodAST );
-		this->cu.save();
-		this->modified = false;
+		const char* method_key = this->signature->getMethodKey().getChars();
+
+		try
+		{
+			IEntry<IPosition<SourceToken> >* e = this->cu.getMethods().find( method_key );
+			{
+				this->cu.getAST().replaceSubtree( e->getValue(), *this->methodAST );
+				this->cu.save();
+				this->modified = false;
+			}
+			delete e;
+		}
+		catch ( NoSuchElementException* ex )
+		{
+			delete ex;
+
+			if ( this->cu.insertNewMethod( method_key, *this->methodAST ) )
+			{
+				this->cu.save();
+				this->modified = false;
+			}
+		}
 	}
-	delete e;
+	
+	return can_save;
 }
 ~
 
@@ -309,4 +369,16 @@ Method::revert()
 	//
 }
 ~
+
+
+
+
+~source/cplusplus/Method.cpp~
+bool
+Method::isValid() const
+{
+	return this->methodAST->isValid();
+}
+~
+
 

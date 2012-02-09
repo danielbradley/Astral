@@ -113,3 +113,22 @@ MethodSignature::initialise( const String& aSignature )
 	}
 }
 
+
+
+bool
+MethodSignature::isValid() const
+{
+	return (0 < this->returnType->getLength() );
+}
+
+
+
+bool
+MethodSignature::isComplete() const
+{
+	return (this->nspace->getLength() &&
+	        this->cls->getLength()     &&
+			this->method->getLength()  &&
+			this->returnType->getLength() );
+}
+

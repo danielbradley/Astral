@@ -31,6 +31,8 @@ public:
 	virtual const openxds::base::String&      getFQClass() const { return *this->fqClass;  }
 	virtual const openxds::base::String&       getMember() const { return *this->member;   }
 	virtual const openxds::base::String&         getType() const { return *this->type;     }
+	
+	virtual bool                                 isValid() const;
 
 protected:
 	virtual       void                        initialise( const openxds::base::String& aSignature );
@@ -75,7 +77,7 @@ MemberSignature::MemberSignature( const char* mod, const char* fqClass, const ch
 	this->modifier = new String( mod     );
 	this->fqClass  = new String( fqClass );
 	this->member   = new String( member  );
-	this->type     = new String( fqClass );
+	this->type     = new String( type );
 
 	this->fqMember = new FormattedString( "%s.%s", fqClass, member );
 
@@ -175,5 +177,14 @@ MemberSignature::initialise( const String& aSignature )
 		}
 	}
 	delete tmp;
+}
+
+
+
+
+bool
+MemberSignature::isValid() const
+{
+	return (0 < this->type->getLength());
 }
 ~

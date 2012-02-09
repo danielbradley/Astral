@@ -26,7 +26,7 @@ MemberSignature::MemberSignature( const char* mod, const char* fqClass, const ch
 	this->modifier = new String( mod     );
 	this->fqClass  = new String( fqClass );
 	this->member   = new String( member  );
-	this->type     = new String( fqClass );
+	this->type     = new String( type );
 
 	this->fqMember = new FormattedString( "%s.%s", fqClass, member );
 
@@ -126,5 +126,14 @@ MemberSignature::initialise( const String& aSignature )
 		}
 	}
 	delete tmp;
+}
+
+
+
+
+bool
+MemberSignature::isValid() const
+{
+	return (0 < this->type->getLength());
 }
 

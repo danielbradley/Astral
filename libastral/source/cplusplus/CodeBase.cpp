@@ -1,6 +1,8 @@
 #include "astral/CodeBase.h"
 #include "astral/CompilationUnit.h"
+#include "astral/Export.h"
 #include "astral/MemberSignature.h"
+#include "astral/Method.h"
 #include "astral/MethodSignature.h"
 #include "astral/SymbolDB.h"
 
@@ -67,11 +69,55 @@ CodeBase::refreshImports()
 	delete ie;
 }
 
+bool
+CodeBase::saveMethod( const MethodSignature& aMethodSignature )
+{
+	bool can_save = false;
+
+	try
+	{
+		CompilationUnit& cu     = this->getCompilationUnit( aMethodSignature.getMethodCall() );
+		Method&          method = cu.getMethod( aMethodSignature );
+		can_save = method.sync();
+
+		if ( can_save )
+		{
+			this->reregister( cu );
+			//this->refreshImports();
+			Export::toXML( *this );
+		}
+	}
+	catch ( NoSuchElementException* ex )
+	{
+		delete ex;
+	}
+	
+	return can_save;
+}
+
+void
+CodeBase::reregister( const CompilationUnit& aCu )
+{
+	try
+	{
+		IEntry<CompilationUnit>* e = this->files->find( aCu.getLocation().getChars() );
+		{
+			this->symbolDB->deregisterCU( *e );
+			this->symbolDB->registerCU( *e );
+		}
+		delete e;
+	}
+	catch ( NoSuchElementException* ex )
+	{
+		delete ex;
+	}
+}
+
 CompilationUnit&
 CodeBase::getCompilationUnit( const MethodSignature& aMethodSignature )
 {
-	const char* method_signature = aMethodSignature.getMethodCall().getChars();
-	IEntry<const IEntry<CompilationUnit> >* e = this->symbolDB->getSymbols().find( method_signature );
+	const char* cls = aMethodSignature.getFQClass().getChars();
+	IEntry<const IEntry<CompilationUnit> >* e = this->symbolDB->getSymbols().startsWith( cls );
 	const CompilationUnit& cu = e->getValue().getValue();
 	delete e;
 	
@@ -92,7 +138,7 @@ CodeBase::completeMemberSignature( const char* fqClassType, const char* member )
 	try
 	{
 		const char* fq_member = member_signature->getFQMember().getChars();
-		const CompilationUnit& cu = this->symbolDB->getCompilationUnitForSymbolPrefix( fq_member );
+		const CompilationUnit& cu = this->symbolDB->getCompilationUnitForSymbol( fq_member );
 		String* type = cu.resolveMemberType( member );
 		{
 			delete member_signature;

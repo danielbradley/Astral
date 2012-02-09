@@ -119,6 +119,9 @@ public: bool                                                             contain
 ~include/astral/SymbolDB.h~
 public: const CompilationUnit& getCompilationUnitForSymbolPrefix( const char* prefix ) const
 throw (openxds::exceptions::NoSuchElementException*);
+
+public: const CompilationUnit& getCompilationUnitForSymbol( const char* symbol ) const
+throw (openxds::exceptions::NoSuchElementException*);
 ~
 
 
@@ -213,15 +216,41 @@ SymbolDB::deregisterCU( const IEntry<CompilationUnit>& anEntry )
 	
 	try
 	{
-		delete this->name2namespace->remove( this->name2namespace->find( nm ) );
-		delete this->namespace2name->remove( this->namespace2name->find( ns ) );
+		IEntry<String>* e = this->name2namespace->find( nm );
+		{
+			const String& nspace = e->getValue();
+			if ( nspace.contentEquals( ns ) )
+			{
+				delete this->name2namespace->remove( e );
+				e = null;
+			}
+		}
+		delete e;
 	}
 	catch ( NoSuchElementException* ex )
 	{
 		delete ex;
 	}
 
-	//cu.deregisterSymbols( *this->symbols, anEntry );
+	try
+	{
+		IEntry<String>* e = this->namespace2name->find( ns );
+		{
+			const String& name = e->getValue();
+			if ( name.contentEquals( nm ) )
+			{
+				delete this->namespace2name->remove( e );
+				e = null;
+			}
+		}
+		delete e;
+	}
+	catch ( NoSuchElementException* ex )
+	{
+		delete ex;
+	}
+
+	cu.deregisterSymbols( *this->symbols );
 }
 ~
 
@@ -346,6 +375,21 @@ SymbolDB::getCompilationUnitForSymbolPrefix( const char* prefix ) const
 throw (NoSuchElementException*)
 {
 	const IEntry<const IEntry<CompilationUnit> >* entry = this->getSymbols().startsWith( prefix );
+	const CompilationUnit& cu = entry->getValue().getValue();
+	delete entry;
+	
+	return cu;
+}
+~
+
+
+
+~source/cplusplus/SymbolDB.cpp~
+const CompilationUnit&
+SymbolDB::getCompilationUnitForSymbol( const char* symbol ) const
+throw (NoSuchElementException*)
+{
+	const IEntry<const IEntry<CompilationUnit> >* entry = this->getSymbols().find( symbol );
 	const CompilationUnit& cu = entry->getValue().getValue();
 	delete entry;
 	

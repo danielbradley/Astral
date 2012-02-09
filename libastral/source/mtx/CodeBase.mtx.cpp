@@ -82,6 +82,8 @@ public:
 	virtual       void                                          addBaseDirectory( const char* path );
 	virtual       void                                             addSourceFile( const char* path );
 	virtual       void                                            refreshImports();
+	virtual       bool                                                saveMethod( const MethodSignature& aMethodSignature );
+	virtual       void                                                reregister( const CompilationUnit& aCu );
 	
 //	virtual const CompilationUnit&                            getCompilationUnit( const openxds::base::String& methodSignature ) const;
 	virtual       CompilationUnit&                            getCompilationUnit( const MethodSignature& aMethodSignature );
@@ -154,7 +156,9 @@ TABLE A  { font-family:menlo; font-size:10px; }
 ~!source/cplusplus/CodeBase.cpp~
 #include "astral/CodeBase.h"
 #include "astral/CompilationUnit.h"
+#include "astral/Export.h"
 #include "astral/MemberSignature.h"
+#include "astral/Method.h"
 #include "astral/MethodSignature.h"
 #include "astral/SymbolDB.h"
 
@@ -329,6 +333,85 @@ CodeBase::refreshImports()
 
 
 ~html~
+<a name='saveMethod'></a><hr>
+~
+
+*saveMethod*
+
+~
+void CodeBase::saveMethod( const MethodSignature& aMethodSignature );
+~
+
+Causes
+|
+The content of the method to be reparsed in integrated back into its source AST.
+|
+
+~source/cplusplus/CodeBase.cpp~
+bool
+CodeBase::saveMethod( const MethodSignature& aMethodSignature )
+{
+	bool can_save = false;
+
+	try
+	{
+		CompilationUnit& cu     = this->getCompilationUnit( aMethodSignature.getMethodCall() );
+		Method&          method = cu.getMethod( aMethodSignature );
+		can_save = method.sync();
+
+		if ( can_save )
+		{
+			this->reregister( cu );
+			//this->refreshImports();
+			Export::toXML( *this );
+		}
+	}
+	catch ( NoSuchElementException* ex )
+	{
+		delete ex;
+	}
+	
+	return can_save;
+}
+~
+
+
+
+
+~html~
+<a name='reregisterCompilationUnit'></a><hr>
+~
+
+*reregisterCompilationUnit*
+
+~
+void CodeBase::reregisterCompilationUnit( const CompilationUnit& aCu );
+~
+
+~source/cplusplus/CodeBase.cpp~
+void
+CodeBase::reregister( const CompilationUnit& aCu )
+{
+	try
+	{
+		IEntry<CompilationUnit>* e = this->files->find( aCu.getLocation().getChars() );
+		{
+			this->symbolDB->deregisterCU( *e );
+			this->symbolDB->registerCU( *e );
+		}
+		delete e;
+	}
+	catch ( NoSuchElementException* ex )
+	{
+		delete ex;
+	}
+}
+~
+
+
+
+
+~html~
 <a name='getCompilationUnit(MethodSignature)'></a><hr>
 ~
 *getCompilationUnit*
@@ -353,8 +436,8 @@ Implementation
 CompilationUnit&
 CodeBase::getCompilationUnit( const MethodSignature& aMethodSignature )
 {
-	const char* method_signature = aMethodSignature.getMethodCall().getChars();
-	IEntry<const IEntry<CompilationUnit> >* e = this->symbolDB->getSymbols().find( method_signature );
+	const char* cls = aMethodSignature.getFQClass().getChars();
+	IEntry<const IEntry<CompilationUnit> >* e = this->symbolDB->getSymbols().startsWith( cls );
 	const CompilationUnit& cu = e->getValue().getValue();
 	delete e;
 	
@@ -405,7 +488,7 @@ CodeBase::completeMemberSignature( const char* fqClassType, const char* member )
 	try
 	{
 		const char* fq_member = member_signature->getFQMember().getChars();
-		const CompilationUnit& cu = this->symbolDB->getCompilationUnitForSymbolPrefix( fq_member );
+		const CompilationUnit& cu = this->symbolDB->getCompilationUnitForSymbol( fq_member );
 		String* type = cu.resolveMemberType( member );
 		{
 			delete member_signature;

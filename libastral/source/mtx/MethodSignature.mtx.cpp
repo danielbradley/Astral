@@ -35,7 +35,10 @@ public:
 	virtual const openxds::base::String&      getFQClass() const { return *this->fqClass;    }
 	virtual const openxds::base::String&       getMethod() const { return *this->method;     }
 	virtual const openxds::base::String&   getMethodName() const { return *this->methodName; }
-	virtual const openxds::base::String&    getMethodKey() const { return *this->methodKey; }
+	virtual const openxds::base::String&    getMethodKey() const { return *this->methodKey;  }
+
+	virtual bool                                 isValid() const;
+	virtual bool                              isComplete() const;
 
 protected:
 	virtual       void                        initialise( const openxds::base::String& aSignature );
@@ -168,5 +171,24 @@ MethodSignature::initialise( const String& aSignature )
 		
 		this->fqClass = new FormattedString( "%s.%s", this->nspace->getChars(), this->cls->getChars() );
 	}
+}
+
+
+
+bool
+MethodSignature::isValid() const
+{
+	return (0 < this->returnType->getLength() );
+}
+
+
+
+bool
+MethodSignature::isComplete() const
+{
+	return (this->nspace->getLength() &&
+	        this->cls->getLength()     &&
+			this->method->getLength()  &&
+			this->returnType->getLength() );
 }
 ~

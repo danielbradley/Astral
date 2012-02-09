@@ -71,6 +71,13 @@ public:
 	virtual void initialise();
 ~
 
+
+..		Insertion of new methods
+
+~include/astral/CompilationUnit.h~
+	virtual bool insertNewMethod( const char* methodKey, const astral::ast::AST& aMethodAST );
+~
+
 ..		Public const method declarations
 
 The following methods provide public (const) access to the class's members.
@@ -100,7 +107,8 @@ The following members are used by other classes in the Astral library.
 ~include/astral/CompilationUnit.h~
 public:
 
-	virtual void registerSymbols( openxds::adt::IDictionary<const openxds::adt::IEntry<CompilationUnit> >& symbols, const openxds::adt::IEntry<CompilationUnit>& e ) const;
+	virtual void                       registerSymbols( openxds::adt::IDictionary<const openxds::adt::IEntry<CompilationUnit> >& symbols, const openxds::adt::IEntry<CompilationUnit>& e ) const;
+	virtual void                     deregisterSymbols( openxds::adt::IDictionary<const openxds::adt::IEntry<CompilationUnit> >& symbols ) const;
 
 	virtual openxds::base::String* resolveFQTypeOfName( const char* name, const VariableScopes& scopes ) const;
 	virtual openxds::base::String* resolveFQTypeOfType( const char* type ) const;
@@ -183,6 +191,8 @@ public:
 #include <openxds.base/StringTokenizer.h>
 #include <openxds.base/FormattedString.h>
 #include <openxds.base/Math.h>
+
+#include <stdio.h>
 ~
 !
 
@@ -310,6 +320,92 @@ CompilationUnit::initialise()
 }
 ~
 
+...			Method: insertNewMethod
+
+~
+void CompilationUnit::insertNewMethod( const char* methodKey, const AST& aMethodAST );
+~
+
+Parameters
+|
+/methodKey/, the methodKey that identifies this method;
+
+/aMethodAST/, that represents the method to be added to the AST of the /CompilationUnit/.
+|
+
+Causes
+|
+/aMethodAST/ to be added to /ast/ as a new method.
+|
+
+~source/cplusplus/CompilationUnit.cpp~
+bool
+CompilationUnit::insertNewMethod( const char* methodKey, const AST& aMethodAST )
+{
+	bool status = false;
+
+	fprintf( stderr, "CompilationUnit::insertNewMethod\n" );
+
+	IPosition<SourceToken>* r = aMethodAST.getTree().root();
+	{
+		ITree<SourceToken>* method_ast_copy = aMethodAST.getTree().copyAsTree( *r );
+		{
+			IIterator<IPosition<SourceToken> >* it = this->getMethods().values();
+			{
+				IPosition<SourceToken>* last_method = NULL;
+
+				while ( it->hasNext() )
+				{
+					IPosition<SourceToken>& p = it->next();
+					SourceToken&            t = p.getElement();
+					
+					switch ( t.getTokenType() )
+					{
+					case SourceToken::METHOD:
+						last_method = &p;
+						break;
+					default:
+						break;
+					}
+				}
+
+				if ( last_method )
+				{
+					fprintf( stderr, "\t Found last method\n" );
+
+					ITree<SourceToken>&     t = this->ast->getTree();
+
+					IPosition<SourceToken>* class_block = t.parent( *last_method );
+					{
+						long insertion_index = t.nrOfChild( *last_method ) + 1;
+
+						fprintf( stderr, "\t Inserting at index: %li\n", insertion_index );
+
+						delete t.insertChildAt( *class_block, new SourceToken( SourceToken::NEWLINE, new String( "\n" ) ), insertion_index++ );
+						delete t.insertChildAt( *class_block, new SourceToken( SourceToken::TAB,     new String( "\t" ) ), insertion_index++ );
+						
+						IPosition<SourceToken>* method_ast_root = method_ast_copy->root();
+						{
+							IPosition<SourceToken>* n = t.insertChildAt( *class_block, new SourceToken( SourceToken::METHOD, new String( "" ) ), insertion_index );
+							t.swapSubtrees( *n, *method_ast_copy, *method_ast_root );
+							this->methods->insert( methodKey, n );
+						}
+						delete method_ast_root;
+					}
+					delete class_block;
+
+					status = true;
+				}
+			}
+			delete it;
+		}
+		//delete method_ast_copy;
+	}
+	delete r;
+
+	return status;
+}
+~
 
 ...			Method: resetImportedTypes
 
@@ -430,6 +526,40 @@ CompilationUnit::registerSymbols( IDictionary<const IEntry<CompilationUnit> >& s
 }
 ~
 
+...			Method: register Symobls
+
+~
+void CompilationUnit::deregisterSymbols( IDictionary<const IEntry<CompilationUnit> >& symbols ) const
+~
+
+Parameters
+|
+/symbols/, a dictionary that maps fully-qualified symbols to an entry that stores a reference to the /CompilationUnit/ they are defined within.
+|
+
+
+Implementation
+
+~source/cplusplus/CompilationUnit.cpp~
+void
+CompilationUnit::deregisterSymbols( IDictionary<const IEntry<CompilationUnit> >& symbols ) const
+{
+	IEIterator<const IEntry<CompilationUnit> >* ie = symbols.entries();
+	while ( ie->hasNext() )
+	{
+		IEntry<const IEntry<CompilationUnit> >* e  = ie->next();
+		const IEntry<CompilationUnit>&          e2 =  e->getValue();
+		const CompilationUnit&                  cu =  e2.getValue();
+
+		if ( this == &cu )
+		{
+			delete symbols.remove( e );
+		}
+	}
+	delete ie;
+}
+~
+
 ...			Method: resolveFQTypeOfName
 
 ~
@@ -459,13 +589,19 @@ CompilationUnit::resolveFQTypeOfName( const char* name, const VariableScopes& sc
 		const char* _type = type->getChars();
 
 		String* fq_type = this->resolveFQTypeOfType( _type );
-		if ( ! fq_type->contentEquals( "" ) )
-		{
-			delete type;
-			type = new String( *fq_type );
-		}
-		delete fq_type;
+//		if ( ! fq_type->contentEquals( "" ) )
+//		{
+//			delete type;
+//			type = new String( *fq_type );
+//		}
+		delete type;
+		type = fq_type;
 	}
+//	else
+//	{
+//		delete type;
+//		       type = new String( name );
+//	}
 	
 	//fprintf( stderr, "CompilationUnit::resolveFQTypeOfName( %s, scopes ) | %s\n", name, type->getChars() );
 	
@@ -563,11 +699,31 @@ CompilationUnit::resolveTypeOfName( const char* name, const VariableScopes& scop
 	}
 	else
 	{
-		type = scopes.searchForTypeOfName( name );
-		if ( type->contentEquals( "" ) )
+		StringTokenizer st( _name );
+		st.setDelimiter( '[' );
+		if ( st.hasMoreTokens() )
 		{
-			delete type;
-			type = this->resolveMemberType( name );
+			String* variable_name = st.nextToken();
+			{
+				type = scopes.searchForTypeOfName( variable_name->getChars() );
+				if ( type->contentEquals( "" ) )
+				{
+					delete type;
+					type = this->resolveMemberType( variable_name->getChars() );
+				}
+
+				if ( ! variable_name->contentEquals( name ) )
+				{
+					StringBuffer sb;
+					sb.append( *type );
+					if ( ']' == sb.charAt( sb.getLength() - 1 ) ) sb.removeLast();
+					if ( '[' == sb.charAt( sb.getLength() - 1 ) ) sb.removeLast();
+
+					delete type;
+					type = sb.asString();
+				}
+			}
+			delete variable_name;
 		}
 	}
 
@@ -941,6 +1097,8 @@ CompilationUnit::resolveMethodCallArgumentTypes( const CodeBase& codebase, const
 String*
 CompilationUnit::recurseMethodArguments( const CodeBase& codebase, const ITree<SourceToken>& tree, const IPosition<SourceToken>& arguments, const VariableScopes& scopes ) const
 {
+	fprintf( stderr, "CompilationUnit::recurseMethodArguments\n" );
+
 	StringBuffer sb;
 
 	const IPIterator<SourceToken>* it = tree.children( arguments );
@@ -954,6 +1112,8 @@ CompilationUnit::recurseMethodArguments( const CodeBase& codebase, const ITree<S
 				{
 					String* argument_type = this->recurseMethodArgument( codebase, tree, *p, scopes );
 					{
+						fprintf( stderr, "\t %s\n", argument_type->getChars() );
+
 						sb.append( *argument_type );
 						sb.append( "," );
 					}
@@ -1053,13 +1213,22 @@ throw (NoSuchElementException*)
 	catch ( NoSuchElementException* ex )
 	{
 		delete ex;
-		const IEntry<IPosition<SourceToken> >* e = this->methods->find( method_key );
+	
+		try
 		{
-			AST* method_ast = this->ast->copySubtree( e->getValue() );
-			method = new Method( method_ast, *this, aMethodSignature );
+			const IEntry<IPosition<SourceToken> >* e = this->methods->find( method_key );
+			{
+				AST* method_ast = this->ast->copySubtree( e->getValue() );
+				method = new Method( *this, aMethodSignature, method_ast );
+				this->methodObjects->insert( method_key, method );
+			}
+			delete e;
+		}
+		catch ( NoSuchElementException* ex )
+		{
+			method = new Method( *this, aMethodSignature );
 			this->methodObjects->insert( method_key, method );
 		}
-		delete e;
 	}
 	
 	return *method;

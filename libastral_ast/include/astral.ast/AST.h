@@ -14,8 +14,9 @@ namespace astral {
 class AST : public openxds::Object
 {
 private:
-	openxds::base::String* location;
-	openxds::adt::ITree<astral::tokenizer::SourceToken>* ast;
+	openxds::base::String*                               location;
+	openxds::adt::ITree<astral::tokenizer::SourceToken>*      ast;
+	bool                                                    valid;
 
 public:
 	         AST();
@@ -30,6 +31,8 @@ public:
 	virtual void replaceSubtree( openxds::adt::IPosition<astral::tokenizer::SourceToken>& p, const AST& ast ) const;
 	
 	openxds::adt::ITree<astral::tokenizer::SourceToken>& getTree() const;
+	
+	virtual bool isValid() const;
 };
 	
 };};

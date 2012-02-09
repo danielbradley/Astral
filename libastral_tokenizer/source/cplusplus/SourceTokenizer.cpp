@@ -253,11 +253,15 @@ SourceTokenizer::parseWordToken( String* word )
 			switch ( token.getTokenType() )
 			{
 			case ITextToken::SYMBOL:
-				if ( token.getValue().contentEquals( "_" ) )
+				switch ( token.getValue().charAt( 0 ) )
 				{
+				case '_':
+				case '[':
+				case ']':
 					sb.append( token.getValue() );
 					delete this->tt->nextToken();
-				} else {
+					break;
+				default:
 					loop = false;
 				}
 				break;
