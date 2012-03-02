@@ -254,10 +254,10 @@ Method::Method( CompilationUnit& cu, const MethodSignature& aMethodSignature ) :
 	this->modified  = false;
 	
 	const char* return_type = aMethodSignature.getReturnType().getChars();
-	const char* method      = aMethodSignature.getMethod().getChars();
+	const char* method_call = aMethodSignature.getMethodCall().getChars();
 	
 	StringBuffer sb;
-	sb.append( FormattedString( "public %s %s\n", return_type, method ) );
+	sb.append( FormattedString( "public %s %s\n", return_type, method_call ) );
 	sb.append( "{\n" );
 	sb.append( "}\n" );
 	

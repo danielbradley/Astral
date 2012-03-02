@@ -20,7 +20,14 @@ namespace astral {
 The SymbolDB is used to faciliate the storage and interrogation of symbols that have been parsed from the CompilationUnits.
 Doing so allows one object reference to be passed to other objects when necessary.
 
+
+
+
 .	Implementation
+
+
+
+
 
 ..		Class definition
 
@@ -29,6 +36,9 @@ The SymbolDB extends from openxds::Object.
 ~include/astral/SymbolDB.h~
 class SymbolDB : openxds::Object {
 ~
+
+
+
 
 ...			Private members
 
@@ -41,10 +51,6 @@ For example:
 org.example.demo.Demo.initialise(char,Vector) --> IEntry<CompilationUnit>
 |
 
-~include/astral/SymbolDB.h~
-private: openxds::adt::IDictionary<const openxds::adt::IEntry<CompilationUnit> >* symbols;
-~
-
 The /name2namespace/ dictionary stores a mapping between classnames and the namespace they were defined within.
 The /namespace2name/ dictionary stores the reverse mapping.
 For example:
@@ -52,62 +58,62 @@ For example:
 org.example.demo.Demo <--> Demo
 |
 
+
+
 ~include/astral/SymbolDB.h~
+private: openxds::adt::IDictionary<const openxds::adt::IEntry<CompilationUnit> >* classes;
+private: openxds::adt::IDictionary<const openxds::adt::IEntry<CompilationUnit> >* symbols;
 private: openxds::adt::IDictionary<openxds::base::String>* name2namespace;
 private: openxds::adt::IDictionary<openxds::base::String>* namespace2name;
 ~
+
+
+
 
 ...			Construction
 
 The SymbolDB constructor takes no arguments as it simply instantiates the various
 private data-structures.
 
+
 ~include/astral/SymbolDB.h~
 public: SymbolDB();
-~
-
-!
-~include/astral/SymbolDB.h~
 public: virtual ~SymbolDB();
 ~
-!
+
 
 The SymbolDB is populated by the Astral class, which instantiates *CompilationUnit* objects,
 adds them to its own /files/ dictionary, then passes a reference to the corresponding *IEntry*
 to the SymbolDB.
 
-~include/astral/SymbolDB.h~
-public: void registerCU( const openxds::adt::IEntry<CompilationUnit>& anEntry );
-~
-
 If a file is modified, it should be deregistered, then re-registered.
-
-~include/astral/SymbolDB.h~
-public: void deregisterCU( const openxds::adt::IEntry<CompilationUnit>& anEntry );
-~
 
 It is often necessary to determine what subset of the namespace is available to classes
 depending on the imports specified by a particular class.
 The *importedTypes* method returns a Dictionary which is a subset of the /name2namespace/
 dictionary.
 
-~include/astral/SymbolDB.h~
-public: openxds::adt::IDictionary<openxds::base::String>*
-          importedTypes( const openxds::adt::IList<openxds::base::String>& imports ) const;
-~
-
 A similar subset of the /symbols/ table is also required, when looking up symbols.
 
 ~include/astral/SymbolDB.h~
+public: void registerCU( const openxds::adt::IEntry<CompilationUnit>& anEntry );
+public: void deregisterCU( const openxds::adt::IEntry<CompilationUnit>& anEntry );
+public: openxds::adt::IDictionary<openxds::base::String>*
+          importedTypes( const ImportsList& imports, const openxds::base::String& defaultNamespace ) const;
 public: openxds::adt::IDictionary<const openxds::adt::IEntry<CompilationUnit> >*
-          importedSymbols( const openxds::adt::IList<openxds::base::String>& imports ) const;
+          importedSymbols( const ImportsList& imports ) const;
 ~
+
+
+
+
 
 ...			Accessors
 
 The following provide other classes with direct access to the data structures.
 
 ~include/astral/SymbolDB.h~
+public: openxds::adt::IDictionary<const openxds::adt::IEntry<CompilationUnit> >& getClasses()       { return *this->classes; }
 public: openxds::adt::IDictionary<const openxds::adt::IEntry<CompilationUnit> >& getSymbols()       { return *this->symbols; }
 public: openxds::adt::IDictionary<const openxds::adt::IEntry<CompilationUnit> >& getSymbols() const { return *this->symbols; }
 public: openxds::adt::IDictionary<openxds::base::String>&                     getN2NS() const { return *this->name2namespace; }
@@ -142,6 +148,8 @@ throw (openxds::exceptions::NoSuchElementException*);
 !
 ~!source/cplusplus/SymbolDB.cpp~
 #include "astral/CompilationUnit.h"
+#include "astral/Import.h"
+#include "astral/ImportsList.h"
 #include "astral/SymbolDB.h"
 ~
 !
@@ -172,6 +180,7 @@ using namespace openxds::exceptions;
 ~source/cplusplus/SymbolDB.cpp~
 SymbolDB::SymbolDB()
 {
+	this->classes        = new Dictionary<const IEntry<CompilationUnit> >();
 	this->symbols        = new Dictionary<const IEntry<CompilationUnit> >();
 	this->name2namespace = new Dictionary<String>();
 	this->namespace2name = new Dictionary<String>();
@@ -181,6 +190,7 @@ SymbolDB::SymbolDB()
 ~source/cplusplus/SymbolDB.cpp~
 SymbolDB::~SymbolDB()
 {
+	delete this->classes;
 	delete this->symbols;
 	delete this->name2namespace;
 	delete this->namespace2name;
@@ -197,7 +207,8 @@ SymbolDB::registerCU( const IEntry<CompilationUnit>& anEntry )
 	
 	const char* ns = cu.getNamespace().getChars();
 	const char* nm = cu.getName().getChars();
-	
+
+	delete this->classes->insert( cu.getFQName().getChars(), anEntry.copy() );
 	delete this->name2namespace->insert( nm, new String( ns ) );
 	delete this->namespace2name->insert( ns, new String( nm ) );
 
@@ -255,33 +266,58 @@ SymbolDB::deregisterCU( const IEntry<CompilationUnit>& anEntry )
 ~
 
 ~source/cplusplus/SymbolDB.cpp~
+static String* extractNamespace( const String& anImportLine )
+{
+	long len = anImportLine.getLength();
+	if ( '*' == anImportLine.charAt( len-1 ) )
+	{
+		return anImportLine.substring( 0, len-3 );
+	} else {
+		return anImportLine.asString();
+	}
+}
+
+static void addTypes( IDictionary<String>& importedTypes, IEIterator<String>& ie, const String& nspace )
+{
+	while ( ie.hasNext() )
+	{
+		IEntry<String>* e = ie.next();
+		{
+			const String& value = e->getValue();
+			delete importedTypes.insert( value.getChars(), new String( nspace ) );
+		}
+		delete e;
+	}
+}
+
+
 IDictionary<String>*
-SymbolDB::importedTypes( const IList<String>& imports ) const
+SymbolDB::importedTypes( const ImportsList& imports, const String& defaultNamespace ) const
 {
 	IDictionary<String>* imported_types = new Dictionary<String>();
 	{
-		const IPIterator<String>* it = imports.positions();
+		if ( defaultNamespace.getLength() )
+		{
+			IEIterator<String>* ie = this->namespace2name->findAll( defaultNamespace.getChars() );
+			{
+				addTypes( *imported_types, *ie, defaultNamespace );
+			}
+			delete ie;
+		}
+
+		const IIterator<Import>* it = imports.iterator();
 		while ( it->hasNext() )
 		{
-			const IPosition<String>* p = it->next();
+			const Import& import = it->next();
+			String* nspace = extractNamespace( import.getImport() );
 			{
-				const char* nspace = p->getElement().getChars(); 
-				//fprintf( stdout, "Astral::importTypes: Looking for classes matching: %s\n", nspace );
-				
-				IEIterator<String>* ie = this->namespace2name->findAll( nspace );
-				while ( ie->hasNext() )
+				IEIterator<String>* ie = this->namespace2name->findAll( nspace->getChars() );
 				{
-					IEntry<String>* e = ie->next();
-					{
-						const String& value = e->getValue();
-						delete imported_types->insert( value.getChars(), new String( nspace ) );
-						//fprintf( stdout, "Astral::importTypes: %s\n", value.getChars() );
-					}
-					delete e;
+					addTypes( *imported_types, *ie, *nspace );
 				}
 				delete ie;
 			}
-			delete p;
+			delete nspace;
 		}
 		delete it;
 	}
@@ -298,22 +334,31 @@ static void copySymbolsFor
 );
 
 IDictionary<const IEntry<CompilationUnit> >*
-SymbolDB::importedSymbols( const IList<String>& imports ) const
+SymbolDB::importedSymbols( const ImportsList& imports ) const
 {
 	IDictionary<const IEntry<CompilationUnit> >* subset = new Dictionary<const IEntry<CompilationUnit> >();
 	{
-		const IPIterator<String>* it = imports.positions();
+		const IIterator<Import>* it = imports.iterator();
 		while ( it->hasNext() )
 		{
-			const IPosition<String>* p = it->next();
-			{
-				const String& imprt = p->getElement();
-				
-				copySymbolsFor( *subset, *this->symbols, imprt );
-			}
-			delete p;
+			const Import& import = it->next();
+			
+			copySymbolsFor( *subset, *this->symbols, import.getImport() );
 		}
 		delete it;
+
+//		const IPIterator<String>* it = imports.positions();
+//		while ( it->hasNext() )
+//		{
+//			const IPosition<String>* p = it->next();
+//			{
+//				const String& imprt = p->getElement();
+//				
+//				copySymbolsFor( *subset, *this->symbols, imprt );
+//			}
+//			delete p;
+//		}
+//		delete it;
 	}
 	return subset;
 }

@@ -76,7 +76,7 @@ CodeBase::saveMethod( const MethodSignature& aMethodSignature )
 
 	try
 	{
-		CompilationUnit& cu     = this->getCompilationUnit( aMethodSignature.getMethodCall() );
+		CompilationUnit& cu     = this->getCompilationUnit( aMethodSignature.getClassSignature() );
 		Method&          method = cu.getMethod( aMethodSignature );
 		can_save = method.sync();
 
@@ -114,20 +114,29 @@ CodeBase::reregister( const CompilationUnit& aCu )
 }
 
 CompilationUnit&
-CodeBase::getCompilationUnit( const MethodSignature& aMethodSignature )
+CodeBase::getCompilationUnit( const ClassSignature& aClassSignature )
 {
-	const char* cls = aMethodSignature.getFQClass().getChars();
-	IEntry<const IEntry<CompilationUnit> >* e = this->symbolDB->getSymbols().startsWith( cls );
-	const CompilationUnit& cu = e->getValue().getValue();
-	delete e;
-	
-	return const_cast<CompilationUnit&>( cu );
+	const char* fq_class = aClassSignature.getFQClass().getChars();
+	try
+	{
+		IEntry<const IEntry<CompilationUnit> >* e = this->symbolDB->getClasses().find( fq_class );
+		const CompilationUnit& cu = e->getValue().getValue();
+		delete e;
+		return const_cast<CompilationUnit&>( cu );
+	}
+	catch ( NoSuchElementException* ex )
+	{
+		delete ex;
+		fprintf( stderr, "CodeBase::getCompilationUnit\n" );
+		fprintf( stderr, "\t could not find: %s, aborting!!!", fq_class );
+		abort();
+	}
 }
 
 const CompilationUnit&
-CodeBase::getCompilationUnit( const MethodSignature& aMethodSignature ) const
+CodeBase::getCompilationUnit( const ClassSignature& aClassSignature ) const
 {
-	return const_cast<CodeBase*>( this )->getCompilationUnit( aMethodSignature );
+	return const_cast<CodeBase*>( this )->getCompilationUnit( aClassSignature );
 }
 
 MemberSignature*

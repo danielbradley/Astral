@@ -34,17 +34,26 @@ It has the following private members - some of which are accessible via accessor
 ~include/astral/CompilationUnit.h~
 private:
 	astral::ast::AST* ast;
-	openxds::base::String* location;
-	openxds::base::String* packageName;
-	openxds::base::String* className;
-	openxds::base::String* fqName;
-	openxds::base::String* extendsClass;
-	openxds::adt::IList<openxds::base::String>* imports;
-	openxds::adt::IDictionary<openxds::adt::IPosition<astral::tokenizer::SourceToken> >* methods;
-	openxds::adt::IDictionary<openxds::adt::IPosition<astral::tokenizer::SourceToken> >* members;
+	openxds::base::String*                                                                      location;
+	openxds::base::String*                                                                   packageName;
+	openxds::base::String*                                                                     className;
+	openxds::base::String*                                                                        fqName;
+	openxds::base::String*                                                                  extendsClass;
+
+	Declaration*                                                                             declaration;
+
+	ImportsList*                                                                             importsList;
+	MembersList*                                                                             membersList;
+
+
+
+
+
+	openxds::adt::IDictionary<openxds::adt::IPosition<astral::tokenizer::SourceToken> >*         methods;
+	openxds::adt::IDictionary<openxds::adt::IPosition<astral::tokenizer::SourceToken> >*         members;
+
 
 	openxds::adt::IDictionary<openxds::base::String>* importedTypes;
-	
 	openxds::adt::IDictionary<Method>* methodObjects;
 ~
 
@@ -72,11 +81,27 @@ public:
 ~
 
 
-..		Insertion of new methods
+
+
+..		Public Methods
 
 ~include/astral/CompilationUnit.h~
-	virtual bool insertNewMethod( const char* methodKey, const astral::ast::AST& aMethodAST );
+public:
+	virtual bool            insertNewMethod( const char* methodKey, const astral::ast::AST& aMethodAST );
+	virtual void                       save();
+	virtual ImportsList&     getImportsList();
+	virtual MembersList&     getMembersList();
+	virtual Declaration&     getDeclaration();
+	virtual Method&               getMethod( const MethodSignature& aMethodSignature ) throw (openxds::exceptions::NoSuchElementException*);
+	virtual void         resetImportedTypes( const SymbolDB& symbolDB );
+
+	virtual const ImportsList&     getImportsList() const { return *this->importsList; }
 ~
+
+
+
+
+
 
 ..		Public const method declarations
 
@@ -84,14 +109,13 @@ The following methods provide public (const) access to the class's members.
 
 ~include/astral/CompilationUnit.h~
 public:
-	virtual       void                                   resetImportedTypes( const SymbolDB& symbolDB );
 
+	virtual         astral::ast::AST&                                getAST()       { return *this->ast;          }
 	virtual const   astral::ast::AST&                                getAST() const { return *this->ast;          }
 	virtual       openxds::base::String&                       getNamespace() const { return *this->packageName;  }
 	virtual       openxds::base::String&                            getName() const { return *this->className;    }
 	virtual       openxds::base::String&                          getFQName() const { return *this->fqName;       }
 	virtual       openxds::base::String&                      getSuperclass() const { return *this->extendsClass; }
-	virtual       openxds::adt::IList<openxds::base::String>&    getImports() const { return *this->imports;      }
 
 	virtual openxds::adt::IDictionary<openxds::adt::IPosition<astral::tokenizer::SourceToken> >&
 		getMethods() const { return *this->methods; }
@@ -136,12 +160,10 @@ public:
 //	virtual void printMethods() const;
 //	virtual void printMembers() const;
 
-	virtual       Method& getMethod( const MethodSignature& aMethodSignature )       throw (openxds::exceptions::NoSuchElementException*);
 	virtual const Method& getMethod( const MethodSignature& aMethodSignature ) const throw (openxds::exceptions::NoSuchElementException*);
 
 	virtual const openxds::base::String& getLocation() const { return *this->location; }
 	
-	virtual void save();
 ~
 
 !
@@ -163,11 +185,17 @@ public:
 #include <astral/AdvancedHTMLPrintTour.h>
 #include <astral/Codebase.h>
 #include <astral/CompilationUnit.h>
+#include <astral/Declaration.h>
+#include <astral/Import.h>
+#include <astral/ImportsList.h>
+#include <astral/Member.h>
+#include <astral/MembersList.h>
 #include <astral/Method.h>
 #include <astral/MethodSignature.h>
 #include <astral/SymbolDB.h>
 #include <astral/VariableScopes.h>
 #include <astral.ast/AST.h>
+#include <astral.tours/FindLastTokenTour.h>
 #include <astral.tours/HTMLPrintTour.h>
 #include <astral.tours/MemberDiscoveryTour.h>
 #include <astral.tours/MethodDiscoveryTour.h>
@@ -182,6 +210,7 @@ public:
 #include <openxds.io/OutputStream.h>
 #include <openxds.io/IOBuffer.h>
 #include <openxds.adt/IEIterator.h>
+#include <openxds.adt/IIterator.h>
 #include <openxds.adt/IPosition.h>
 #include <openxds.adt/ITree.h>
 #include <openxds.adt.std/Dictionary.h>
@@ -242,17 +271,20 @@ Implementation
 ~source/cplusplus/CompilationUnit.cpp~
 CompilationUnit::CompilationUnit( const char* location )
 {
-	this->location     = new String( location );
-	this->imports      = new Sequence<String>();
-	this->methods      = new Dictionary<IPosition<SourceToken> >();
-	this->members      = new Dictionary<IPosition<SourceToken> >();
-	this->ast          = new AST();
-	this->packageName  = NULL;
-	this->className    = NULL;
-	this->extendsClass = NULL;
+	this->location        = new String( location );
+	this->methods         = new Dictionary<IPosition<SourceToken> >();
+	this->members         = new Dictionary<IPosition<SourceToken> >();
+	this->ast             = new AST();
+	this->packageName     = NULL;
+	this->className       = NULL;
+	this->extendsClass    = NULL;
 	
-	this->importedTypes = new Dictionary<String>();
-	this->methodObjects = new Dictionary<Method>();
+	this->declaration     = new Declaration( *this );
+	this->importsList     = new ImportsList( *this );
+	this->membersList     = new MembersList( *this );
+	
+	this->importedTypes   = new Dictionary<String>();
+	this->methodObjects   = new Dictionary<Method>();
 }
 ~
 
@@ -267,6 +299,9 @@ Implementation
 ~source/cplusplus/CompilationUnit.cpp~
 CompilationUnit::~CompilationUnit()
 {
+	delete this->importsList;
+	delete this->membersList;
+
 	delete this->methods;
 	delete this->members;
 	delete this->ast;
@@ -301,20 +336,35 @@ CompilationUnit::initialise()
 
 	IPosition<SourceToken>* root = this->ast->getTree().root();
 	{
-		PackageDiscoveryTour pdt( this->ast->getTree(), *this->imports );
-		pdt.doGeneralTour( *root );
-		this->packageName  = pdt.getPackageName().asString();
-		this->className    = pdt.getClassName().asString();
-		this->fqName       = new FormattedString( "%s.%s", this->packageName->getChars(), this->className->getChars() );
-		this->extendsClass = pdt.getExtendsClass().asString();
+		IList<String>*                        imports          = new Sequence<String>();
+		IList<IPosition<SourceToken> >*       import_positions = new Sequence<IPosition<SourceToken> >();
+		{
+			PackageDiscoveryTour pdt( this->ast->getTree(), *imports, *import_positions );
+			pdt.doGeneralTour( *root );
 
-		MethodDiscoveryTour mdt1( this->ast->getTree(), *this->methods );
-		mdt1.doGeneralTour( *root );
-		
-		MemberDiscoveryTour mdt2( this->ast->getTree(), *this->members );
-		mdt2.doGeneralTour( *root );
-		
-		this->imports->insertLast( new String( this->getNamespace() ) );
+			this->packageName  = pdt.getPackageName().asString();
+			this->className    = pdt.getClassName().asString();
+			this->fqName       = new FormattedString( "%s.%s", this->packageName->getChars(), this->className->getChars() );
+			this->extendsClass = pdt.getExtendsClass().asString();
+
+			FindLastTokenTour fltt( this->ast->getTree(), SourceToken::CLASS );
+			fltt.doGeneralTour( *root );
+
+			MethodDiscoveryTour mdt1( this->ast->getTree(), *this->methods );
+			mdt1.doGeneralTour( *root );
+			
+			MemberDiscoveryTour mdt2( this->ast->getTree(), *this->members );
+			mdt2.doGeneralTour( *root );
+
+			this->declaration->initialise( fltt.copyLastTokenPosition() );
+			this->importsList->initialise( *import_positions );
+			this->membersList->initialise( *this->members );
+
+			//this->initialiseImportObjects();
+			//this->imports->insertLast( new String( this->getNamespace() ) );
+		}
+		delete imports;
+		delete import_positions;
 	}
 	delete root;
 }
@@ -407,6 +457,18 @@ CompilationUnit::insertNewMethod( const char* methodKey, const AST& aMethodAST )
 }
 ~
 
+
+
+
+
+
+
+
+
+
+
+
+
 ...			Method: resetImportedTypes
 
 ~
@@ -428,9 +490,89 @@ void
 CompilationUnit::resetImportedTypes( const SymbolDB& symbolDB )
 {
 	delete this->importedTypes;
-	this->importedTypes = symbolDB.importedTypes( this->getImports() );
+	this->importedTypes = symbolDB.importedTypes( this->getImportsList(), this->getNamespace() );
 }
 ~
+
+
+
+
+...			Method: getImportsList
+
+~source/cplusplus/CompilationUnit.cpp~
+ImportsList&
+CompilationUnit::getImportsList()
+{
+	return *this->importsList;
+}
+~
+
+~source/cplusplus/CompilationUnit.cpp~
+MembersList&
+CompilationUnit::getMembersList()
+{
+	return *this->membersList;
+}
+~
+
+~source/cplusplus/CompilationUnit.cpp~
+Declaration&
+CompilationUnit::getDeclaration()
+{
+	return *this->declaration;
+}
+~
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ...			Method: register Symobls
@@ -495,34 +637,46 @@ CompilationUnit::registerSymbols( IDictionary<const IEntry<CompilationUnit> >& s
 	}
 	delete ie;
 
-	ie = this->members->entries();
+
+	IIterator<Member>* it = this->membersList->values();
+	while ( it->hasNext() )
 	{
-		while ( ie->hasNext() )
-		{
-			IEntry<IPosition<SourceToken> >* entry = ie->next();
-			{
-				StringTokenizer st( entry->getKey() );
-				st.setDelimiter( '|' );
-				if ( st.hasMoreTokens() )
-				{
-					String* name = st.nextToken();
-					{
-						StringBuffer sb;
-						sb.append( this->getNamespace() );
-						sb.append( '.' );
-						sb.append( this->getName() );
-						sb.append( '.' );
-						sb.append( *name );
-					
-						delete symbols.insert( sb.getChars(), e.copy() );
-					}
-					delete name;
-				}
-			}
-			delete entry;
-		}
+		Member& member = it->next();
+		
+		FormattedString member_key( "%s.%s.%s", this->getNamespace().getChars(), this->getName().getChars(), member.getName().getChars() );
+		
+		delete symbols.insert( member_key.getChars(), e.copy() );
 	}
-	delete ie;
+	delete it;
+
+//	ie = this->members->entries();
+//	{
+//		while ( ie->hasNext() )
+//		{
+//			IEntry<IPosition<SourceToken> >* entry = ie->next();
+//			{
+//				StringTokenizer st( entry->getKey() );
+//				st.setDelimiter( '|' );
+//				if ( st.hasMoreTokens() )
+//				{
+//					String* name = st.nextToken();
+//					{
+//						StringBuffer sb;
+//						sb.append( this->getNamespace() );
+//						sb.append( '.' );
+//						sb.append( this->getName() );
+//						sb.append( '.' );
+//						sb.append( *name );
+//					
+//						delete symbols.insert( sb.getChars(), e.copy() );
+//					}
+//					delete name;
+//				}
+//			}
+//			delete entry;
+//		}
+//	}
+//	delete ie;
 }
 ~
 
@@ -1059,7 +1213,9 @@ CompilationUnit::resolveMethodCallReturnType( const CodeBase& codebase, const IT
 		delete arguments;
 	}
 	
+	#ifdef DEBUG_ASTRAL_COMPILATIONUNIT
 	fprintf( stderr, "CU::resolveMethodCallReturnType( codebase, tree, (%s), scopes, %s ) | %s\n", name, invocationClass.getChars(), return_type->getChars() );
+	#endif
 	
 	return return_type;
 }
@@ -1097,7 +1253,9 @@ CompilationUnit::resolveMethodCallArgumentTypes( const CodeBase& codebase, const
 String*
 CompilationUnit::recurseMethodArguments( const CodeBase& codebase, const ITree<SourceToken>& tree, const IPosition<SourceToken>& arguments, const VariableScopes& scopes ) const
 {
+	#ifdef DEBUG_ASTRAL_COMPILATIONUNIT
 	fprintf( stderr, "CompilationUnit::recurseMethodArguments\n" );
+	#endif
 
 	StringBuffer sb;
 
@@ -1112,7 +1270,9 @@ CompilationUnit::recurseMethodArguments( const CodeBase& codebase, const ITree<S
 				{
 					String* argument_type = this->recurseMethodArgument( codebase, tree, *p, scopes );
 					{
+						#ifdef DEBUG_ASTRAL_COMPILATIONUNIT
 						fprintf( stderr, "\t %s\n", argument_type->getChars() );
+						#endif
 
 						sb.append( *argument_type );
 						sb.append( "," );
@@ -1248,7 +1408,7 @@ throw (NoSuchElementException*)
 void
 CompilationUnit::save()
 {
-	fprintf( stdout, "CompilationUnit::save() to: %s\n", this->location->getChars() );
+	//fprintf( stdout, "CompilationUnit::save() to: %s\n", this->location->getChars() );
 	
 	Path             target_path( *this->location );
 	File             target_file( target_path );
@@ -1257,7 +1417,7 @@ CompilationUnit::save()
 	
 	if ( target_file.exists() )
 	{
-		fprintf( stdout, "\t target file exists\n" );
+		//fprintf( stdout, "\t target file exists\n" );
 		{
 			PrintSourceTour pst( this->getAST().getTree(), IO::out() );
 			IPosition<SourceToken>* root = this->getAST().getTree().root();

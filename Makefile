@@ -11,7 +11,7 @@ quasi:
 	make -C libastral            quasi
 
 build:
-	make -C libastral buildforce
+	make -C libastral           buildforce
 
 buildall: quasi
 	make -C libastral buildforceall

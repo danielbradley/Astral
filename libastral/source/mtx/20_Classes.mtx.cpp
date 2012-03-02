@@ -32,9 +32,15 @@ Lastly, the /Export/ class contains a number of static methods that can be used 
 namespace astral {
 
 class PUBLIC CodeBase;
+class PUBLIC ClassSignature;
 class PUBLIC CompilationUnit;
+class PUBLIC Declaration;
+class PUBLIC Import;
+class PUBLIC ImportsList;
 class PUBLIC InvocationClass;
 class PUBLIC SymbolDB;
+class PUBLIC Member;
+class PUBLIC MembersList;
 class PUBLIC MemberSignature;
 class PUBLIC Method;
 class PUBLIC MethodSignature;

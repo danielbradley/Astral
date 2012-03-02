@@ -86,8 +86,8 @@ public:
 	virtual       void                                                reregister( const CompilationUnit& aCu );
 	
 //	virtual const CompilationUnit&                            getCompilationUnit( const openxds::base::String& methodSignature ) const;
-	virtual       CompilationUnit&                            getCompilationUnit( const MethodSignature& aMethodSignature );
-	virtual const CompilationUnit&                            getCompilationUnit( const MethodSignature& aMethodSignature ) const;
+	virtual       CompilationUnit&                            getCompilationUnit( const ClassSignature& aClassSignature );
+	virtual const CompilationUnit&                            getCompilationUnit( const ClassSignature& aClassSignature ) const;
 
 	virtual       MemberSignature*                       completeMemberSignature( const char* cls, const char* member ) const;
 	virtual       MethodSignature*                       completeMethodSignature( const char* cls, const char* method, const char* parameters ) const;
@@ -355,7 +355,7 @@ CodeBase::saveMethod( const MethodSignature& aMethodSignature )
 
 	try
 	{
-		CompilationUnit& cu     = this->getCompilationUnit( aMethodSignature.getMethodCall() );
+		CompilationUnit& cu     = this->getCompilationUnit( aMethodSignature.getClassSignature() );
 		Method&          method = cu.getMethod( aMethodSignature );
 		can_save = method.sync();
 
@@ -434,22 +434,31 @@ Implementation
 
 ~source/cplusplus/CodeBase.cpp~
 CompilationUnit&
-CodeBase::getCompilationUnit( const MethodSignature& aMethodSignature )
+CodeBase::getCompilationUnit( const ClassSignature& aClassSignature )
 {
-	const char* cls = aMethodSignature.getFQClass().getChars();
-	IEntry<const IEntry<CompilationUnit> >* e = this->symbolDB->getSymbols().startsWith( cls );
-	const CompilationUnit& cu = e->getValue().getValue();
-	delete e;
-	
-	return const_cast<CompilationUnit&>( cu );
+	const char* fq_class = aClassSignature.getFQClass().getChars();
+	try
+	{
+		IEntry<const IEntry<CompilationUnit> >* e = this->symbolDB->getClasses().find( fq_class );
+		const CompilationUnit& cu = e->getValue().getValue();
+		delete e;
+		return const_cast<CompilationUnit&>( cu );
+	}
+	catch ( NoSuchElementException* ex )
+	{
+		delete ex;
+		fprintf( stderr, "CodeBase::getCompilationUnit\n" );
+		fprintf( stderr, "\t could not find: %s, aborting!!!", fq_class );
+		abort();
+	}
 }
 ~
 
 ~source/cplusplus/CodeBase.cpp~
 const CompilationUnit&
-CodeBase::getCompilationUnit( const MethodSignature& aMethodSignature ) const
+CodeBase::getCompilationUnit( const ClassSignature& aClassSignature ) const
 {
-	return const_cast<CodeBase*>( this )->getCompilationUnit( aMethodSignature );
+	return const_cast<CodeBase*>( this )->getCompilationUnit( aClassSignature );
 }
 ~
 

@@ -33,10 +33,12 @@ private:
 	openxds::base::String* className;
 	openxds::base::String* extendsClass;
 	openxds::adt::IList<openxds::base::String>& imports;
+	openxds::adt::IList<openxds::adt::IPosition<SourceToken> >& importPositions;
 	bool capture;
 public:
 	PackageDiscoveryTour( openxds::adt::ITree<astral::tokenizer::SourceToken>& tree,
-	                      openxds::adt::IList<openxds::base::String>& imports );
+	                      openxds::adt::IList<openxds::base::String>& imports,
+						  openxds::adt::IList<openxds::adt::IPosition<SourceToken> >& importPositions );
 	virtual ~PackageDiscoveryTour();
 	
 	virtual void  visitPreorder( openxds::adt::IPosition<SourceToken>& p, openxds::adt::std::Result& r );

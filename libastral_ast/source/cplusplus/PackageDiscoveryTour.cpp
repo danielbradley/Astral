@@ -12,8 +12,8 @@ using namespace openxds::adt;
 using namespace openxds::adt::std;
 using namespace openxds::base;
 
-PackageDiscoveryTour::PackageDiscoveryTour( ITree<SourceToken>& tree, IList<String>& imports )
-: openxds::adt::std::GeneralTour<SourceToken>( tree ), imports( imports )
+PackageDiscoveryTour::PackageDiscoveryTour( ITree<SourceToken>& tree, IList<String>& imports, IList<IPosition<SourceToken> >& importPositions )
+: openxds::adt::std::GeneralTour<SourceToken>( tree ), imports( imports ), importPositions( importPositions )
 {
 	this->packageName  = new String();
 	this->className    = new String();
@@ -112,14 +112,25 @@ PackageDiscoveryTour::setPackageName( IPosition<SourceToken>& p )
 void
 PackageDiscoveryTour::addImport( IPosition<SourceToken>& p )
 {
+	this->importPositions.insertLast( p.copy() );
+
 	String* selection = extractSelection( p );
 	{
-		long len = selection->getLength();
-		if ( '*' == selection->charAt( len-1 ) )
+		bool dont_remove_asterisk = true;
+	
+		if ( dont_remove_asterisk )
 		{
-			delete this->imports.insertLast( selection->substring( 0, len-3 ) );
-		} else {
 			delete this->imports.insertLast( selection->asString() );
+		}
+		else
+		{
+			long len = selection->getLength();
+			if ( '*' == selection->charAt( len-1 ) )
+			{
+				delete this->imports.insertLast( selection->substring( 0, len-3 ) );
+			} else {
+				delete this->imports.insertLast( selection->asString() );
+			}
 		}
 	}
 	delete selection;

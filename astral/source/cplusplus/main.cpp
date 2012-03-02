@@ -6,6 +6,7 @@
 #include <openxds.adt.std/Sequence.h>
 #include <openxds.io/Path.h>
 #include <cstdio>
+#include <string>
 
 using namespace astral;
 using namespace openxds::adt::std;
@@ -19,13 +20,25 @@ static void usage()
 
 static void run( int argc, const char** argv )
 {
+	const char* ext_java   = ".java";
+	const char* ext_cobalt = ".cm";
+	const char* ext = ext_java;
+
+	int i=1;
+	
+	if ( (argc > 1) && (0 == strcmp( argv[1], "--cobalt" )) )
+	{
+		ext = ext_cobalt;
+		i++;
+	}
+
 	Sequence<Path> paths;
-	for ( int i=1; i < argc; i++ )
+	for ( i; i < argc; i++ )
 	{
 		paths.addLast( new Path( argv[i] ) );
 	}
 
-	CodeBase* codebase = AstralFactory::createAstralExport( paths, ".java" );
+	CodeBase* codebase = AstralFactory::createAstralExport( paths, ext );
 	{
 		Export::exportAdvancedHTMLTo( "html", *codebase );
 	}

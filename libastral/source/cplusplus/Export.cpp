@@ -1,5 +1,7 @@
 #include "astral/AdvancedHTMLPrintTour.h"
 #include "astral/Export.h"
+#include "astral/Import.h"
+#include "astral/ImportsList.h"
 
 #include "astral/CodeBase.h"
 #include "astral/CompilationUnit.h"
@@ -12,6 +14,7 @@
 #include <openxds.adt/IDictionary.h>
 #include <openxds.adt/IEIterator.h>
 #include <openxds.adt/IEntry.h>
+#include <openxds.adt/IIterator.h>
 #include <openxds.adt/IList.h>
 #include <openxds.adt/ITree.h>
 #include <openxds.base/Environment.h>
@@ -108,10 +111,10 @@ Export::toXML( const CodeBase& cb )
 			{
 				//const char*            filename = entry->getKey();
 				const CompilationUnit& cu       = entry->getValue();
-				const IList<String>&   imports  = cu.getImports();
+				const ImportsList&   imports  = cu.getImportsList();
 
 				IDictionary<const IEntry<CompilationUnit> >* imported_symbols = cb.getSymbolDB().importedSymbols( imports );
-				IDictionary<String>* imported_types = cb.getSymbolDB().importedTypes( imports );
+				IDictionary<String>* imported_types = cb.getSymbolDB().importedTypes( imports, cu.getNamespace() );
 
 				String* xml = Export::toXML( cu, *imported_symbols, *imported_types );
 				{
@@ -173,10 +176,10 @@ Export::exportHTMLTo( const char* directory, const CodeBase& cb, const Compilati
 	}
 	PrintWriter* aWriter = createPrintWriter( pathname );
 	{
-		const IList<String>& imports = cu.getImports();
+		const ImportsList& imports = cu.getImportsList();
 
 		IDictionary<const IEntry<CompilationUnit> >* imported_symbols = cb.getSymbolDB().importedSymbols( imports );
-		IDictionary<String>* imported_types = cb.getSymbolDB().importedTypes( imports );
+		IDictionary<String>* imported_types = cb.getSymbolDB().importedTypes( imports, cu.getNamespace() );
 		{
 			top( *aWriter );
 			printHTML( cu, cb, *imported_symbols, *imported_types, *aWriter );
@@ -233,12 +236,12 @@ Export::exportAdvancedHTMLTo( const char* directory, const CodeBase& cb, const C
 	}
 	PrintWriter* aWriter = createPrintWriter( pathname );
 	{
-		const IList<String>& imports = cu.getImports();
+		const ImportsList& imports = cu.getImportsList();
 //		IDictionary<IEntry<CompilationUnit> >* imported_symbols = cb.processImports( imports );
 //		IDictionary<String>* imported_types = cb.importedTypes( imports );
 
 		IDictionary<const IEntry<CompilationUnit> >* imported_symbols = cb.getSymbolDB().importedSymbols( imports );
-		IDictionary<String>* imported_types = cb.getSymbolDB().importedTypes( imports );
+		IDictionary<String>* imported_types = cb.getSymbolDB().importedTypes( imports, cu.getNamespace() );
 		{
 			top( *aWriter );
 			printAdvancedHTML( cu, cb, *imported_symbols, *imported_types, *aWriter );
@@ -276,16 +279,20 @@ Export::toXML( const CompilationUnit& cu, openxds::adt::IDictionary<const openxd
 		sb.append( tag );
 		{
 			{
-				IPIterator<String>* it = cu.getImports().positions();
+				const IIterator<Import>* it = cu.getImportsList().iterator();
 				{
 					while ( it->hasNext() )
 					{
-						IPosition<String>* p = it->next();
-						{
-							FormattedString import( "<import value='%s' />\n", p->getElement().getChars() );
-							sb.append( import );
-						}
-						delete p;
+						const Import& im = it->next();
+						FormattedString import( "<import value='%s' />\n", im.getImport().getChars() );
+						sb.append( import );
+					
+//						IPosition<String>* p = it->next();
+//						{
+//							FormattedString import( "<import value='%s' />\n", p->getElement().getChars() );
+//							sb.append( import );
+//						}
+//						delete p;
 					}
 				}
 				delete it;

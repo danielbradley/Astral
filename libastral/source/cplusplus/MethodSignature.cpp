@@ -1,3 +1,4 @@
+#include "astral/ClassSignature.h"
 #include "astral/MethodSignature.h"
 
 #include <openxds.base/FormattedString.h>
@@ -13,29 +14,58 @@ using namespace openxds::base;
 
 MethodSignature::MethodSignature()
 {
-	this->original   = new String();
-	this->nspace     = new String();
-	this->cls        = new String();
-	this->fqClass    = new String();
-	this->method     = new String();
-	this->returnType = new String();
-	this->methodName = new String();
-	this->methodCall = new String();
+	this->original       = new String();
+	this->classSignature = new ClassSignature();
+	this->fqMethodCall   = new String();
+	this->returnType     = new String();
+	this->methodCall     = new String();
+	this->methodName     = new String();
+	this->methodKey      = new String();
 }
-
-
-
 
 MethodSignature::MethodSignature( const String& aSignature )
 {
+	this->original       = new String();
+	this->classSignature = new ClassSignature();
+	this->fqMethodCall   = new String();
+	this->returnType     = new String();
+	this->methodCall     = new String();
+	this->methodName     = new String();
+	this->methodKey      = new String();
+
 	this->initialise( aSignature );
 }
 
+MethodSignature::MethodSignature( const ClassSignature& aClassSignature, const String& aMethodKey )
+{
+	this->original       = new String();
+	this->classSignature = new ClassSignature();
+	this->fqMethodCall   = new String();
+	this->returnType     = new String();
+	this->methodCall     = new String();
+	this->methodName     = new String();
+	this->methodKey      = new String();
 
+	StringBuffer sb;
+	sb.append( aClassSignature.getFQClass() );
+	sb.append( "." );
+	sb.append( aMethodKey );
+	
+	const char* signature = sb.getChars();
 
+	this->initialise( signature );
+}
 
 MethodSignature::MethodSignature( const MethodSignature& aMethodSignature )
 {
+	this->original       = new String();
+	this->classSignature = new ClassSignature();
+	this->fqMethodCall   = new String();
+	this->returnType     = new String();
+	this->methodCall     = new String();
+	this->methodName     = new String();
+	this->methodKey      = new String();
+
 	this->initialise( aMethodSignature.getOriginal() );
 }
 
@@ -45,13 +75,12 @@ MethodSignature::MethodSignature( const MethodSignature& aMethodSignature )
 MethodSignature::~MethodSignature()
 {
 	delete this->original;
-	delete this->nspace;
-	delete this->cls;
-	delete this->fqClass;
-	delete this->method;
+	delete this->classSignature;
+	delete this->fqMethodCall;
 	delete this->returnType;
-	delete this->methodName;
 	delete this->methodCall;
+	delete this->methodName;
+	delete this->methodKey;
 }
 
 
@@ -60,56 +89,72 @@ MethodSignature::~MethodSignature()
 void
 MethodSignature::initialise( const String& aSignature )
 {
-	this->original = new String( aSignature );
+	delete this->original;
+	       this->original = new String( aSignature );
 
 	StringTokenizer st( aSignature );
 	st.setDelimiter( '|' );
 	{
-		this->methodCall = st.hasMoreTokens() ? st.nextToken() : new String();
-		this->returnType = st.hasMoreTokens() ? st.nextToken() : new String();
+		delete this->fqMethodCall;
+		       this->fqMethodCall = st.hasMoreTokens() ? st.nextToken() : new String();
+
+		delete this->returnType;
+		       this->returnType = st.hasMoreTokens() ? st.nextToken() : new String();
 	}
 	
 	Sequence<String> bits;
 	{
-		StringTokenizer st2( *this->methodCall );
-		st2.setDelimiter( '.' );
-		while ( st2.hasMoreTokens() )
 		{
-			bits.addLast( st2.nextToken() );
-		}
-	
-		this->method = !bits.isEmpty() ? bits.removeLast() : new String();
-		this->cls    = !bits.isEmpty() ? bits.removeLast() : new String();
-	
-		StringBuffer sb;
-		{
-			IIterator<String>* it = bits.elements();
-			while ( it->hasNext() )
+			StringTokenizer st2( *this->fqMethodCall );
+			st2.setDelimiter( '.' );
+			while ( st2.hasMoreTokens() )
 			{
-				sb.append( it->next() );
-				sb.append( "." );
+				bits.addLast( st2.nextToken() );
 			}
-			delete it;
+	
+			delete this->methodCall;
+			       this->methodCall = !bits.isEmpty() ? bits.removeLast() : new String();
+
+			if ( !this->methodCall->contains( "(" ) )
+			{
+				bits.addLast( this->methodCall );
+				this->methodCall = new String();
+			}
+		}
+
+		{
+			StringBuffer sb;
+			{
+				IIterator<String>* it = bits.elements();
+				while ( it->hasNext() )
+				{
+					sb.append( it->next() );
+					sb.append( "." );
+				}
+				delete it;
+			}
 			if ( 0 < sb.getLength() ) sb.removeLast();
+			delete this->classSignature;
+			       this->classSignature = new ClassSignature( sb.getChars() );
 		}
-		this->nspace = sb.asString();
-		
-		StringTokenizer st3( *this->method );
-		st3.setDelimiter( '(' );
+
 		{
-			this->methodName = st3.hasMoreTokens() ? st3.nextToken() : new String();
+			StringTokenizer st3( *this->methodCall );
+			st3.setDelimiter( '(' );
+			{
+				delete this->methodName;
+				       this->methodName = st3.hasMoreTokens() ? st3.nextToken() : new String();
+			}
 		}
 		
 		{
-			StringBuffer sb3;
-			sb3.append( *this->method );
-			sb3.append( '|' );
-			sb3.append( *this->returnType );
-		
-			this->methodKey = sb3.asString();
+			StringBuffer sb;
+			sb.append( *this->methodCall );
+			sb.append( "|" );
+			sb.append( *this->returnType );
+			delete this->methodKey;
+			       this->methodKey = sb.asString();
 		}
-		
-		this->fqClass = new FormattedString( "%s.%s", this->nspace->getChars(), this->cls->getChars() );
 	}
 }
 
@@ -126,9 +171,9 @@ MethodSignature::isValid() const
 bool
 MethodSignature::isComplete() const
 {
-	return (this->nspace->getLength() &&
-	        this->cls->getLength()     &&
-			this->method->getLength()  &&
+	return (this->getNamespace().getLength() &&
+	        this->getClassName().getLength() &&
+			this->methodCall->getLength()    &&
 			this->returnType->getLength() );
 }
 

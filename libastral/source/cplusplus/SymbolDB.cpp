@@ -1,4 +1,6 @@
 #include "astral/CompilationUnit.h"
+#include "astral/Import.h"
+#include "astral/ImportsList.h"
 #include "astral/SymbolDB.h"
 
 #include <openxds.adt/IEntry.h>
@@ -16,6 +18,7 @@ using namespace openxds::exceptions;
 
 SymbolDB::SymbolDB()
 {
+	this->classes        = new Dictionary<const IEntry<CompilationUnit> >();
 	this->symbols        = new Dictionary<const IEntry<CompilationUnit> >();
 	this->name2namespace = new Dictionary<String>();
 	this->namespace2name = new Dictionary<String>();
@@ -23,6 +26,7 @@ SymbolDB::SymbolDB()
 
 SymbolDB::~SymbolDB()
 {
+	delete this->classes;
 	delete this->symbols;
 	delete this->name2namespace;
 	delete this->namespace2name;
@@ -35,7 +39,8 @@ SymbolDB::registerCU( const IEntry<CompilationUnit>& anEntry )
 	
 	const char* ns = cu.getNamespace().getChars();
 	const char* nm = cu.getName().getChars();
-	
+
+	delete this->classes->insert( cu.getFQName().getChars(), anEntry.copy() );
 	delete this->name2namespace->insert( nm, new String( ns ) );
 	delete this->namespace2name->insert( ns, new String( nm ) );
 
@@ -89,33 +94,58 @@ SymbolDB::deregisterCU( const IEntry<CompilationUnit>& anEntry )
 	cu.deregisterSymbols( *this->symbols );
 }
 
+static String* extractNamespace( const String& anImportLine )
+{
+	long len = anImportLine.getLength();
+	if ( '*' == anImportLine.charAt( len-1 ) )
+	{
+		return anImportLine.substring( 0, len-3 );
+	} else {
+		return anImportLine.asString();
+	}
+}
+
+static void addTypes( IDictionary<String>& importedTypes, IEIterator<String>& ie, const String& nspace )
+{
+	while ( ie.hasNext() )
+	{
+		IEntry<String>* e = ie.next();
+		{
+			const String& value = e->getValue();
+			delete importedTypes.insert( value.getChars(), new String( nspace ) );
+		}
+		delete e;
+	}
+}
+
+
 IDictionary<String>*
-SymbolDB::importedTypes( const IList<String>& imports ) const
+SymbolDB::importedTypes( const ImportsList& imports, const String& defaultNamespace ) const
 {
 	IDictionary<String>* imported_types = new Dictionary<String>();
 	{
-		const IPIterator<String>* it = imports.positions();
+		if ( defaultNamespace.getLength() )
+		{
+			IEIterator<String>* ie = this->namespace2name->findAll( defaultNamespace.getChars() );
+			{
+				addTypes( *imported_types, *ie, defaultNamespace );
+			}
+			delete ie;
+		}
+
+		const IIterator<Import>* it = imports.iterator();
 		while ( it->hasNext() )
 		{
-			const IPosition<String>* p = it->next();
+			const Import& import = it->next();
+			String* nspace = extractNamespace( import.getImport() );
 			{
-				const char* nspace = p->getElement().getChars(); 
-				//fprintf( stdout, "Astral::importTypes: Looking for classes matching: %s\n", nspace );
-				
-				IEIterator<String>* ie = this->namespace2name->findAll( nspace );
-				while ( ie->hasNext() )
+				IEIterator<String>* ie = this->namespace2name->findAll( nspace->getChars() );
 				{
-					IEntry<String>* e = ie->next();
-					{
-						const String& value = e->getValue();
-						delete imported_types->insert( value.getChars(), new String( nspace ) );
-						//fprintf( stdout, "Astral::importTypes: %s\n", value.getChars() );
-					}
-					delete e;
+					addTypes( *imported_types, *ie, *nspace );
 				}
 				delete ie;
 			}
-			delete p;
+			delete nspace;
 		}
 		delete it;
 	}
@@ -130,22 +160,31 @@ static void copySymbolsFor
 );
 
 IDictionary<const IEntry<CompilationUnit> >*
-SymbolDB::importedSymbols( const IList<String>& imports ) const
+SymbolDB::importedSymbols( const ImportsList& imports ) const
 {
 	IDictionary<const IEntry<CompilationUnit> >* subset = new Dictionary<const IEntry<CompilationUnit> >();
 	{
-		const IPIterator<String>* it = imports.positions();
+		const IIterator<Import>* it = imports.iterator();
 		while ( it->hasNext() )
 		{
-			const IPosition<String>* p = it->next();
-			{
-				const String& imprt = p->getElement();
-				
-				copySymbolsFor( *subset, *this->symbols, imprt );
-			}
-			delete p;
+			const Import& import = it->next();
+			
+			copySymbolsFor( *subset, *this->symbols, import.getImport() );
 		}
 		delete it;
+
+//		const IPIterator<String>* it = imports.positions();
+//		while ( it->hasNext() )
+//		{
+//			const IPosition<String>* p = it->next();
+//			{
+//				const String& imprt = p->getElement();
+//				
+//				copySymbolsFor( *subset, *this->symbols, imprt );
+//			}
+//			delete p;
+//		}
+//		delete it;
 	}
 	return subset;
 }
