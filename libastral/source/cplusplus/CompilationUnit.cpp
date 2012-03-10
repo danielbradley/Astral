@@ -7,10 +7,13 @@
 #include <astral/Member.h>
 #include <astral/MembersList.h>
 #include <astral/Method.h>
+#include <astral/MethodsList.h>
 #include <astral/MethodSignature.h>
+#include <astral/PlatformTypes.h>
 #include <astral/SymbolDB.h>
 #include <astral/VariableScopes.h>
 #include <astral.ast/AST.h>
+#include <astral.ast/ASTHelper.h>
 #include <astral.tours/FindLastTokenTour.h>
 #include <astral.tours/HTMLPrintTour.h>
 #include <astral.tours/MemberDiscoveryTour.h>
@@ -51,13 +54,10 @@ using namespace openxds::io;
 using namespace openxds::io::exceptions;
 
 static String* searchForNameInLocalScopes( const char* name, const ISequence<IDictionary<String > >& scopes );
-static String*                  translate(       String* aString );
-static long              determineMinTabs( const String& aString );
 
 CompilationUnit::CompilationUnit( const char* location )
 {
 	this->location        = new String( location );
-	this->methods         = new Dictionary<IPosition<SourceToken> >();
 	this->members         = new Dictionary<IPosition<SourceToken> >();
 	this->ast             = new AST();
 	this->packageName     = NULL;
@@ -67,6 +67,7 @@ CompilationUnit::CompilationUnit( const char* location )
 	this->declaration     = new Declaration( *this );
 	this->importsList     = new ImportsList( *this );
 	this->membersList     = new MembersList( *this );
+	this->methodsList     = new MethodsList( *this );
 	
 	this->importedTypes   = new Dictionary<String>();
 	this->methodObjects   = new Dictionary<Method>();
@@ -76,8 +77,8 @@ CompilationUnit::~CompilationUnit()
 {
 	delete this->importsList;
 	delete this->membersList;
+	delete this->methodsList;
 
-	delete this->methods;
 	delete this->members;
 	delete this->ast;
 	delete this->packageName;
@@ -91,7 +92,7 @@ void
 CompilationUnit::initialise()
 {
 	this->ast->parseFile( this->location->getChars() );
-
+	
 	IPosition<SourceToken>* root = this->ast->getTree().root();
 	{
 		IList<String>*                        imports          = new Sequence<String>();
@@ -108,7 +109,7 @@ CompilationUnit::initialise()
 			FindLastTokenTour fltt( this->ast->getTree(), SourceToken::CLASS );
 			fltt.doGeneralTour( *root );
 
-			MethodDiscoveryTour mdt1( this->ast->getTree(), *this->methods );
+			MethodDiscoveryTour mdt1( this->ast->getTree(), this->methodsList->getMethodPositions() );
 			mdt1.doGeneralTour( *root );
 			
 			MemberDiscoveryTour mdt2( this->ast->getTree(), *this->members );
@@ -127,73 +128,6 @@ CompilationUnit::initialise()
 	delete root;
 }
 
-bool
-CompilationUnit::insertNewMethod( const char* methodKey, const AST& aMethodAST )
-{
-	bool status = false;
-
-	fprintf( stderr, "CompilationUnit::insertNewMethod\n" );
-
-	IPosition<SourceToken>* r = aMethodAST.getTree().root();
-	{
-		ITree<SourceToken>* method_ast_copy = aMethodAST.getTree().copyAsTree( *r );
-		{
-			IIterator<IPosition<SourceToken> >* it = this->getMethods().values();
-			{
-				IPosition<SourceToken>* last_method = NULL;
-
-				while ( it->hasNext() )
-				{
-					IPosition<SourceToken>& p = it->next();
-					SourceToken&            t = p.getElement();
-					
-					switch ( t.getTokenType() )
-					{
-					case SourceToken::METHOD:
-						last_method = &p;
-						break;
-					default:
-						break;
-					}
-				}
-
-				if ( last_method )
-				{
-					fprintf( stderr, "\t Found last method\n" );
-
-					ITree<SourceToken>&     t = this->ast->getTree();
-
-					IPosition<SourceToken>* class_block = t.parent( *last_method );
-					{
-						long insertion_index = t.nrOfChild( *last_method ) + 1;
-
-						fprintf( stderr, "\t Inserting at index: %li\n", insertion_index );
-
-						delete t.insertChildAt( *class_block, new SourceToken( SourceToken::NEWLINE, new String( "\n" ) ), insertion_index++ );
-						delete t.insertChildAt( *class_block, new SourceToken( SourceToken::TAB,     new String( "\t" ) ), insertion_index++ );
-						
-						IPosition<SourceToken>* method_ast_root = method_ast_copy->root();
-						{
-							IPosition<SourceToken>* n = t.insertChildAt( *class_block, new SourceToken( SourceToken::METHOD, new String( "" ) ), insertion_index );
-							t.swapSubtrees( *n, *method_ast_copy, *method_ast_root );
-							this->methods->insert( methodKey, n );
-						}
-						delete method_ast_root;
-					}
-					delete class_block;
-
-					status = true;
-				}
-			}
-			delete it;
-		}
-		//delete method_ast_copy;
-	}
-	delete r;
-
-	return status;
-}
-
 void
 CompilationUnit::resetImportedTypes( const SymbolDB& symbolDB )
 {
@@ -201,28 +135,10 @@ CompilationUnit::resetImportedTypes( const SymbolDB& symbolDB )
 	this->importedTypes = symbolDB.importedTypes( this->getImportsList(), this->getNamespace() );
 }
 
-ImportsList&
-CompilationUnit::getImportsList()
-{
-	return *this->importsList;
-}
-
-MembersList&
-CompilationUnit::getMembersList()
-{
-	return *this->membersList;
-}
-
-Declaration&
-CompilationUnit::getDeclaration()
-{
-	return *this->declaration;
-}
-
 void
 CompilationUnit::registerSymbols( IDictionary<const IEntry<CompilationUnit> >& symbols, const IEntry<CompilationUnit>& e ) const
 {
-	IEIterator<IPosition<SourceToken> >* ie = this->methods->entries();
+	IEIterator<IPosition<SourceToken> >* ie = this->methodsList->getMethodPositions().entries();
 	{
 		while ( ie->hasNext() )
 		{
@@ -262,35 +178,6 @@ CompilationUnit::registerSymbols( IDictionary<const IEntry<CompilationUnit> >& s
 		delete symbols.insert( member_key.getChars(), e.copy() );
 	}
 	delete it;
-
-//	ie = this->members->entries();
-//	{
-//		while ( ie->hasNext() )
-//		{
-//			IEntry<IPosition<SourceToken> >* entry = ie->next();
-//			{
-//				StringTokenizer st( entry->getKey() );
-//				st.setDelimiter( '|' );
-//				if ( st.hasMoreTokens() )
-//				{
-//					String* name = st.nextToken();
-//					{
-//						StringBuffer sb;
-//						sb.append( this->getNamespace() );
-//						sb.append( '.' );
-//						sb.append( this->getName() );
-//						sb.append( '.' );
-//						sb.append( *name );
-//					
-//						delete symbols.insert( sb.getChars(), e.copy() );
-//					}
-//					delete name;
-//				}
-//			}
-//			delete entry;
-//		}
-//	}
-//	delete ie;
 }
 
 void
@@ -361,6 +248,21 @@ CompilationUnit::resolveFQTypeOfType( const char* type ) const
 	}
 
 	return sb.asString();
+}
+
+String*
+CompilationUnit::resolveFQTypeOfPlatformType( const char* type ) const
+{
+	PTypes platformTypes;
+
+	if ( platformTypes.hasType( type ) )
+	{
+		return new String( platformTypes.resolve( type ) );
+	}
+	else
+	{
+		return new String();
+	}
 }
 
 String*
@@ -467,7 +369,7 @@ CompilationUnit::resolveMethodType( const char* name ) const
 	String* ret = new String( "" );
 	try
 	{
-		IEntry<IPosition<SourceToken> >* e = this->methods->startsWith( name );
+		IEntry<IPosition<SourceToken> >* e = this->methodsList->getMethodPositions().startsWith( name );
 		{
 			StringTokenizer st( e->getKey() );
 			st.setDelimiter( '|' );
@@ -523,96 +425,6 @@ CompilationUnit::resolveMethodCallParametersToTypes( const String& parameters, c
 //	fprintf( stderr, "CompilationUnit::resolveMethodCallParametersToTypes( \"%s\", scopes ) | \"%s\"\n", parameters.getChars(), sb.getChars() );
 
 	return sb.asString();
-}
-
-String*
-CompilationUnit::retrieveMethodContent( const MethodSignature& aMethodSignature ) const
-{
-	String* ret = NULL;
-	try
-	{
-		const char* _method = aMethodSignature.getMethodKey().getChars();
-		const IEntry<IPosition<SourceToken> >* e_method = this->methods->find( _method );
-		{
-			const ITree<SourceToken>&     ast      = this->ast->getTree();
-			const IPosition<SourceToken>& p_method = e_method->getValue();
-			{
-				PrintWriter* writer = new PrintWriter( new OutputStream( new IOBuffer() ) );
-				PrintSourceTour* print_tour = new PrintSourceTour( ast, *writer );
-				{
-					print_tour->doGeneralTour( p_method );
-					ret = translate( dynamic_cast<IOBuffer&>( writer->getOutputStream().getIOEndPoint() ).toString() );
-				}
-				delete print_tour;
-				delete writer;
-			}
-		}
-		delete e_method;
-	}
-	catch ( NoSuchElementException* ex )
-	{
-		delete ex;
-		ret = new String();
-	}
-
-	return ret;
-}
-
-static String* translate( String* aString )
-{
-	long min_tabs = determineMinTabs( *aString );
-	
-	StringBuffer sb;
-	{
-		      long  t      = 0;
-		      long  max    = aString->getLength();
-		const char* string = aString->getChars();
-		for ( long i=0; i < max; i++ )
-		{
-			char ch = string[i];
-			switch ( ch )
-			{
-			case '\n':
-				sb.append( ch );
-				t = min_tabs;
-				while ( t && ('\t' == string[i+1]) )
-				{
-					t--;
-					i++;
-				}
-				break;
-			case '\t':
-				if ( 0 != i ) sb.append( ch );
-				break;
-			default:
-				sb.append( ch );
-			}
-		}
-	}
-	delete aString;
-	return sb.asString();
-}
-
-static long determineMinTabs( const String& aString )
-{
-	long min_tabs = 0;
-	long tabs     = 0;
-
-	long max      = aString.getLength();
-	for ( long i=0; i < max; i++ )
-	{
-		char ch = aString.charAt( i );
-		switch ( ch )
-		{
-		case '\t':
-			tabs++;
-			break;
-		case '\n':
-			min_tabs = Math::min( min_tabs, tabs );
-			break;
-		}
-	}
-	return Math::max( 1, min_tabs );
 }
 
 String*
@@ -730,7 +542,7 @@ CompilationUnit::recurseMethodArgument( const CodeBase& codebase, const ITree<So
 				case SourceToken::NAME:
 					delete invocation_class;
 					delete argument_type;
-					invocation_class = this->resolveTypeOfName( value, scopes );
+					invocation_class = generaliseType( this->resolveTypeOfName( value, scopes ) );
 					argument_type    = new String( *invocation_class );
 					break;
 				case SourceToken::SYMBOL:
@@ -765,51 +577,32 @@ CompilationUnit::recurseMethodArgument( const CodeBase& codebase, const ITree<So
 	return argument_type;
 }
 
-Method&
-CompilationUnit::getMethod( const MethodSignature& aMethodSignature )
-throw (NoSuchElementException*)
+String*
+CompilationUnit::generaliseType( String* aType ) const
 {
-	Method* method = null;
-	const char* method_key = aMethodSignature.getMethodKey().getChars();
-
-	try
+	if ( aType->contentEquals( "long"  ) ||
+	     aType->contentEquals( "short" ) ||
+		 aType->contentEquals( "int"   ) )
 	{
-		IEntry<Method>* e = this->methodObjects->find( method_key );
-		{
-			method = &e->getValue();
-		}
-		delete e;
+		delete aType;
+		aType = new String( "INTEGER" );
 	}
-	catch ( NoSuchElementException* ex )
-	{
-		delete ex;
-	
-		try
-		{
-			const IEntry<IPosition<SourceToken> >* e = this->methods->find( method_key );
-			{
-				AST* method_ast = this->ast->copySubtree( e->getValue() );
-				method = new Method( *this, aMethodSignature, method_ast );
-				this->methodObjects->insert( method_key, method );
-			}
-			delete e;
-		}
-		catch ( NoSuchElementException* ex )
-		{
-			method = new Method( *this, aMethodSignature );
-			this->methodObjects->insert( method_key, method );
-		}
-	}
-	
-	return *method;
+	return aType;
 }
 
-const Method&
-CompilationUnit::getMethod( const MethodSignature& aMethodSignature ) const
-throw (NoSuchElementException*)
-{
-	return const_cast<CompilationUnit*>( this )->getMethod( aMethodSignature );
-}
+//Method&
+//CompilationUnit::getMethod( const MethodSignature& aMethodSignature )
+//throw (NoSuchElementException*)
+//{
+//	return this->methodsList->getMethod( aMethodSignature );
+//}
+
+//const Method&
+//CompilationUnit::getMethod( const MethodSignature& aMethodSignature ) const
+//throw (NoSuchElementException*)
+//{
+//	return const_cast<CompilationUnit*>( this )->getMethod( aMethodSignature );
+//}
 
 void
 CompilationUnit::save()
@@ -841,5 +634,18 @@ CompilationUnit::save()
 			delete root;
 		}
 	}
+}
+
+long
+CompilationUnit::calculateOffset( const IPosition<SourceToken>& p ) const
+{
+	long offset = p.getElement().getOffset();
+	if ( this->ast->getTree().hasParent( p ) )
+	{
+		const IPosition<SourceToken>* parent = this->ast->getTree().parent( p );
+		offset += this->calculateOffset( *parent );
+		delete parent;
+	}
+	return offset;
 }
 

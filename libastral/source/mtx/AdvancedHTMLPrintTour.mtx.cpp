@@ -137,7 +137,7 @@ AdvancedHTMLPrintTour::visitPreorder( openxds::adt::IPosition<SourceToken>& p, o
 	switch ( token.getTokenType() )
 	{
 	case SourceToken::METHOD:
-		writer.print( openxds::base::FormattedString( "<div class='%s' name='%s'>", type, token.getValue().getChars() ) );
+		writer.print( openxds::base::FormattedString( "<div class='%s' name='%s' offset='%li'>", type, token.getValue().getChars(), token.getOffset() ) );
 		writer.print( openxds::base::FormattedString( "<a name='%s'></a>", token.getValue().getChars() ) );
 		break;
 		
@@ -147,11 +147,11 @@ AdvancedHTMLPrintTour::visitPreorder( openxds::adt::IPosition<SourceToken>& p, o
 	case astral::tokenizer::SourceToken::CONSTRUCTOR:
 	case astral::tokenizer::SourceToken::PARAMETER:
 	case astral::tokenizer::SourceToken::ARGUMENT:
-		writer.print( openxds::base::FormattedString( "<div class='%s inline' name='%s'>", type, token.getValue().getChars() ) );
+		writer.print( openxds::base::FormattedString( "<div class='%s inline' name='%s' offset='%li'>", type, token.getValue().getChars(), token.getOffset() ) );
 		break;
 
 	default:
-		writer.print( openxds::base::FormattedString( "<div class='%s'>", type ) );
+		writer.print( openxds::base::FormattedString( "<div class='%s' offset='%li'>", type, token.getOffset() ) );
 		break;
 	}
 	

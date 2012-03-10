@@ -14,6 +14,14 @@
 #include <openxds.base.h>
 #include <openxds/Object.h>
 #include <openxds.exceptions/NoSuchElementException.h>
+
+using astral::ast::AST;
+using astral::tokenizer::SourceToken;
+using openxds::adt::IDictionary;
+using openxds::adt::IEntry;
+using openxds::adt::IPosition;
+using openxds::adt::ITree;
+using openxds::base::String;
 ~
 
 ~include/astral/CompilationUnit.h~
@@ -27,47 +35,32 @@ The /CompilationUnit/ class inherits directly from the /openxds::Object/ class.
 class CompilationUnit : openxds::Object {
 ~
 
+
+
 ..		Private members
 
 It has the following private members - some of which are accessible via accessor methods.
 
 ~include/astral/CompilationUnit.h~
 private:
-	astral::ast::AST* ast;
-	openxds::base::String*                                                                      location;
-	openxds::base::String*                                                                   packageName;
-	openxds::base::String*                                                                     className;
-	openxds::base::String*                                                                        fqName;
-	openxds::base::String*                                                                  extendsClass;
+	AST*                                            ast; 
+	String*                                    location;
+	String*                                 packageName;
+	String*                                   className;
+	String*                                      fqName;
+	String*                                extendsClass;
 
-	Declaration*                                                                             declaration;
-
-	ImportsList*                                                                             importsList;
-	MembersList*                                                                             membersList;
-
-
-
-
-
-	openxds::adt::IDictionary<openxds::adt::IPosition<astral::tokenizer::SourceToken> >*         methods;
-	openxds::adt::IDictionary<openxds::adt::IPosition<astral::tokenizer::SourceToken> >*         members;
-
-
-	openxds::adt::IDictionary<openxds::base::String>* importedTypes;
-	openxds::adt::IDictionary<Method>* methodObjects;
+	Declaration*                            declaration;
+	ImportsList*                            importsList;
+	MembersList*                            membersList;
+	MethodsList*                            methodsList;
+	
+	IDictionary<IPosition<SourceToken> >*       members; // Scheduled for termination.
+	IDictionary<String>*                  importedTypes;
+	IDictionary<Method>*                  methodObjects;
 ~
 
-The abstract syntax tree is accessible via the /ast/ member.
-The /AST/ class provides one useful method /getTree/, which is used to retrieve an /openxds::adt::ITree/ with nodes of type /astral::tokenizer::SourceToken/.
-For more information on the structure and data included in the abstract syntax tree refer to the /Astral AST/ documentation, see:
 
-~html~
-<a href='http://astral.crossadaptive.com/documentation/astral/ast'>Astral AST</a>
-~
-
-The Java files package name, class name, and superclass, are stored in the members /packageName/, /className/, and /extendsClass/.
-
-A list of the "imports" is stored in the /imports/ list, while two dictionaries - /methods/ and /members/ - map method and member names to their locations in the abstract syntax tree.
 
 ..		Public Constructor declarations
 
@@ -75,11 +68,9 @@ Usually, /CompilationUnit/ instances would be instantiated by the /CodeBase/ cla
 
 ~include/astral/CompilationUnit.h~
 public:
-	         CompilationUnit( const char* location );
-	virtual ~CompilationUnit();
-	virtual void initialise();
+	                CompilationUnit( const char* location );
+	virtual        ~CompilationUnit();
 ~
-
 
 
 
@@ -87,83 +78,63 @@ public:
 
 ~include/astral/CompilationUnit.h~
 public:
-	virtual bool            insertNewMethod( const char* methodKey, const astral::ast::AST& aMethodAST );
-	virtual void                       save();
-	virtual ImportsList&     getImportsList();
-	virtual MembersList&     getMembersList();
-	virtual Declaration&     getDeclaration();
-	virtual Method&               getMethod( const MethodSignature& aMethodSignature ) throw (openxds::exceptions::NoSuchElementException*);
-	virtual void         resetImportedTypes( const SymbolDB& symbolDB );
-
-	virtual const ImportsList&     getImportsList() const { return *this->importsList; }
+	virtual void         initialise();
+	virtual void resetImportedTypes( const SymbolDB& symbolDB );
+	virtual void               save();
 ~
 
 
 
-
-
-
-..		Public const method declarations
-
-The following methods provide public (const) access to the class's members.
+..		Public accessors
 
 ~include/astral/CompilationUnit.h~
 public:
+	virtual               AST&               getAST()       { return *this->ast;          }
+	virtual const         AST&               getAST() const { return *this->ast;          }
+	virtual       Declaration&       getDeclaration()       { return *this->declaration;  }
+	virtual const Declaration&       getDeclaration() const { return *this->declaration;  }
+	virtual       ImportsList&       getImportsList()       { return *this->importsList;  }
+	virtual const ImportsList&       getImportsList() const { return *this->importsList;  }
+	virtual       MembersList&       getMembersList()       { return *this->membersList;  }
+	virtual const MembersList&       getMembersList() const { return *this->membersList;  }
+	virtual       MethodsList&       getMethodsList()       { return *this->methodsList;  }
+	virtual const MethodsList&       getMethodsList() const { return *this->methodsList;  }
+	virtual const      String&         getNamespace() const { return *this->packageName;  }
+	virtual const      String&              getName() const { return *this->className;    }
+	virtual const      String&            getFQName() const { return *this->fqName;       }
+	virtual const      String&        getSuperclass() const { return *this->extendsClass; }
+	virtual const      String&          getLocation() const { return *this->location;     }
 
-	virtual         astral::ast::AST&                                getAST()       { return *this->ast;          }
-	virtual const   astral::ast::AST&                                getAST() const { return *this->ast;          }
-	virtual       openxds::base::String&                       getNamespace() const { return *this->packageName;  }
-	virtual       openxds::base::String&                            getName() const { return *this->className;    }
-	virtual       openxds::base::String&                          getFQName() const { return *this->fqName;       }
-	virtual       openxds::base::String&                      getSuperclass() const { return *this->extendsClass; }
-
-	virtual openxds::adt::IDictionary<openxds::adt::IPosition<astral::tokenizer::SourceToken> >&
-		getMethods() const { return *this->methods; }
-	virtual openxds::adt::IDictionary<openxds::adt::IPosition<astral::tokenizer::SourceToken> >&
-		getMembers() const { return *this->members; }
+	virtual       IDictionary<IPosition<SourceToken> >&    getMembers() const { return *this->members; }
 ~
+
+
 
 ..		Protected const method declarations
 
-The following members are used by other classes in the Astral library.
-
-
 ~include/astral/CompilationUnit.h~
 public:
 
-	virtual void                       registerSymbols( openxds::adt::IDictionary<const openxds::adt::IEntry<CompilationUnit> >& symbols, const openxds::adt::IEntry<CompilationUnit>& e ) const;
-	virtual void                     deregisterSymbols( openxds::adt::IDictionary<const openxds::adt::IEntry<CompilationUnit> >& symbols ) const;
+	virtual void                       registerSymbols( IDictionary<const IEntry<CompilationUnit> >& symbols, const IEntry<CompilationUnit>& e ) const;
+	virtual void                     deregisterSymbols( IDictionary<const IEntry<CompilationUnit> >& symbols ) const;
 
-	virtual openxds::base::String* resolveFQTypeOfName( const char* name, const VariableScopes& scopes ) const;
-	virtual openxds::base::String* resolveFQTypeOfType( const char* type ) const;
-	virtual openxds::base::String*   resolveTypeOfName( const char* name, const VariableScopes& scopes ) const;
-	virtual openxds::base::String*   resolveMemberType( const char* name ) const;
-	virtual openxds::base::String*   resolveMethodType( const char* name ) const;
+	virtual       String*         resolveFQTypeOfName( const char* name, const VariableScopes& scopes ) const;
+	virtual       String*         resolveFQTypeOfType( const char* type ) const;
+	virtual       String* resolveFQTypeOfPlatformType( const char* type ) const;
+	virtual       String*           resolveTypeOfName( const char* name, const VariableScopes& scopes ) const;
+	virtual       String*           resolveMemberType( const char* name ) const;
+	virtual       String*           resolveMethodType( const char* name ) const;
 	
-	virtual openxds::base::String*   resolveMethodCallParametersToTypes( const openxds::base::String& parameters, const VariableScopes& scopes ) const;
+	virtual       String* resolveMethodCallParametersToTypes( const String& parameters, const VariableScopes& scopes ) const;
+	virtual       String*        resolveMethodCallReturnType( const CodeBase& codebase, const ITree<SourceToken>& tree, const IPosition<SourceToken>& methodcall, const VariableScopes& scopes, const String& invocationClass ) const;
+	virtual       String*     resolveMethodCallArgumentTypes( const CodeBase& codebase, const ITree<SourceToken>& tree, const IPosition<SourceToken>& methodcall, const VariableScopes& scopes ) const;
+	virtual       String*             recurseMethodArguments( const CodeBase& codebase, const ITree<SourceToken>& tree, const IPosition<SourceToken>& methodcall, const VariableScopes& scopes ) const;
+	virtual       String*              recurseMethodArgument( const CodeBase& codebase, const ITree<SourceToken>& tree, const IPosition<SourceToken>& methodcall, const VariableScopes& scopes ) const;
+
+	virtual       String*                     generaliseType(       String* aType ) const;
 
 
-	virtual openxds::base::String*      resolveMethodCallReturnType( const CodeBase& codebase, const openxds::adt::ITree<astral::tokenizer::SourceToken>& tree, const openxds::adt::IPosition<astral::tokenizer::SourceToken>& methodcall, const VariableScopes& scopes, const openxds::base::String& invocationClass ) const;
-	virtual openxds::base::String*   resolveMethodCallArgumentTypes( const CodeBase& codebase, const openxds::adt::ITree<astral::tokenizer::SourceToken>& tree, const openxds::adt::IPosition<astral::tokenizer::SourceToken>& methodcall, const VariableScopes& scopes ) const;
-	virtual openxds::base::String*           recurseMethodArguments( const CodeBase& codebase, const openxds::adt::ITree<astral::tokenizer::SourceToken>& tree, const openxds::adt::IPosition<astral::tokenizer::SourceToken>& methodcall, const VariableScopes& scopes ) const;
-	virtual openxds::base::String*            recurseMethodArgument( const CodeBase& codebase, const openxds::adt::ITree<astral::tokenizer::SourceToken>& tree, const openxds::adt::IPosition<astral::tokenizer::SourceToken>& methodcall, const VariableScopes& scopes ) const;
-
-	virtual openxds::base::String* retrieveMethodContent( const MethodSignature& aMethodSignature ) const;
-
-//	virtual void printHTML( openxds::adt::IDictionary<const openxds::adt::IEntry<CompilationUnit> >& symbols,
-//	                        openxds::adt::IDictionary<openxds::base::String>& importedTypes,
-//							openxds::io::PrintWriter& writer ) const;
-//	
-//	virtual openxds::base::String* toXML( openxds::adt::IDictionary<const openxds::adt::IEntry<CompilationUnit> >& iSymbols, openxds::adt::IDictionary<openxds::base::String>& iTypes ) const;
-//
-//	
-//	virtual void printMethods() const;
-//	virtual void printMembers() const;
-
-	virtual const Method& getMethod( const MethodSignature& aMethodSignature ) const throw (openxds::exceptions::NoSuchElementException*);
-
-	virtual const openxds::base::String& getLocation() const { return *this->location; }
-	
+	virtual long calculateOffset( const IPosition<SourceToken>& p ) const;
 ~
 
 !
@@ -191,10 +162,13 @@ public:
 #include <astral/Member.h>
 #include <astral/MembersList.h>
 #include <astral/Method.h>
+#include <astral/MethodsList.h>
 #include <astral/MethodSignature.h>
+#include <astral/PlatformTypes.h>
 #include <astral/SymbolDB.h>
 #include <astral/VariableScopes.h>
 #include <astral.ast/AST.h>
+#include <astral.ast/ASTHelper.h>
 #include <astral.tours/FindLastTokenTour.h>
 #include <astral.tours/HTMLPrintTour.h>
 #include <astral.tours/MemberDiscoveryTour.h>
@@ -243,36 +217,17 @@ using namespace openxds::io::exceptions;
 !
 ~source/cplusplus/CompilationUnit.cpp~
 static String* searchForNameInLocalScopes( const char* name, const ISequence<IDictionary<String > >& scopes );
-static String*                  translate(       String* aString );
-static long              determineMinTabs( const String& aString );
 ~
 !
 
+
+
 ..		Constructors
-
-...			CompilationUnit
-
-~
-CompilationUnit::CompilationUnit( const char* location )
-~
-
-Parameters
-|
-/location/, of a Java source file.
-|
-
-Returns
-|
-a new instance of /CompilationUnit/.
-|
-
-Implementation
 
 ~source/cplusplus/CompilationUnit.cpp~
 CompilationUnit::CompilationUnit( const char* location )
 {
 	this->location        = new String( location );
-	this->methods         = new Dictionary<IPosition<SourceToken> >();
 	this->members         = new Dictionary<IPosition<SourceToken> >();
 	this->ast             = new AST();
 	this->packageName     = NULL;
@@ -282,27 +237,24 @@ CompilationUnit::CompilationUnit( const char* location )
 	this->declaration     = new Declaration( *this );
 	this->importsList     = new ImportsList( *this );
 	this->membersList     = new MembersList( *this );
+	this->methodsList     = new MethodsList( *this );
 	
 	this->importedTypes   = new Dictionary<String>();
 	this->methodObjects   = new Dictionary<Method>();
 }
 ~
 
+
+
 ..		Destructor
-
-~
-CompilationUnit::~CompilationUnit()
-~
-
-Implementation
 
 ~source/cplusplus/CompilationUnit.cpp~
 CompilationUnit::~CompilationUnit()
 {
 	delete this->importsList;
 	delete this->membersList;
+	delete this->methodsList;
 
-	delete this->methods;
 	delete this->members;
 	delete this->ast;
 	delete this->packageName;
@@ -313,13 +265,12 @@ CompilationUnit::~CompilationUnit()
 }
 ~
 
+
+
 ..		Methods
 
-...			Initialise
 
-~
-CompilationUnit::initialise()
-~
+...			Initialise
 
 The initialise method first causes the /astral::AST/ class to parse its source file;
 then performs a number of tree traversals.
@@ -333,7 +284,7 @@ void
 CompilationUnit::initialise()
 {
 	this->ast->parseFile( this->location->getChars() );
-
+	
 	IPosition<SourceToken>* root = this->ast->getTree().root();
 	{
 		IList<String>*                        imports          = new Sequence<String>();
@@ -350,7 +301,7 @@ CompilationUnit::initialise()
 			FindLastTokenTour fltt( this->ast->getTree(), SourceToken::CLASS );
 			fltt.doGeneralTour( *root );
 
-			MethodDiscoveryTour mdt1( this->ast->getTree(), *this->methods );
+			MethodDiscoveryTour mdt1( this->ast->getTree(), this->methodsList->getMethodPositions() );
 			mdt1.doGeneralTour( *root );
 			
 			MemberDiscoveryTour mdt2( this->ast->getTree(), *this->members );
@@ -370,120 +321,8 @@ CompilationUnit::initialise()
 }
 ~
 
-...			Method: insertNewMethod
-
-~
-void CompilationUnit::insertNewMethod( const char* methodKey, const AST& aMethodAST );
-~
-
-Parameters
-|
-/methodKey/, the methodKey that identifies this method;
-
-/aMethodAST/, that represents the method to be added to the AST of the /CompilationUnit/.
-|
-
-Causes
-|
-/aMethodAST/ to be added to /ast/ as a new method.
-|
-
-~source/cplusplus/CompilationUnit.cpp~
-bool
-CompilationUnit::insertNewMethod( const char* methodKey, const AST& aMethodAST )
-{
-	bool status = false;
-
-	fprintf( stderr, "CompilationUnit::insertNewMethod\n" );
-
-	IPosition<SourceToken>* r = aMethodAST.getTree().root();
-	{
-		ITree<SourceToken>* method_ast_copy = aMethodAST.getTree().copyAsTree( *r );
-		{
-			IIterator<IPosition<SourceToken> >* it = this->getMethods().values();
-			{
-				IPosition<SourceToken>* last_method = NULL;
-
-				while ( it->hasNext() )
-				{
-					IPosition<SourceToken>& p = it->next();
-					SourceToken&            t = p.getElement();
-					
-					switch ( t.getTokenType() )
-					{
-					case SourceToken::METHOD:
-						last_method = &p;
-						break;
-					default:
-						break;
-					}
-				}
-
-				if ( last_method )
-				{
-					fprintf( stderr, "\t Found last method\n" );
-
-					ITree<SourceToken>&     t = this->ast->getTree();
-
-					IPosition<SourceToken>* class_block = t.parent( *last_method );
-					{
-						long insertion_index = t.nrOfChild( *last_method ) + 1;
-
-						fprintf( stderr, "\t Inserting at index: %li\n", insertion_index );
-
-						delete t.insertChildAt( *class_block, new SourceToken( SourceToken::NEWLINE, new String( "\n" ) ), insertion_index++ );
-						delete t.insertChildAt( *class_block, new SourceToken( SourceToken::TAB,     new String( "\t" ) ), insertion_index++ );
-						
-						IPosition<SourceToken>* method_ast_root = method_ast_copy->root();
-						{
-							IPosition<SourceToken>* n = t.insertChildAt( *class_block, new SourceToken( SourceToken::METHOD, new String( "" ) ), insertion_index );
-							t.swapSubtrees( *n, *method_ast_copy, *method_ast_root );
-							this->methods->insert( methodKey, n );
-						}
-						delete method_ast_root;
-					}
-					delete class_block;
-
-					status = true;
-				}
-			}
-			delete it;
-		}
-		//delete method_ast_copy;
-	}
-	delete r;
-
-	return status;
-}
-~
-
-
-
-
-
-
-
-
-
-
-
-
 
 ...			Method: resetImportedTypes
-
-~
-void CompilationUnit::resetImportedTypes( const SymbolDB& symbolDB );
-~
-
-Parameters
-|
-/symbolDB/, member of /CodeBase/ that federates symbols from all /CompilationUnit/ objects.
-|
-
-Causes
-|
-/importedTypes/, dictionary to be updated.
-|
 
 ~source/cplusplus/CompilationUnit.cpp~
 void
@@ -495,91 +334,7 @@ CompilationUnit::resetImportedTypes( const SymbolDB& symbolDB )
 ~
 
 
-
-
-...			Method: getImportsList
-
-~source/cplusplus/CompilationUnit.cpp~
-ImportsList&
-CompilationUnit::getImportsList()
-{
-	return *this->importsList;
-}
-~
-
-~source/cplusplus/CompilationUnit.cpp~
-MembersList&
-CompilationUnit::getMembersList()
-{
-	return *this->membersList;
-}
-~
-
-~source/cplusplus/CompilationUnit.cpp~
-Declaration&
-CompilationUnit::getDeclaration()
-{
-	return *this->declaration;
-}
-~
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-...			Method: register Symobls
-
-~
-void CompilationUnit::registerSymbols( IDictionary<const IEntry<CompilationUnit> >& symbols, const IEntry<CompilationUnit>& e ) const
-~
+...			Method: registerSymobls
 
 Parameters
 |
@@ -608,7 +363,7 @@ Implementation
 void
 CompilationUnit::registerSymbols( IDictionary<const IEntry<CompilationUnit> >& symbols, const IEntry<CompilationUnit>& e ) const
 {
-	IEIterator<IPosition<SourceToken> >* ie = this->methods->entries();
+	IEIterator<IPosition<SourceToken> >* ie = this->methodsList->getMethodPositions().entries();
 	{
 		while ( ie->hasNext() )
 		{
@@ -648,43 +403,10 @@ CompilationUnit::registerSymbols( IDictionary<const IEntry<CompilationUnit> >& s
 		delete symbols.insert( member_key.getChars(), e.copy() );
 	}
 	delete it;
-
-//	ie = this->members->entries();
-//	{
-//		while ( ie->hasNext() )
-//		{
-//			IEntry<IPosition<SourceToken> >* entry = ie->next();
-//			{
-//				StringTokenizer st( entry->getKey() );
-//				st.setDelimiter( '|' );
-//				if ( st.hasMoreTokens() )
-//				{
-//					String* name = st.nextToken();
-//					{
-//						StringBuffer sb;
-//						sb.append( this->getNamespace() );
-//						sb.append( '.' );
-//						sb.append( this->getName() );
-//						sb.append( '.' );
-//						sb.append( *name );
-//					
-//						delete symbols.insert( sb.getChars(), e.copy() );
-//					}
-//					delete name;
-//				}
-//			}
-//			delete entry;
-//		}
-//	}
-//	delete ie;
 }
 ~
 
-...			Method: register Symobls
-
-~
-void CompilationUnit::deregisterSymbols( IDictionary<const IEntry<CompilationUnit> >& symbols ) const
-~
+...			Method: deregisterSymobls
 
 Parameters
 |
@@ -817,6 +539,23 @@ CompilationUnit::resolveFQTypeOfType( const char* type ) const
 	}
 
 	return sb.asString();
+}
+~
+
+~source/cplusplus/CompilationUnit.cpp~
+String*
+CompilationUnit::resolveFQTypeOfPlatformType( const char* type ) const
+{
+	PTypes platformTypes;
+
+	if ( platformTypes.hasType( type ) )
+	{
+		return new String( platformTypes.resolve( type ) );
+	}
+	else
+	{
+		return new String();
+	}
 }
 ~
 
@@ -987,7 +726,7 @@ CompilationUnit::resolveMethodType( const char* name ) const
 	String* ret = new String( "" );
 	try
 	{
-		IEntry<IPosition<SourceToken> >* e = this->methods->startsWith( name );
+		IEntry<IPosition<SourceToken> >* e = this->methodsList->getMethodPositions().startsWith( name );
 		{
 			StringTokenizer st( e->getKey() );
 			st.setDelimiter( '|' );
@@ -1069,132 +808,6 @@ CompilationUnit::resolveMethodCallParametersToTypes( const String& parameters, c
 ~
 	
 
-
-...			Method: retrieveMethodContent
-
-~
-String* CompilationUnit::retrieveMethodContent( const MethodSignature& aMethodSignature ) const
-~
-
-Parameters
-|
-/aMethodSignature/, that identified a method.
-|
-
-Returns
-|
-A new string instance that contains the content of the method including Javadoc comment, declaration, and method body.
-|
-
-Implementation
-
-~source/cplusplus/CompilationUnit.cpp~
-String*
-CompilationUnit::retrieveMethodContent( const MethodSignature& aMethodSignature ) const
-{
-	String* ret = NULL;
-	try
-	{
-		const char* _method = aMethodSignature.getMethodKey().getChars();
-		const IEntry<IPosition<SourceToken> >* e_method = this->methods->find( _method );
-		{
-			const ITree<SourceToken>&     ast      = this->ast->getTree();
-			const IPosition<SourceToken>& p_method = e_method->getValue();
-			{
-				PrintWriter* writer = new PrintWriter( new OutputStream( new IOBuffer() ) );
-				PrintSourceTour* print_tour = new PrintSourceTour( ast, *writer );
-				{
-					print_tour->doGeneralTour( p_method );
-					ret = translate( dynamic_cast<IOBuffer&>( writer->getOutputStream().getIOEndPoint() ).toString() );
-				}
-				delete print_tour;
-				delete writer;
-			}
-		}
-		delete e_method;
-	}
-	catch ( NoSuchElementException* ex )
-	{
-		delete ex;
-		ret = new String();
-	}
-
-	return ret;
-}
-~
-
-...			Hidden (static) methods
-
-The /translate/ and /determineMinTabs/ methods are used to strip undesired tabs from the front of each line of method definitions.
-
-
-/*
- *	None class helper methods.
- */
-
-~source/cplusplus/CompilationUnit.cpp~
-static String* translate( String* aString )
-{
-	long min_tabs = determineMinTabs( *aString );
-	
-	StringBuffer sb;
-	{
-		      long  t      = 0;
-		      long  max    = aString->getLength();
-		const char* string = aString->getChars();
-		for ( long i=0; i < max; i++ )
-		{
-			char ch = string[i];
-			switch ( ch )
-			{
-			case '\n':
-				sb.append( ch );
-				t = min_tabs;
-				while ( t && ('\t' == string[i+1]) )
-				{
-					t--;
-					i++;
-				}
-				break;
-			case '\t':
-				if ( 0 != i ) sb.append( ch );
-				break;
-			default:
-				sb.append( ch );
-			}
-		}
-	}
-	delete aString;
-	return sb.asString();
-}
-~
-
-
-
-
-~source/cplusplus/CompilationUnit.cpp~
-static long determineMinTabs( const String& aString )
-{
-	long min_tabs = 0;
-	long tabs     = 0;
-
-	long max      = aString.getLength();
-	for ( long i=0; i < max; i++ )
-	{
-		char ch = aString.charAt( i );
-		switch ( ch )
-		{
-		case '\t':
-			tabs++;
-			break;
-		case '\n':
-			min_tabs = Math::min( min_tabs, tabs );
-			break;
-		}
-	}
-	return Math::max( 1, min_tabs );
-}
-~
 
 ~source/cplusplus/CompilationUnit.cpp~
 String*
@@ -1318,7 +931,7 @@ CompilationUnit::recurseMethodArgument( const CodeBase& codebase, const ITree<So
 				case SourceToken::NAME:
 					delete invocation_class;
 					delete argument_type;
-					invocation_class = this->resolveTypeOfName( value, scopes );
+					invocation_class = generaliseType( this->resolveTypeOfName( value, scopes ) );
 					argument_type    = new String( *invocation_class );
 					break;
 				case SourceToken::SYMBOL:
@@ -1355,53 +968,36 @@ CompilationUnit::recurseMethodArgument( const CodeBase& codebase, const ITree<So
 ~
 
 ~source/cplusplus/CompilationUnit.cpp~
-Method&
-CompilationUnit::getMethod( const MethodSignature& aMethodSignature )
-throw (NoSuchElementException*)
+String*
+CompilationUnit::generaliseType( String* aType ) const
 {
-	Method* method = null;
-	const char* method_key = aMethodSignature.getMethodKey().getChars();
-
-	try
+	if ( aType->contentEquals( "long"  ) ||
+	     aType->contentEquals( "short" ) ||
+		 aType->contentEquals( "int"   ) )
 	{
-		IEntry<Method>* e = this->methodObjects->find( method_key );
-		{
-			method = &e->getValue();
-		}
-		delete e;
+		delete aType;
+		aType = new String( "INTEGER" );
 	}
-	catch ( NoSuchElementException* ex )
-	{
-		delete ex;
-	
-		try
-		{
-			const IEntry<IPosition<SourceToken> >* e = this->methods->find( method_key );
-			{
-				AST* method_ast = this->ast->copySubtree( e->getValue() );
-				method = new Method( *this, aMethodSignature, method_ast );
-				this->methodObjects->insert( method_key, method );
-			}
-			delete e;
-		}
-		catch ( NoSuchElementException* ex )
-		{
-			method = new Method( *this, aMethodSignature );
-			this->methodObjects->insert( method_key, method );
-		}
-	}
-	
-	return *method;
+	return aType;
 }
 ~
 
 ~source/cplusplus/CompilationUnit.cpp~
-const Method&
-CompilationUnit::getMethod( const MethodSignature& aMethodSignature ) const
-throw (NoSuchElementException*)
-{
-	return const_cast<CompilationUnit*>( this )->getMethod( aMethodSignature );
-}
+//Method&
+//CompilationUnit::getMethod( const MethodSignature& aMethodSignature )
+//throw (NoSuchElementException*)
+//{
+//	return this->methodsList->getMethod( aMethodSignature );
+//}
+~
+
+~source/cplusplus/CompilationUnit.cpp~
+//const Method&
+//CompilationUnit::getMethod( const MethodSignature& aMethodSignature ) const
+//throw (NoSuchElementException*)
+//{
+//	return const_cast<CompilationUnit*>( this )->getMethod( aMethodSignature );
+//}
 ~
 
 ~source/cplusplus/CompilationUnit.cpp~
@@ -1439,7 +1035,17 @@ CompilationUnit::save()
 ~
 
 
-
-
-
-
+~source/cplusplus/CompilationUnit.cpp~
+long
+CompilationUnit::calculateOffset( const IPosition<SourceToken>& p ) const
+{
+	long offset = p.getElement().getOffset();
+	if ( this->ast->getTree().hasParent( p ) )
+	{
+		const IPosition<SourceToken>* parent = this->ast->getTree().parent( p );
+		offset += this->calculateOffset( *parent );
+		delete parent;
+	}
+	return offset;
+}
+~

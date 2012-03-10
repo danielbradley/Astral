@@ -159,6 +159,7 @@ TABLE A  { font-family:menlo; font-size:10px; }
 #include "astral/Export.h"
 #include "astral/MemberSignature.h"
 #include "astral/Method.h"
+#include "astral/MethodsList.h"
 #include "astral/MethodSignature.h"
 #include "astral/SymbolDB.h"
 
@@ -355,15 +356,15 @@ CodeBase::saveMethod( const MethodSignature& aMethodSignature )
 
 	try
 	{
-		CompilationUnit& cu     = this->getCompilationUnit( aMethodSignature.getClassSignature() );
-		Method&          method = cu.getMethod( aMethodSignature );
-		can_save = method.sync();
+		CompilationUnit& cu = this->getCompilationUnit( aMethodSignature.getClassSignature() );
+		MethodsList&     ml = cu.getMethodsList();
 
-		if ( can_save )
+		//if ( (can_save = ml.saveMethod( aMethodSignature )) )
+		if ( (can_save = ml.synchroniseMethods( aMethodSignature )) )
 		{
+			cu.save();
 			this->reregister( cu );
-			//this->refreshImports();
-			Export::toXML( *this );
+			//Export::toXML( *this );
 		}
 	}
 	catch ( NoSuchElementException* ex )

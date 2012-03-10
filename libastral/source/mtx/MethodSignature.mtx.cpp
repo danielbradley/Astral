@@ -176,6 +176,9 @@ public:
 
 	virtual bool                            isValid() const;
 	virtual bool                         isComplete() const;
+
+	static MethodSignature* createInContext( const String& original, const String& className );
+
 };
 
 };
@@ -367,4 +370,27 @@ MethodSignature::isComplete() const
 			this->methodCall->getLength()    &&
 			this->returnType->getLength() );
 }
+
+MethodSignature*
+MethodSignature::createInContext( const String& original, const String& className )
+{
+	MethodSignature* sig = new MethodSignature( original );
+	if ( ! sig->isValid() )
+	{
+		if ( sig->getMethodName().contentEquals( className ) )
+		{
+			delete sig;
+			       sig = new MethodSignature( FormattedString( "%s%s", original.getChars(), className.getChars() ) );
+		}
+		else
+		{
+			delete sig;
+			       sig = NULL;
+		}
+	}
+	return sig;
+}
+
+
+
 ~

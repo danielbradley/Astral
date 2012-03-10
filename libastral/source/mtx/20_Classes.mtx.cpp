@@ -43,6 +43,7 @@ class PUBLIC Member;
 class PUBLIC MembersList;
 class PUBLIC MemberSignature;
 class PUBLIC Method;
+class PUBLIC MethodsList;
 class PUBLIC MethodSignature;
 class PUBLIC VariableScopes;
 class PUBLIC Export;

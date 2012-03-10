@@ -5,6 +5,7 @@
 
 #include "astral/CodeBase.h"
 #include "astral/CompilationUnit.h"
+#include "astral/MethodsList.h"
 #include "astral/SymbolDB.h"
 
 #include <astral.ast/AST.h>
@@ -332,11 +333,11 @@ Export::toXML( const CompilationUnit& cu, openxds::adt::IDictionary<const openxd
 				sb.append( "</importedSymbols>\n" );
 			}
 			{
-				IEIterator<IPosition<SourceToken> >* ie = cu.getMethods().entries();
+				const IEIterator<IPosition<SourceToken> >* ie = cu.getMethodsList().getMethodPositions().entries();
 				{
 					while ( ie->hasNext() )
 					{
-						IEntry<IPosition<SourceToken> >* entry = ie->next();
+						const IEntry<IPosition<SourceToken> >* entry = ie->next();
 						{
 							FormattedString method( "<method signature='%s' />\n", entry->getKey() );
 							sb.append( method );
@@ -370,11 +371,11 @@ Export::toXML( const CompilationUnit& cu, openxds::adt::IDictionary<const openxd
 void
 Export::printMethods( const CompilationUnit& cu )
 {
-	IEIterator<IPosition<SourceToken> >* ie = cu.getMethods().entries();
+	const IEIterator<IPosition<SourceToken> >* ie = cu.getMethodsList().getMethodPositions().entries();
 	{
 		while ( ie->hasNext() )
 		{
-			IEntry<IPosition<SourceToken> >* entry = ie->next();
+			const IEntry<IPosition<SourceToken> >* entry = ie->next();
 			{
 				fprintf( stdout, "%s\n", entry->getKey() );
 			}

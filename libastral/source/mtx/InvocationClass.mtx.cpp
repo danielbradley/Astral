@@ -74,9 +74,10 @@ namespace astral {
 class InvocationClass : openxds::Object
 {
 private:
-	openxds::base::String*                          lastType;
+	openxds::base::String*                                       lastType;
+	openxds::base::String*                                   platformType;
 	openxds::adt::ISequence<openxds::base::String>* methodCallReturnTypes;
-	openxds::base::StringBuffer*                    compoundString;
+	openxds::base::StringBuffer*                           compoundString;
 
 public:
 	 InvocationClass();
@@ -90,6 +91,7 @@ public:
 	virtual void                            setUnknownName( const openxds::base::String& aName );
 	virtual void                               setLastType( const openxds::base::String& aType );
 	virtual void                               setLastType(       openxds::base::String* aType );
+	virtual void                           setPlatformType( const openxds::base::String& aType );
 
 	virtual void                                appendName( const openxds::base::String& aName );
 
@@ -98,10 +100,12 @@ public:
 
 	virtual bool                          hasEnclosingType() const;
 	virtual bool                               hasLastType() const;
+	virtual bool                           hasPlatformType() const;
 	virtual bool                         hasCompoundString() const;
 
 	virtual const openxds::base::String&  getEnclosingType() const;
 	virtual const openxds::base::String&       getLastType() const;
+	virtual const openxds::base::String&   getPlatformType() const;
 	virtual const openxds::base::String& getCompoundString() const;
 ~
 
@@ -136,6 +140,7 @@ using namespace openxds::exceptions;
 InvocationClass::InvocationClass()
 {
 	this->lastType              = new String();
+	this->platformType          = new String();
 	this->methodCallReturnTypes = new Sequence<String>();
 	this->compoundString        = new StringBuffer();
 }
@@ -145,6 +150,7 @@ InvocationClass::InvocationClass()
 InvocationClass::~InvocationClass()
 {
 	delete this->lastType;
+	delete this->platformType;
 	delete this->methodCallReturnTypes;
 	delete this->compoundString;
 }
@@ -156,6 +162,9 @@ InvocationClass::reset()
 {
 	delete this->lastType;
 	       this->lastType = new String();
+
+	delete this->platformType;
+	       this->platformType = new String();
 
 	delete this->methodCallReturnTypes;
 	       this->methodCallReturnTypes = new Sequence<String>();
@@ -171,6 +180,9 @@ InvocationClass::clearTypes()
 {
 	delete this->lastType;
 	       this->lastType = new String();
+
+	delete this->platformType;
+	       this->platformType = new String();
 
 	delete this->compoundString;
 	       this->compoundString = new StringBuffer();
@@ -224,6 +236,17 @@ InvocationClass::setLastType( String* aType )
 
 ~source/cplusplus/InvocationClass.cpp~
 void
+InvocationClass::setPlatformType( const String& aType )
+{
+	this->clearTypes();
+
+	delete this->platformType;
+	       this->platformType = new String( aType );
+}
+~
+
+~source/cplusplus/InvocationClass.cpp~
+void
 InvocationClass::appendName( const String& aName )
 {
 	if ( this->compoundString->getLength() )
@@ -264,7 +287,7 @@ InvocationClass::popReturnType()
 bool
 InvocationClass::hasEnclosingType() const
 {
-	return (this->hasLastType() || this->hasCompoundString() );
+	return (this->hasLastType() || this->hasPlatformType() || this->hasCompoundString() );
 }
 ~
 
@@ -273,6 +296,14 @@ bool
 InvocationClass::hasLastType() const
 {
 	return (0 != this->lastType->getLength());
+}
+~
+
+~source/cplusplus/InvocationClass.cpp~
+bool
+InvocationClass::hasPlatformType() const
+{
+	return (0 != this->platformType->getLength());
 }
 ~
 
@@ -292,6 +323,10 @@ InvocationClass::getEnclosingType() const
 	{
 		return this->getCompoundString();
 	}
+	else if ( this->hasPlatformType() )
+	{
+		return this->getPlatformType();
+	}
 	else
 	{
 		return this->getLastType();
@@ -306,6 +341,15 @@ InvocationClass::getLastType() const
 	return *this->lastType;
 }
 ~
+
+~source/cplusplus/InvocationClass.cpp~
+const String&
+InvocationClass::getPlatformType() const
+{
+	return *this->platformType;
+}
+~
+
 
 ~source/cplusplus/InvocationClass.cpp~
 const String&
