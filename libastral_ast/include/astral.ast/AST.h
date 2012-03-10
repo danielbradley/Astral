@@ -26,8 +26,10 @@ public:
 	virtual void parseString( const openxds::base::String& content );
 	virtual void parseFromTokenizer( astral::tokenizer::SourceTokenizer& tokenizer );
 
+	virtual void replaceSubtree( openxds::adt::IPosition<astral::tokenizer::SourceToken>& p, const AST& ast );
+	virtual void adjustOffsets( openxds::adt::IPosition<astral::tokenizer::SourceToken>& parent );
+
 	virtual AST* copySubtree( const openxds::adt::IPosition<astral::tokenizer::SourceToken>& p ) const;
-	virtual void replaceSubtree( openxds::adt::IPosition<astral::tokenizer::SourceToken>& p, const AST& ast ) const;
 	
 	openxds::adt::ITree<astral::tokenizer::SourceToken>& getTree() const;
 	

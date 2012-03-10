@@ -43,6 +43,7 @@ static SourceToken* parseType( SourceTokenizer& tokenizer );
 static void pushbackTokens( SourceTokenizer& tokenizer, Sequence<SourceToken>& tokens );
 
 static bool           isMemberLevel( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
+static void                 countup( ITree<SourceToken>& ast, IPosition<SourceToken>& parent );
 
 AST::AST()
 {
@@ -75,9 +76,6 @@ AST::parseString( const String& content )
 	delete t;
 }
 
-
-
-
 void
 AST::parseFile( const char* location )
 {
@@ -105,6 +103,7 @@ AST::parseFromTokenizer( SourceTokenizer& tokenizer )
 		{
 			this->valid = parseAll( *this->ast, *root, tokenizer );
 		}
+		countup( *this->ast, *root );
 		delete root;
 	}
 	catch ( FileNotFoundException* ex )
@@ -140,9 +139,11 @@ parseAll( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokeniz
 			{
 				status &= parseStatement( ast, *p, tokenizer, false );
 			}
+			countup( ast, *p );
 			delete p;
 		}
 	}
+
 	return status;
 }
 
@@ -497,6 +498,7 @@ static bool handleStartBlock( ITree<SourceToken>& ast, IPosition<SourceToken>& p
 		status &= parseBlock( ast, *block, tokenizer );
 		parseTrailingWhitespace( ast, *block, tokenizer );
 	}
+	countup( ast, *block );
 	delete block;
 
 	return status;
@@ -526,6 +528,7 @@ static bool handleStartBlock( ITree<SourceToken>& ast, IPosition<SourceToken>& p
 			default:
 				stmt = ast.addChild( parent, new SourceToken( SourceToken::STATEMENT, new String() ) );
 				parseStatement( ast, *stmt, tokenizer, false );
+				countup( ast, *stmt );
 				delete stmt;
 			}
 		}
@@ -551,6 +554,7 @@ static void handleStartParameters( ITree<SourceToken>& ast, IPosition<SourceToke
 		
 		parent.getElement().setValue( sb.asString() );
 	}
+	countup( ast, *params );
 	delete params;
 }
 
@@ -597,6 +601,7 @@ static void handleStartParameters( ITree<SourceToken>& ast, IPosition<SourceToke
 				}
 
 				delete param_type;
+				countup( ast, *stmt );
 				delete stmt;
 			}
 		}
@@ -680,6 +685,7 @@ static void handleMethodCall( ITree<SourceToken>& ast, IPosition<SourceToken>& p
 		parseTrailingWhitespace( ast, *methodcall, tokenizer );
 		handleStartArguments( ast, *methodcall, tokenizer );
 	}
+	countup( ast, *methodcall );
 	delete methodcall;
 }
 
@@ -692,6 +698,7 @@ static void handleStartArguments( ITree<SourceToken>& ast, IPosition<SourceToken
 		parseArguments( ast, *params, tokenizer );
 		parseTrailingWhitespace( ast, *params, tokenizer );
 	}
+	countup( ast, *params );
 	delete params;
 }
 
@@ -723,6 +730,7 @@ static void handleStartArguments( ITree<SourceToken>& ast, IPosition<SourceToken
 			default:
 				stmt = ast.addChild( parent, new SourceToken( SourceToken::ARGUMENT, new String() ) );
 				parseStatement( ast, *stmt, tokenizer, true );
+				countup( ast, *stmt );
 				delete stmt;
 			}
 		}
@@ -829,6 +837,62 @@ static void parseTrailingWhitespace( ITree<SourceToken>& ast, IPosition<SourceTo
 	}
 }
 
+void
+AST::adjustOffsets( IPosition<SourceToken>& parent )
+{
+	long characters = 0;
+	long lines      = 0;
+
+	IPIterator<SourceToken>* it = this->ast->children( parent );
+	while ( it->hasNext() )
+	{
+		IPosition<SourceToken>* p = it->next();
+		{
+			SourceToken& token = p->getElement();
+			token.setOffset( lines );
+			characters += token.getNrOfCharacters();
+			lines      += token.getNrOfLines();
+		}
+		delete p;
+	}
+	delete it;
+
+	parent.getElement().setNrOfCharacters( characters );
+	parent.getElement().setNrOfLines( lines );
+
+	if ( this->ast->hasParent( parent ) )
+	{
+		IPosition<SourceToken>* p = this->ast->parent( parent );
+		{
+			this->adjustOffsets( *p );
+		}
+		delete p;
+	}
+}
+
+void countup( ITree<SourceToken>& ast, IPosition<SourceToken>& parent )
+{
+	long characters = 0;
+	long lines      = 0;
+
+	IPIterator<SourceToken>* it = ast.children( parent );
+	while ( it->hasNext() )
+	{
+		IPosition<SourceToken>* p = it->next();
+		{
+			SourceToken& token = p->getElement();
+			token.setOffset( lines );
+			characters += token.getNrOfCharacters();
+			lines      += token.getNrOfLines();
+		}
+		delete p;
+	}
+	delete it;
+
+	parent.getElement().setNrOfCharacters( characters );
+	parent.getElement().setNrOfLines( lines );
+}
+
 AST*
 AST::copySubtree( const IPosition<SourceToken>& p ) const
 {
@@ -840,27 +904,15 @@ AST::copySubtree( const IPosition<SourceToken>& p ) const
 }
 
 void
-AST::replaceSubtree( IPosition<SourceToken>& p, const AST& ast ) const
+AST::replaceSubtree( IPosition<SourceToken>& p, const AST& ast )
 {
-	IPosition<SourceToken>*  root = ast.ast->root();
-	IPIterator<SourceToken>* it   = ast.ast->children( *root );
+	ITree<SourceToken>* method_tree = ast.ast->copyAsTree( ast.ast->getRoot() );
 	{
-		IPosition<SourceToken>* m = it->next();
-		{
-			ITree<SourceToken>* method_tree = ast.ast->copyAsTree( *m );
-			{
-				IPosition<SourceToken>* p2 = method_tree->root();
-				{
-					this->ast->swapSubtrees( p, *method_tree, *p2 );
-				}
-				delete p2;
-			}
-			delete method_tree;
-		}
-		delete m;
+		this->ast->swapSubtrees( p, *method_tree, method_tree->getRoot() );
 	}
-	delete it;
-	delete root;
+	delete method_tree;
+	
+	this->adjustOffsets( p );
 }
 
 bool
@@ -868,3 +920,4 @@ AST::isValid() const
 {
 	return this->valid;
 }
+

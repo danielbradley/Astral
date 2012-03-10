@@ -11,7 +11,10 @@ quasi:
 	make -C libastral            quasi
 
 build:
-	make -C libastral           buildforce
+	cd libastral_tokenizer; build --force
+	cd libastral_ast;       build --force
+
+	make -C libastral buildforce
 
 buildall: quasi
 	make -C libastral buildforceall
