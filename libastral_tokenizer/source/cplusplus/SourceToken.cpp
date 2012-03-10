@@ -74,12 +74,27 @@ SourceToken::SourceToken( TokenType aType, openxds::base::String* aValue )
 	this->type  = aType;
 	this->value = aValue->asString();
 	delete aValue;
+
+	this->nrOfCharacters = this->value->getLength();
+	switch ( aType )
+	{
+	case BLANKLINE:
+	case NEWLINE:
+		this->nrOfLines = 1;
+		break;
+	default:
+		this->nrOfLines = 0;
+	}
+	this->offset = 1;
 }
 
 SourceToken::SourceToken( const SourceToken& aSourceToken )
 {
-	this->type  = aSourceToken.type;
-	this->value = aSourceToken.value->asString();
+	this->type           = aSourceToken.type;
+	this->value          = aSourceToken.value->asString();
+	this->nrOfCharacters = aSourceToken.nrOfCharacters;
+	this->nrOfLines      = aSourceToken.nrOfLines;
+	this->offset         = aSourceToken.offset;
 }
 
 SourceToken::~SourceToken()
@@ -98,6 +113,24 @@ SourceToken::setValue( String* aValue )
 {
 	delete this->value;
 	this->value = aValue;
+}
+
+void
+SourceToken::setNrOfCharacters( long nr )
+{
+	this->nrOfCharacters = nr;
+}
+
+void
+SourceToken::setNrOfLines( long nr )
+{
+	this->nrOfLines = nr;
+}
+
+void
+SourceToken::setOffset( long nr )
+{
+	this->offset = nr;
 }
 
 const String&
@@ -209,25 +242,20 @@ SourceToken::getTokenTypeString() const
 	}
 }
 
+long
+SourceToken::getNrOfCharacters() const
+{
+	return this->nrOfCharacters;
+}
 
+long
+SourceToken::getNrOfLines() const
+{
+	return this->nrOfLines;
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+long
+SourceToken::getOffset() const
+{
+	return this->offset;
+}

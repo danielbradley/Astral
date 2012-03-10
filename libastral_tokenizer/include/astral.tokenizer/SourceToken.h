@@ -77,8 +77,11 @@ public:
 	};
 
 private:
-	TokenType              type;
-	openxds::base::String* value;
+	TokenType                        type;
+	openxds::base::String*          value;
+	long                   nrOfCharacters;
+	long                        nrOfLines;
+	long                           offset;
 
 public:
 	         SourceToken( TokenType aType, openxds::base::String* aValue );
@@ -87,11 +90,17 @@ public:
 	
 	virtual void setType( SourceToken::TokenType aType );
 	virtual void setValue( openxds::base::String* aValue );
+	virtual void setNrOfCharacters( long nr );
+	virtual void setNrOfLines( long nr );
+	virtual void setOffset( long nr );
 
 	virtual const openxds::base::String&           getValue() const;
 	virtual const openxds::base::String& getTokenTypeString() const;
 	virtual       SourceToken::TokenType       getTokenType() const;
 	virtual       openxds::base::String*    getEscapedValue() const;
+	virtual long                          getNrOfCharacters() const;
+	virtual long                               getNrOfLines() const;
+	virtual long                                  getOffset() const;
 	
 	static const TokenType WORD            = _WORD;
 	static const TokenType FILE            = _FILE;
