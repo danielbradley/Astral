@@ -23,6 +23,7 @@
 
 using namespace astral::tokenizer;
 using openxds::adt::IPosition;
+using openxds::adt::ISequence;
 using openxds::adt::ITree;
 using openxds::adt::std::GeneralTour;
 

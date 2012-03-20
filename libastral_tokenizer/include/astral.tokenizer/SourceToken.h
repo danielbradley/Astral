@@ -22,6 +22,7 @@ public:
 		_CLASS,
 		_CLASSNAME,
 		_INTERFACE,
+		_ENUM,
 		_ANNOTATION,
 		_IMETHOD,
 		_METHOD,
@@ -110,6 +111,7 @@ public:
 	static const TokenType CLASS           = _CLASS;
 	static const TokenType CLASSNAME       = _CLASSNAME;
 	static const TokenType INTERFACE       = _INTERFACE;
+	static const TokenType ENUM            = _ENUM;
 	static const TokenType ANNOTATION      = _ANNOTATION;
 	static const TokenType IMETHOD         = _IMETHOD;
 	static const TokenType METHOD          = _METHOD;
@@ -173,6 +175,7 @@ private:
 	static const openxds::base::String* Class;
 	static const openxds::base::String* ClassName;
 	static const openxds::base::String* Interface;
+	static const openxds::base::String* Enum;
 	static const openxds::base::String* Annotation;
 	static const openxds::base::String* Method;
 	static const openxds::base::String* IMethod;

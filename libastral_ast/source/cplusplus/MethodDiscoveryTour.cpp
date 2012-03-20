@@ -106,17 +106,20 @@ MethodDiscoveryTour::visitExternal( IPosition<SourceToken>& p, Result& r )
 		if ( this->inParameters )
 		{
 			const String& value = token.getValue();
-			if ( value.contentEquals( "long" ) || value.contentEquals( "int" ) || value.contentEquals( "short" ) )
+//
+//	Commented out to prevent type generalisation.
+//
+//			if ( value.contentEquals( "long" ) || value.contentEquals( "int" ) || value.contentEquals( "short" ) )
+//			{
+//				this->current->append( "INTEGER" );
+//			}
+//			else if ( value.contentEquals( "double" ) || value.contentEquals( "float" ) )
+//			{
+//				this->current->append( "FLOAT" );
+//			}
+//			else
 			{
-				this->current->append( "INTEGER" );
-			}
-			else if ( value.contentEquals( "double" ) || value.contentEquals( "float" ) )
-			{
-				this->current->append( "FLOAT" );
-			}
-			else
-			{
-				this->current->append( token.getValue() );
+				this->current->append( value );
 			}
 			this->current->append( ',' );
 		}

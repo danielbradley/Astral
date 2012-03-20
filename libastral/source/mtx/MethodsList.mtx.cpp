@@ -44,17 +44,19 @@ public:
 	~MethodsList();
 	
 //	bool         saveMethod( const MethodSignature& aMethodSignature );
-	bool synchroniseMethods( const MethodSignature& aMethodSignature );
+	ISequence<MethodSignature>* synchroniseMethods( const MethodSignature& aMethodSignature );
 
 	      Method& getMethod( const MethodSignature& aMethodSignature );
 	const Method& getMethod( const MethodSignature& aMethodSignature ) const;
+	bool     containsMethod( const MethodSignature& aMethodSignature ) const;
 
 		  IDictionary<IPosition<SourceToken> >& getMethodPositions()       { return *this->methodPositions; }
 	const IDictionary<IPosition<SourceToken> >& getMethodPositions() const { return *this->methodPositions; }
 	
+	
 private:
-	bool           removeMethodFromAST( Method& method );
-	bool extractAndSyncAnyExtraMethods( Method& method );
+	bool                                  removeMethodFromAST( Method& method );
+	ISequence<MethodSignature>* extractAndSyncAnyExtraMethods( Method& method );
 };
 ~
 
@@ -163,6 +165,17 @@ MethodsList::getMethod( const MethodSignature& aMethodSignature ) const
 
 
 
+~source/cplusplus/MethodsList.cpp~
+bool
+MethodsList::containsMethod( const MethodSignature& aMethodSignature ) const
+{
+	return this->methodPositions->containsKey( aMethodSignature.getMethodKey().getChars() );
+}
+~
+
+
+
+
 Old save method
 
 ~source/cplusplus/MethodsList.cpp~
@@ -177,26 +190,31 @@ Old save method
 New save method
 
 ~source/cplusplus/MethodsList.cpp~
-bool
+ISequence<MethodSignature>*
 MethodsList::synchroniseMethods( const MethodSignature& aMethodSignature )
 {
-	bool can_save = true;
-
-	Method& method = this->getMethod( aMethodSignature );
-
-	if ( method.isEmpty() )
+	ISequence<MethodSignature>* extra_method_signatures = NULL;
 	{
-		can_save &= removeMethodFromAST( method );
-	}
-	else if ( method.isModified() )
-	{
-		can_save &= extractAndSyncAnyExtraMethods( method );
-		if ( can_save )
+		Method& method = this->getMethod( aMethodSignature );
+
+		if ( method.isEmpty() )
 		{
-			can_save &= method.sync();
+			if ( removeMethodFromAST( method ) ) extra_method_signatures = new Sequence<MethodSignature>();
+		}
+		else if ( method.isModified() )
+		{
+			extra_method_signatures = extractAndSyncAnyExtraMethods( method );
+			if ( extra_method_signatures )
+			{
+				if ( !method.sync() )
+				{
+					delete extra_method_signatures;
+					extra_method_signatures = NULL;
+				}
+			}
 		}
 	}
-	return can_save;
+	return extra_method_signatures;
 }
 ~
 
@@ -236,27 +254,35 @@ MethodsList::removeMethodFromAST( Method& method )
 ~
 
 ~source/cplusplus/MethodsList.cpp~
-bool
+ISequence<MethodSignature>*
 MethodsList::extractAndSyncAnyExtraMethods( Method& method )
 {
-	bool status = true;
-
-	ISequence<Method>* extra_methods = method.extractExtraMethods();
-	if ( (status &= (NULL != extra_methods)) )
+	ISequence<MethodSignature>* extra_method_signatures = new Sequence<MethodSignature>();
 	{
-		while ( ! extra_methods->isEmpty() )
+		ISequence<Method>* extra_methods = method.extractExtraMethods();
+		if ( extra_methods )
 		{
-			Method* method = extra_methods->removeLast();
-			if ( (status &= method->sync()) )
+			ClassSignature class_signature( this->cu.getFQName() );
+			while ( ! extra_methods->isEmpty() )
 			{
-				const char* method_key = method->getSignature().getMethodKey().getChars();
-				this->methods->insert( method_key, method );
+				Method* method = extra_methods->removeLast();
+				if ( method->sync() )
+				{
+					const char* method_key = method->getSignature().getMethodKey().getChars();
+					this->methods->insert( method_key, method );
+					extra_method_signatures->addLast( new MethodSignature( class_signature, method_key ) );
+				}
+				else
+				{
+					delete extra_method_signatures;
+					extra_method_signatures = NULL;
+					break;
+				}
 			}
 		}
+		delete extra_methods;
 	}
-	delete extra_methods;
-
-	return status;
+	return extra_method_signatures;
 }
 ~
 

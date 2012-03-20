@@ -16,6 +16,7 @@ const String* SourceToken::Include         = new String( "INCLUDE" );
 const String* SourceToken::Class           = new String( "CLASS" );
 const String* SourceToken::ClassName       = new String( "CLASSNAME" );
 const String* SourceToken::Interface       = new String( "INTERFACE" );
+const String* SourceToken::Enum            = new String( "ENUM" );
 const String* SourceToken::Annotation      = new String( "ANNOTATION" );
 const String* SourceToken::IMethod         = new String( "IMETHOD" );
 const String* SourceToken::Method          = new String( "METHOD" );
@@ -186,6 +187,7 @@ SourceToken::getTokenTypeString() const
 	case CLASS:           return *SourceToken::Class;
 	case CLASSNAME:       return *SourceToken::ClassName;
 	case INTERFACE:       return *SourceToken::Interface;
+	case ENUM:            return *SourceToken::Enum;
 	case ANNOTATION:      return *SourceToken::Annotation;
 	case IMETHOD:         return *SourceToken::IMethod;
 	case METHOD:          return *SourceToken::Method;

@@ -142,8 +142,6 @@ Declaration::initialise( IPosition<SourceToken>* aPosition )
 		this->setContent( tmp->trim() );
 	}
 	delete tmp;
-	
-	fprintf( stdout, "Declaration::initialise(): %s\n", this->content->getChars() ); 	
 }
 ~
 

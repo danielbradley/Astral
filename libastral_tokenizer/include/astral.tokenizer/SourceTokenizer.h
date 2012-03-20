@@ -42,6 +42,7 @@ protected:
 	virtual		  SourceToken*     parseComment( openxds::base::String* word );
 	virtual		  SourceToken*       parseQuote( openxds::base::String* word );
 	virtual		  SourceToken* parseDoubleQuote( openxds::base::String* word );
+	virtual		  SourceToken*  parseAnnotation( openxds::base::String* word );
 
 	
 	virtual       bool  isKeyword( const openxds::base::String& word ) const { return false; };

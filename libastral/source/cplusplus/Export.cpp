@@ -5,6 +5,8 @@
 
 #include "astral/CodeBase.h"
 #include "astral/CompilationUnit.h"
+#include "astral/Enum.h"
+#include "astral/EnumsList.h"
 #include "astral/MethodsList.h"
 #include "astral/SymbolDB.h"
 
@@ -54,7 +56,7 @@ Export::printExposedSymbols( const CodeBase& cb )
 void
 Export::toXML( const CodeBase& cb )
 {
-	fprintf( stdout, "<names>\n" );
+	fprintf( stdout, "<types>\n" );
 	{
 		IEIterator<String>* ie = cb.getSymbolDB().getN2NS().entries();
 		while ( ie->hasNext() )
@@ -63,15 +65,15 @@ Export::toXML( const CodeBase& cb )
 			{
 				const char*   name = e->getKey();
 				const String& ns   = e->getValue();
-				fprintf( stdout, "<name name='%s' namespace='%s' />\n", name, ns.getChars() );
+				fprintf( stdout, "\t<type name='%s' namespace='%s' />\n", name, ns.getChars() );
 			}
 			delete e;
 		}
 		delete ie;
 	}
-	fprintf( stdout, "</names>\n" );
+	fprintf( stdout, "</types>\n" );
 
-	fprintf( stdout, "<namespaces>\n" );
+	fprintf( stdout, "\n<namespaces>\n" );
 	{
 		IEIterator<String>* ie = cb.getSymbolDB().getNS2N().entries();
 		while ( ie->hasNext() )
@@ -80,7 +82,7 @@ Export::toXML( const CodeBase& cb )
 			{
 				const char*   ns   = e->getKey();
 				const String& name = e->getValue();
-				fprintf( stdout, "<namespace namespace='%s' name='%s' />\n", ns, name.getChars() );
+				fprintf( stdout, "\t<namespace namespace='%s' name='%s' />\n", ns, name.getChars() );
 			}
 			delete e;
 		}
@@ -88,7 +90,7 @@ Export::toXML( const CodeBase& cb )
 	}
 	fprintf( stdout, "</namespaces>\n" );
 
-	fprintf( stdout, "<symbols>\n" );
+	fprintf( stdout, "\n<symbols>\n" );
 	{
 		IEIterator<const IEntry<CompilationUnit> >* ie = cb.getSymbolDB().getSymbols().entries();
 		while ( ie->hasNext() )
@@ -96,7 +98,7 @@ Export::toXML( const CodeBase& cb )
 			IEntry<const IEntry<CompilationUnit> >* e = ie->next();
 			{
 				const char*   name = e->getKey();
-				fprintf( stdout, "<symbol name='%s' />\n", name );
+				fprintf( stdout, "\t<symbol name='%s' />\n", name );
 			}
 			delete e;
 		}
@@ -280,12 +282,13 @@ Export::toXML( const CompilationUnit& cu, openxds::adt::IDictionary<const openxd
 		sb.append( tag );
 		{
 			{
+				sb.append( "\t<imports>\n" );
 				const IIterator<Import>* it = cu.getImportsList().iterator();
 				{
 					while ( it->hasNext() )
 					{
 						const Import& im = it->next();
-						FormattedString import( "<import value='%s' />\n", im.getImport().getChars() );
+						FormattedString import( "\t\t<import value='%s' />\n", im.getImport().getChars() );
 						sb.append( import );
 					
 //						IPosition<String>* p = it->next();
@@ -297,70 +300,99 @@ Export::toXML( const CompilationUnit& cu, openxds::adt::IDictionary<const openxd
 					}
 				}
 				delete it;
+				sb.append( "\t</imports>\n" );
 			}
 			{
-				sb.append( "<importedTypes>\n" );
+				sb.append( "\t<importedTypes>\n" );
 				IEIterator<String>* ie = iTypes.entries();
 				{
 					while ( ie->hasNext() )
 					{
 						IEntry<String>* e = ie->next();
 						{
-							FormattedString iType( "<importedType value='%s.%s' />\n", e->getValue().getChars(), e->getKey() );
+							FormattedString iType( "\t\t<importedType value='%s.%s' />\n", e->getValue().getChars(), e->getKey() );
 							sb.append( iType );
 						}
 						delete e;
 					}
 				}
 				delete ie;
-				sb.append( "</importedTypes>\n" );
+				sb.append( "\t</importedTypes>\n" );
 			}
 			{
-				sb.append( "<importedSymbols>\n" );
+				sb.append( "\t<importedSymbols>\n" );
 				IEIterator<const IEntry<CompilationUnit> >* ie = iSymbols.entries();
 				{
 					while ( ie->hasNext() )
 					{
 						IEntry<const IEntry<CompilationUnit> >* e = ie->next();
 						{
-							FormattedString iSymbol( "<importedSymbol value='%s' />\n", e->getKey() );
+							FormattedString iSymbol( "\t\t<importedSymbol value='%s' />\n", e->getKey() );
 							sb.append( iSymbol );
 						}
 						delete e;
 					}
 				}
 				delete ie;
-				sb.append( "</importedSymbols>\n" );
+				sb.append( "\t</importedSymbols>\n" );
 			}
 			{
+				sb.append( "\t<enums>\n" );
+				const IEIterator<Enum>* ie = cu.getEnumsList().getEnums().entries();
+				while ( ie->hasNext() )
+				{
+					const IEntry<Enum>* e = ie->next();
+					{
+						const Enum& an_enum = e->getValue();
+						sb.append( FormattedString( "\t\t<enum name='%s'>\n", e->getKey() ) );
+						{
+							const IIterator<String>* ie = an_enum.getFields().values();
+							while ( ie->hasNext() )
+							{
+								sb.append( FormattedString( "\t\t\t<field name='%s' />\n", ie->next().getChars() ) );
+							}
+							delete ie;
+						}
+						sb.append( "\t\t</enum>\n" );
+					}
+					delete e;
+				}
+				delete ie;
+				sb.append( "\t</enums>\n" );
+			}
+			{
+				sb.append( "\t<methods>\n" );
 				const IEIterator<IPosition<SourceToken> >* ie = cu.getMethodsList().getMethodPositions().entries();
 				{
 					while ( ie->hasNext() )
 					{
 						const IEntry<IPosition<SourceToken> >* entry = ie->next();
 						{
-							FormattedString method( "<method signature='%s' />\n", entry->getKey() );
+							FormattedString method( "\t\t<method signature='%s' />\n", entry->getKey() );
 							sb.append( method );
 						}
 						delete entry;
 					}
 				}
 				delete ie;
+				sb.append( "\t</methods>\n" );
 			}
 			{
+				sb.append( "\t<members>\n" );
 				IEIterator<IPosition<SourceToken> >* ie = cu.getMembers().entries();
 				{
 					while ( ie->hasNext() )
 					{
 						IEntry<IPosition<SourceToken> >* entry = ie->next();
 						{
-							FormattedString member( "<member signature='%s' />\n", entry->getKey() );
+							FormattedString member( "\t\t<member signature='%s' />\n", entry->getKey() );
 							sb.append( member );
 						}
 						delete entry;
 					}
 				}
 				delete ie;
+				sb.append( "\t</members>\n" );
 			}
 		}
 		sb.append( "</compilationUnit>" );

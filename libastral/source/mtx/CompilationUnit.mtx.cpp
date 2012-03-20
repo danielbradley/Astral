@@ -52,6 +52,7 @@ private:
 
 	Declaration*                            declaration;
 	ImportsList*                            importsList;
+	  EnumsList*                              enumsList;
 	MembersList*                            membersList;
 	MethodsList*                            methodsList;
 	
@@ -93,6 +94,8 @@ public:
 	virtual const         AST&               getAST() const { return *this->ast;          }
 	virtual       Declaration&       getDeclaration()       { return *this->declaration;  }
 	virtual const Declaration&       getDeclaration() const { return *this->declaration;  }
+	virtual         EnumsList&         getEnumsList()       { return *this->enumsList;    }
+	virtual const   EnumsList&         getEnumsList() const { return *this->enumsList;    }
 	virtual       ImportsList&       getImportsList()       { return *this->importsList;  }
 	virtual const ImportsList&       getImportsList() const { return *this->importsList;  }
 	virtual       MembersList&       getMembersList()       { return *this->membersList;  }
@@ -123,7 +126,9 @@ public:
 	virtual       String* resolveFQTypeOfPlatformType( const char* type ) const;
 	virtual       String*           resolveTypeOfName( const char* name, const VariableScopes& scopes ) const;
 	virtual       String*           resolveMemberType( const char* name ) const;
-	virtual       String*           resolveMethodType( const char* name ) const;
+	virtual       String*           resolveMethodType( const char* methodCall ) const;
+	
+	virtual       MethodSignature* matchingMethodSignature( const char* methodName, const char* parameters ) const;
 	
 	virtual       String* resolveMethodCallParametersToTypes( const String& parameters, const VariableScopes& scopes ) const;
 	virtual       String*        resolveMethodCallReturnType( const CodeBase& codebase, const ITree<SourceToken>& tree, const IPosition<SourceToken>& methodcall, const VariableScopes& scopes, const String& invocationClass ) const;
@@ -157,11 +162,14 @@ public:
 #include <astral/Codebase.h>
 #include <astral/CompilationUnit.h>
 #include <astral/Declaration.h>
+#include <astral/Enum.h>
+#include <astral/EnumsList.h>
 #include <astral/Import.h>
 #include <astral/ImportsList.h>
 #include <astral/Member.h>
 #include <astral/MembersList.h>
 #include <astral/Method.h>
+#include <astral/MethodCall.h>
 #include <astral/MethodsList.h>
 #include <astral/MethodSignature.h>
 #include <astral/PlatformTypes.h>
@@ -169,6 +177,7 @@ public:
 #include <astral/VariableScopes.h>
 #include <astral.ast/AST.h>
 #include <astral.ast/ASTHelper.h>
+#include <astral.tours/EnumDiscoveryTour.h>
 #include <astral.tours/FindLastTokenTour.h>
 #include <astral.tours/HTMLPrintTour.h>
 #include <astral.tours/MemberDiscoveryTour.h>
@@ -236,6 +245,7 @@ CompilationUnit::CompilationUnit( const char* location )
 	
 	this->declaration     = new Declaration( *this );
 	this->importsList     = new ImportsList( *this );
+	this->enumsList       = new   EnumsList( *this );
 	this->membersList     = new MembersList( *this );
 	this->methodsList     = new MethodsList( *this );
 	
@@ -251,17 +261,21 @@ CompilationUnit::CompilationUnit( const char* location )
 ~source/cplusplus/CompilationUnit.cpp~
 CompilationUnit::~CompilationUnit()
 {
-	delete this->importsList;
-	delete this->membersList;
-	delete this->methodsList;
-
+	delete this->location;
 	delete this->members;
 	delete this->ast;
 	delete this->packageName;
 	delete this->className;
 	delete this->extendsClass;
-	
+
+	delete this->declaration;
+	delete this->importsList;
+	delete this->enumsList;
+	delete this->membersList;
+	delete this->methodsList;
+
 	delete this->importedTypes;
+	delete this->methodObjects;
 }
 ~
 
@@ -298,6 +312,9 @@ CompilationUnit::initialise()
 			this->fqName       = new FormattedString( "%s.%s", this->packageName->getChars(), this->className->getChars() );
 			this->extendsClass = pdt.getExtendsClass().asString();
 
+			EnumDiscoveryTour edt( this->ast->getTree(), this->enumsList->getEnumPositions() );
+			edt.doGeneralTour( *root );
+
 			FindLastTokenTour fltt( this->ast->getTree(), SourceToken::CLASS );
 			fltt.doGeneralTour( *root );
 
@@ -309,6 +326,7 @@ CompilationUnit::initialise()
 
 			this->declaration->initialise( fltt.copyLastTokenPosition() );
 			this->importsList->initialise( *import_positions );
+			this->enumsList->initialise();
 			this->membersList->initialise( *this->members );
 
 			//this->initialiseImportObjects();
@@ -363,27 +381,23 @@ Implementation
 void
 CompilationUnit::registerSymbols( IDictionary<const IEntry<CompilationUnit> >& symbols, const IEntry<CompilationUnit>& e ) const
 {
+	const char* nspace = this->getNamespace().getChars();
+	const char* cls    = this->getName().getChars();
+
 	IEIterator<IPosition<SourceToken> >* ie = this->methodsList->getMethodPositions().entries();
 	{
 		while ( ie->hasNext() )
 		{
 			IEntry<IPosition<SourceToken> >* entry = ie->next();
 			{
-				const char* key = entry->getKey();
-				StringTokenizer st( key );
+				StringTokenizer st( entry->getKey() );
 				st.setDelimiter( '|' );
 				String* name = st.nextToken();
 				{
-					StringBuffer sb;
-					sb.append( this->getNamespace() );
-					sb.append( '.' );
-					sb.append( this->getName() );
-					sb.append( '.' );
-					sb.append( *name );
+					FormattedString key( "%s.%s.%s", nspace, cls, name->getChars() );
 
 					//fprintf( stdout, "CU::registerSymbols: symbols.insert( \"%s\", e )\n", sb.getChars() );
-
-					delete symbols.insert( sb.getChars(), e.copy() );
+					delete symbols.insert( key.getChars(), e.copy() );
 				}
 				delete name;
 			}
@@ -392,17 +406,37 @@ CompilationUnit::registerSymbols( IDictionary<const IEntry<CompilationUnit> >& s
 	}
 	delete ie;
 
-
-	IIterator<Member>* it = this->membersList->values();
-	while ( it->hasNext() )
 	{
-		Member& member = it->next();
-		
-		FormattedString member_key( "%s.%s.%s", this->getNamespace().getChars(), this->getName().getChars(), member.getName().getChars() );
-		
-		delete symbols.insert( member_key.getChars(), e.copy() );
+		IIterator<Member>* it = this->membersList->values();
+		while ( it->hasNext() )
+		{
+			Member& member = it->next();
+			
+			FormattedString member_key( "%s.%s.%s", nspace, cls, member.getName().getChars() );
+			delete symbols.insert( member_key.getChars(), e.copy() );
+		}
+		delete it;
 	}
-	delete it;
+	{
+		IIterator<Enum>* it = this->enumsList->getEnums().values();
+		while ( it->hasNext() )
+		{
+			Enum& anEnum = it->next();
+			
+			const String& cls = anEnum.getClassName();
+			if ( cls.getLength() )
+			{
+				FormattedString enum_key( "%s.%s.%s", nspace, cls.getChars(), anEnum.getName().getChars() );
+				delete symbols.insert( enum_key.getChars(), e.copy() );
+			}
+			else
+			{
+				FormattedString enum_key( "%s.%s", nspace, anEnum.getName().getChars() );
+				delete symbols.insert( enum_key.getChars(), e.copy() );
+			}
+		}
+		delete it;
+	}
 }
 ~
 
@@ -721,12 +755,12 @@ Implementation
 
 ~source/cplusplus/CompilationUnit.cpp~
 String*
-CompilationUnit::resolveMethodType( const char* name ) const
+CompilationUnit::resolveMethodType( const char* methodCall ) const
 {
 	String* ret = new String( "" );
 	try
 	{
-		IEntry<IPosition<SourceToken> >* e = this->methodsList->getMethodPositions().startsWith( name );
+		IEntry<IPosition<SourceToken> >* e = this->methodsList->getMethodPositions().startsWith( methodCall );
 		{
 			StringTokenizer st( e->getKey() );
 			st.setDelimiter( '|' );
@@ -746,6 +780,35 @@ CompilationUnit::resolveMethodType( const char* name ) const
 	return ret;
 }
 ~
+
+
+~source/cplusplus/CompilationUnit.cpp~
+MethodSignature*
+CompilationUnit::matchingMethodSignature( const char* methodName, const char* parameters ) const
+{
+	MethodSignature* signature = NULL;
+
+	MethodCall methodCall( methodName, parameters );
+	const IIterator<String>* it = methodCall.generateVariations().elements();
+	bool loop = true;
+	while ( loop && it->hasNext() )
+	{
+		const String& method_call = it->next();
+		String* returnType = resolveMethodType( method_call.getChars() );
+		if( returnType->getLength() )
+		{
+			ClassSignature cls( this->getFQName().getChars() );
+			signature = new MethodSignature( cls, FormattedString( "%s|%s", method_call.getChars(), returnType->getChars() ) );
+			loop = false;
+		}
+		delete returnType;
+	}
+	delete it;
+	return signature;
+}
+~
+
+
 
 ...			Method: retrieveMethodContent
 
@@ -931,7 +994,8 @@ CompilationUnit::recurseMethodArgument( const CodeBase& codebase, const ITree<So
 				case SourceToken::NAME:
 					delete invocation_class;
 					delete argument_type;
-					invocation_class = generaliseType( this->resolveTypeOfName( value, scopes ) );
+					//invocation_class = generaliseType( this->resolveTypeOfName( value, scopes ) );
+					invocation_class = this->resolveTypeOfName( value, scopes );
 					argument_type    = new String( *invocation_class );
 					break;
 				case SourceToken::SYMBOL:
@@ -1013,7 +1077,7 @@ CompilationUnit::save()
 	
 	if ( target_file.exists() )
 	{
-		//fprintf( stdout, "\t target file exists\n" );
+		#ifdef DEBUG_COMPILATIONUNIT_SAVE
 		{
 			PrintSourceTour pst( this->getAST().getTree(), IO::out() );
 			IPosition<SourceToken>* root = this->getAST().getTree().root();
@@ -1022,6 +1086,7 @@ CompilationUnit::save()
 			}
 			delete root;
 		}
+		#endif
 		{
 			PrintSourceTour pst( this->getAST().getTree(), writer );
 			IPosition<SourceToken>* root = this->getAST().getTree().root();

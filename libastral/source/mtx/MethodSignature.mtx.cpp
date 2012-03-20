@@ -157,6 +157,7 @@ public:
 	 MethodSignature();
 	 MethodSignature( const String&          original  );
 	 MethodSignature( const ClassSignature& aClassSignature, const String& aMethodKey );
+	 MethodSignature( const ClassSignature& aClassSignature, const char* methodName, const char* parameters, const char* returnType );
 	 MethodSignature( const MethodSignature& signature );
 	~MethodSignature();
 
@@ -244,6 +245,31 @@ MethodSignature::MethodSignature( const ClassSignature& aClassSignature, const S
 	sb.append( aClassSignature.getFQClass() );
 	sb.append( "." );
 	sb.append( aMethodKey );
+	
+	const char* signature = sb.getChars();
+
+	this->initialise( signature );
+}
+
+MethodSignature::MethodSignature( const ClassSignature& aClassSignature, const char* methodName, const char* parameters, const char* returnType )
+{
+	this->original       = new String();
+	this->classSignature = new ClassSignature();
+	this->fqMethodCall   = new String();
+	this->returnType     = new String();
+	this->methodCall     = new String();
+	this->methodName     = new String();
+	this->methodKey      = new String();
+
+	StringBuffer sb;
+	sb.append( aClassSignature.getFQClass() );
+	sb.append( "." );
+	sb.append( methodName );
+	sb.append( "(" );
+	sb.append( parameters );
+	sb.append( ")" );
+	sb.append( "|" );
+	sb.append( returnType );
 	
 	const char* signature = sb.getChars();
 

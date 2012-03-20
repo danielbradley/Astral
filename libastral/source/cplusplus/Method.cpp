@@ -202,6 +202,7 @@ Method::sync()
 	if ( this->isModified() )
 	{
 		MethodSignature* method_signature = extractMethodSignature( *this->methodAST );
+		if ( method_signature )
 		{
 			const char* modified_key = method_signature->getMethodKey().getChars();
 			const char* existing_key =  this->signature->getMethodKey().getChars();
@@ -335,6 +336,12 @@ Method::getFirstLine() const
 	return first_line;
 }
 
+long
+Method::getNrOfLines() const
+{
+	return this->p->getElement().getNrOfLines();
+}
+
 //IPosition<SourceToken>*
 //Method::insertNewMethod( const char* methodKey, const AST& aMethodAST )
 //{
@@ -354,7 +361,9 @@ Method::replaceMethod( const char* methodKey, const AST& aMethodAST, const char*
 	{
 		IDictionary<IPosition<SourceToken> >& methods = this->ml.getMethodPositions();
 		delete methods.insert( methodKey, methods.remove( methods.find( oldMethodKey ) ) );
-		this->cu.getAST().replaceSubtree( *this->p, aMethodAST );
+		
+		ASTHelper helper( this->cu.getAST() );
+		helper.replaceMethodAST( *this->p, aMethodAST );
 
 		status = true;
 	}

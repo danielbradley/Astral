@@ -28,7 +28,7 @@ static bool          parseStatement( ITree<SourceToken>& ast, IPosition<SourceTo
 //static void         parseStatementX( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
 static void           handleKeyword( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
 static void              handleStop( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
-static bool        handleStartBlock( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
+static bool        handleStartBlock( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer, bool parseEnum );
 static void        handleMethodCall( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer, bool parsedNew );
 static void   handleStartParameters( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
 static void         parseParameters( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
@@ -36,7 +36,8 @@ static String*       parseParameter( ITree<SourceToken>& ast, IPosition<SourceTo
 static void    handleStartArguments( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
 static void          parseArguments( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
 //static void           parseArgument( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
-static bool              parseBlock( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
+static bool              parseBlock( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer, bool parseEnum );
+static void      parseEnumStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
 static void parseTrailingWhitespace( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
 
 static SourceToken* parseType( SourceTokenizer& tokenizer );
@@ -221,9 +222,22 @@ parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceT
 			loop = false;
 			break;
 
+		case SourceToken::ENDBLOCK:
+			loop = false;
+//			if ( parseArg )
+//			{
+//				loop = false;
+//			}
+//			else
+//			{
+//				delete ast.addChild( parent, tokenizer.nextToken() );
+//			}
+			break;
+
 		case SourceToken::SYMBOL:
 			if ( parseArg && tokenizer.peekNextToken().getValue().contentEquals( "," ) )
 			{
+				handleStop( ast, parent, tokenizer );
 				loop = false;
 			}
 			else
@@ -231,14 +245,17 @@ parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceT
 				delete ast.addChild( parent, tokenizer.nextToken() );
 			}
 			break;
+
 		case SourceToken::LINECOMMENT:
 			delete ast.addChild( parent, tokenizer.nextToken() );
 			loop = false;
 			break;
+
 		case SourceToken::STARTBLOCK:
-			status = handleStartBlock( ast, parent, tokenizer );
+			status = handleStartBlock( ast, parent, tokenizer, (SourceToken::ENUM == looksie) );
 			loop = false;
 			break;
+
 		case SourceToken::KEYWORD:
 			if ( tokenizer.peekNextToken().getValue().contentEquals( "new" ) )
 			{
@@ -247,6 +264,7 @@ parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceT
 			delete ast.addChild( parent, tokenizer.nextToken() );
 			//handleKeyword( ast, parent, tokenizer );
 			break;
+
 		case SourceToken::STARTEXPRESSION:
 			switch ( looksie )
 			{
@@ -257,6 +275,7 @@ parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceT
 				delete ast.addChild( parent, tokenizer.nextToken() );
 			}
 			break;
+
 		case SourceToken::ENDEXPRESSION:
 			if ( parseArg )
 			{
@@ -267,6 +286,7 @@ parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceT
 				delete ast.addChild( parent, tokenizer.nextToken() );
 			}
 			break;
+
 		case SourceToken::TYPE:
 		case SourceToken::WORD:
 			if ( !parsed_type )
@@ -487,7 +507,7 @@ static bool isMemberLevel( ITree<SourceToken>& ast, IPosition<SourceToken>& pare
 	return ret;
 }			
 
-static bool handleStartBlock( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer )
+static bool handleStartBlock( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer, bool parseEnum )
 {
 	bool status = true;
 
@@ -495,7 +515,7 @@ static bool handleStartBlock( ITree<SourceToken>& ast, IPosition<SourceToken>& p
 	{
 		delete ast.addChild( *block, tokenizer.nextToken() );
 		parseTrailingWhitespace( ast, *block, tokenizer );
-		status &= parseBlock( ast, *block, tokenizer );
+		status &= parseBlock( ast, *block, tokenizer, parseEnum );
 		parseTrailingWhitespace( ast, *block, tokenizer );
 	}
 	countup( ast, *block );
@@ -504,7 +524,7 @@ static bool handleStartBlock( ITree<SourceToken>& ast, IPosition<SourceToken>& p
 	return status;
 }
 
-	static bool parseBlock( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer )
+	static bool parseBlock( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer, bool parseEnum )
 	{
 		bool loop = true;
 		while ( loop && tokenizer.hasMoreTokens() )
@@ -526,8 +546,16 @@ static bool handleStartBlock( ITree<SourceToken>& ast, IPosition<SourceToken>& p
 				loop = false;
 				break;
 			default:
-				stmt = ast.addChild( parent, new SourceToken( SourceToken::STATEMENT, new String() ) );
-				parseStatement( ast, *stmt, tokenizer, false );
+				if ( parseEnum )
+				{
+					stmt = ast.addChild( parent, new SourceToken( SourceToken::STATEMENT, new String() ) );
+					parseEnumStatement( ast, *stmt, tokenizer );
+				}
+				else
+				{
+					stmt = ast.addChild( parent, new SourceToken( SourceToken::STATEMENT, new String() ) );
+					parseStatement( ast, *stmt, tokenizer, false );
+				}
 				countup( ast, *stmt );
 				delete stmt;
 			}
@@ -535,6 +563,40 @@ static bool handleStartBlock( ITree<SourceToken>& ast, IPosition<SourceToken>& p
 		
 		return (loop == false);
 	}
+
+		static void parseEnumStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer )
+		{
+			bool loop = true;
+			while ( loop && tokenizer.hasMoreTokens() )
+			{
+				const SourceToken&     token = tokenizer.peekNextToken();
+				SourceToken::TokenType ttype = token.getTokenType();
+				
+				switch ( ttype )
+				{
+				case SourceToken::ENDBLOCK:
+					loop = false;
+					break;
+					
+				case SourceToken::STOP:
+					delete ast.addChild( parent, tokenizer.nextToken() );
+					parseTrailingWhitespace( ast, parent, tokenizer );
+					loop = false;
+					break;
+					
+				case SourceToken::WORD:
+					{
+						SourceToken* tok = tokenizer.nextToken();
+						tok->setType( SourceToken::VARIABLE );
+						delete ast.addChild( parent, tok );
+					}
+					break;
+					
+				default:
+					delete ast.addChild( parent, tokenizer.nextToken() );
+				}
+			}
+		}
 
 
 static void handleStartParameters( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer )
@@ -649,7 +711,8 @@ static void handleStartParameters( ITree<SourceToken>& ast, IPosition<SourceToke
 							word2->setType( SourceToken::VARIABLE );
 							delete ast.addChild( parent, word2 );
 
-							parent.getElement().setValue( generalizeType( word1->getValue() ) );
+							//parent.getElement().setValue( generalizeType( word1->getValue() ) );
+							parent.getElement().setValue( new String( word1->getValue() ) );
 						}
 						break;
 					default:
@@ -660,7 +723,8 @@ static void handleStartParameters( ITree<SourceToken>& ast, IPosition<SourceToke
 				if ( 0 == parameter_type->getLength() && (NULL != word2) )
 				{
 					delete parameter_type;
-					parameter_type = (word1 != NULL) ? generalizeType( word1->getValue() ) : new String();
+					//parameter_type = (word1 != NULL) ? generalizeType( word1->getValue() ) : new String();
+					parameter_type = (word1 != NULL) ? new String( word1->getValue() ) : new String();
 				}
 			}
 			
@@ -719,6 +783,11 @@ static void handleStartArguments( ITree<SourceToken>& ast, IPosition<SourceToken
 				delete ast.addChild( parent, tokenizer.nextToken() );
 				loop = false;
 				break;
+
+			case SourceToken::ENDBLOCK:
+				loop = false;
+				break;
+
 			case SourceToken::BLANKLINE:
 			case SourceToken::TAB:
 			case SourceToken::SPACE:
@@ -870,6 +939,19 @@ AST::adjustOffsets( IPosition<SourceToken>& parent )
 	}
 }
 
+void
+AST::recount( IPosition<SourceToken>& p )
+{
+	if ( this->ast->hasParent( p ) )
+	{
+		IPosition<SourceToken>* parent = this->ast->parent( p );
+		{
+			countup( *this->ast, *parent );
+		}
+		delete parent;
+	}
+}
+
 void countup( ITree<SourceToken>& ast, IPosition<SourceToken>& parent )
 {
 	long characters = 0;
@@ -894,6 +976,16 @@ void countup( ITree<SourceToken>& ast, IPosition<SourceToken>& parent )
 }
 
 AST*
+AST::copySubtree( IPosition<SourceToken>& p )
+{
+	AST* ast = new AST();
+	delete ast->ast;
+	ast->ast = this->ast->copyAsTree( p );
+	
+	return ast;
+}
+
+AST*
 AST::copySubtree( const IPosition<SourceToken>& p ) const
 {
 	AST* ast = new AST();
@@ -903,17 +995,17 @@ AST::copySubtree( const IPosition<SourceToken>& p ) const
 	return ast;
 }
 
-void
-AST::replaceSubtree( IPosition<SourceToken>& p, const AST& ast )
-{
-	ITree<SourceToken>* method_tree = ast.ast->copyAsTree( ast.ast->getRoot() );
-	{
-		this->ast->swapSubtrees( p, *method_tree, method_tree->getRoot() );
-	}
-	delete method_tree;
-	
-	this->adjustOffsets( p );
-}
+//void
+//AST::replaceSubtree( IPosition<SourceToken>& p, const AST& ast )
+//{
+//	ITree<SourceToken>* method_tree = ast.ast->copyAsTree( ast.ast->getRoot() );
+//	{
+//		this->ast->swapSubtrees( p, *method_tree, method_tree->getRoot() );
+//	}
+//	delete method_tree;
+//	
+//	this->adjustOffsets( p );
+//}
 
 bool
 AST::isValid() const

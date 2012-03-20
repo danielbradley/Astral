@@ -202,16 +202,16 @@ Member::reparseMember( const String& aValue )
 	this->memberAST->parseString( aValue );
 	if ( this->memberAST->isValid() )
 	{
+		CompilationUnit& cu  = this->cu;
+		AST&             ast = cu.getAST(); 
+		ASTHelper helper( ast );
+
 		if ( this->position )
 		{
-			this->cu.getAST().replaceSubtree( *this->position, *this->memberAST );
+			helper.replaceMemberAST( *this->position, *this->memberAST );
 		}
 		else
 		{
-			CompilationUnit& cu  = this->cu;
-			AST&             ast = cu.getAST(); 
-			ASTHelper helper( ast );
-
 			this->position = helper.insertMemberAST( *this->memberAST );
 		}
 		

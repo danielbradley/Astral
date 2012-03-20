@@ -23,7 +23,7 @@ using namespace openxds::adt::std;
 using namespace openxds::base;
 using namespace openxds::io;
 
-static IPosition<SourceToken>* insertPosition( AST& ast, SourceToken::TokenType type, bool prefixWithTab, bool blankLine );
+static IPosition<SourceToken>* insertPosition( AST& ast, SourceToken::TokenType type );
 static IPosition<SourceToken>* findLast( AST& ast, SourceToken::TokenType type );
 	
 ASTHelper::ASTHelper( AST& anAST ) : ast( anAST )
@@ -38,9 +38,9 @@ ASTHelper::insertPackageAST( const AST& packageAST )
 IPosition<SourceToken>*
 ASTHelper::insertImportAST( const AST& importAST )
 {
-	IPosition<SourceToken>* p = insertPosition( this->ast, SourceToken::IMPORT, false, false );
+	IPosition<SourceToken>* p = insertPosition( this->ast, SourceToken::IMPORT );
 	{
-		this->ast.replaceSubtree( *p, importAST );
+		this->replaceReparsedAST( *p, importAST );
 	}
 	return p;
 }
@@ -54,9 +54,9 @@ ASTHelper::insertClassAST( const AST& ast )
 IPosition<SourceToken>*
 ASTHelper::insertMemberAST( const AST& aMemberAST )
 {
-	IPosition<SourceToken>* p = insertPosition( this->ast, SourceToken::MEMBER, true, true );
+	IPosition<SourceToken>* p = insertPosition( this->ast, SourceToken::MEMBER );
 	{
-		this->ast.replaceSubtree( *p, aMemberAST );
+		this->replaceReparsedAST( *p, aMemberAST );
 	}
 	return p;
 }
@@ -64,9 +64,9 @@ ASTHelper::insertMemberAST( const AST& aMemberAST )
 IPosition<SourceToken>*
 ASTHelper::insertMethodAST( const AST& aMethodAST )
 {
-	IPosition<SourceToken>* p = insertPosition( this->ast, SourceToken::METHOD, true, true );
+	IPosition<SourceToken>* p = insertPosition( this->ast, SourceToken::METHOD );
 	{
-		this->ast.replaceSubtree( *p, aMethodAST );
+		this->replaceReparsedAST( *p, aMethodAST );
 	}
 	return p;
 }
@@ -107,12 +107,24 @@ ASTHelper::reorder( IDictionary<IPosition<SourceToken> >& positions )
 }
 
 void
-ASTHelper::replaceMethodAST( IPosition<SourceToken>& p, const AST& methodAST )
+ASTHelper::replaceImportAST( IPosition<SourceToken>& p, const AST& importAST )
 {
-	this->ast.replaceSubtree( p, methodAST );
+	this->replaceReparsedAST( p, importAST );
 }
 
-IPosition<SourceToken>* insertPosition( AST& ast, SourceToken::TokenType type, bool prefixWithTab, bool blankLine )
+void
+ASTHelper::replaceMemberAST( IPosition<SourceToken>& p, const AST& memberAST )
+{
+	this->replaceReparsedAST( p, memberAST );
+}
+
+void
+ASTHelper::replaceMethodAST( IPosition<SourceToken>& p, const AST& methodAST )
+{
+	this->replaceReparsedAST( p, methodAST );
+}
+
+IPosition<SourceToken>* insertPosition( AST& ast, SourceToken::TokenType type )
 {
 	IPosition<SourceToken>* p = NULL;
 
@@ -133,10 +145,9 @@ IPosition<SourceToken>* insertPosition( AST& ast, SourceToken::TokenType type, b
 			}
 
 			//	Inserted in reverse order at same index.
+			delete ast.getTree().insertChildAt( *parent, new SourceToken( SourceToken::NEWLINE, new String( "\n" ) ), index );
 			p = ast.getTree().insertChildAt( *parent, new SourceToken( type, new String() ), index );
-			
-			if ( prefixWithTab ) delete ast.getTree().insertChildAt( *parent, new SourceToken( SourceToken::TAB,     new String( "\t" ) ), index );
-			if ( blankLine )     delete ast.getTree().insertChildAt( *parent, new SourceToken( SourceToken::NEWLINE, new String( "\n" ) ), index );
+			delete ast.getTree().insertChildAt( *parent, new SourceToken( SourceToken::NEWLINE, new String( "\n" ) ), index );
 		}
 		delete parent;
 	}
@@ -221,3 +232,65 @@ ASTHelper::toHTMLString( IPosition<SourceToken>& p )
 	return dynamic_cast<IOBuffer&>( writer.getOutputStream().getIOEndPoint() ).toString();
 }
 
+//
+//	Private methods
+//
+
+
+/*
+ *	A reparsed AST should have a root node of type SourceToken::OTHER,
+ *  and child nodes corresponding to the reparsed elements,
+ *	e.g. SourceToken::IMPORT, MEMBER, METHOD etc.
+ */
+void
+ASTHelper::replaceReparsedAST( IPosition<SourceToken>& p, const AST& aReparsedAST )
+{
+	ITree<SourceToken>* t = aReparsedAST.getTree().copyAsTree();
+	{
+		if ( t->size() )
+		{
+			IPosition<SourceToken>& r = t->getRoot();
+			switch ( r.getElement().getTokenType() )
+			{
+			case SourceToken::OTHER:
+				{
+					IPosition<SourceToken>* pReparsed = t->child( r, 0 );
+					{
+						this->ast.getTree().swapSubtrees( p, *t, *pReparsed );
+						this->ast.recount( p );
+					}
+					delete pReparsed;
+				}
+				break;
+
+			case SourceToken::IMPORT:
+			case SourceToken::MEMBER:
+			case SourceToken::METHOD:
+				{
+					this->ast.getTree().swapSubtrees( p, *t, r );
+					this->ast.recount( p );
+				}
+				break;
+
+			default:
+				break;
+			}
+		}
+	}
+	delete t;
+}
+
+long
+ASTHelper::calculateOffset( const IPosition<SourceToken>& p )
+{
+	long offset = p.getElement().getOffset();
+	if ( ast.getTree().hasParent( p ) )
+	{
+		const IPosition<SourceToken>* parent = ast.getTree().parent( p );
+		{
+			offset += this->calculateOffset( *parent );
+		}
+		delete parent;
+	}
+	return offset;
+}

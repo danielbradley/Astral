@@ -31,12 +31,19 @@ public:
 	virtual IPosition<SourceToken>*  insertMethodAST( const AST&  methodAST );
 
 	virtual void          reorder( IDictionary<IPosition<SourceToken> >& positions );
+	virtual void replaceImportAST( IPosition<SourceToken>& p, const AST& importAST );
 	virtual void replaceMethodAST( IPosition<SourceToken>& p, const AST& methodAST );
+	virtual void replaceMemberAST( IPosition<SourceToken>& p, const AST& memberAST );
 	virtual AST*    removeSubtree( IPosition<SourceToken>* p );
 	virtual void    deleteSubtree( IPosition<SourceToken>* p );
 
 	virtual String* toHTMLString();
 	virtual String* toHTMLString( IPosition<SourceToken>& p );
+
+	virtual long calculateOffset( const IPosition<SourceToken>& p );
+
+private:
+	virtual void replaceReparsedAST( IPosition<SourceToken>& p, const AST& aReparsedAST );
 };
 	
 };};

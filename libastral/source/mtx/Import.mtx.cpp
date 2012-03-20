@@ -271,15 +271,16 @@ Import::reparseContent( const String& aValue )
 	this->partialAST->parseString( *this->content );
 	if ( this->partialAST->isValid() )
 	{
+		CompilationUnit& cu  = this->cu;
+		AST&             ast = cu.getAST(); 
+		ASTHelper helper( ast );
+
 		if ( this->position )
 		{
-			this->cu.getAST().replaceSubtree( *this->position, *this->partialAST );
+			helper.replaceImportAST( *this->position, *this->partialAST );
 		}
 		else
 		{
-			CompilationUnit& cu  = this->cu;
-			AST&             ast = cu.getAST(); 
-			ASTHelper helper( ast );
 
 			this->position = helper.insertImportAST( *this->partialAST );
 		}

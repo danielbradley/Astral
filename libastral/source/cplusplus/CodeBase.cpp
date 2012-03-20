@@ -70,10 +70,10 @@ CodeBase::refreshImports()
 	delete ie;
 }
 
-bool
+ISequence<MethodSignature>*
 CodeBase::saveMethod( const MethodSignature& aMethodSignature )
 {
-	bool can_save = false;
+	ISequence<MethodSignature>* extra_methods = NULL;
 
 	try
 	{
@@ -81,7 +81,7 @@ CodeBase::saveMethod( const MethodSignature& aMethodSignature )
 		MethodsList&     ml = cu.getMethodsList();
 
 		//if ( (can_save = ml.saveMethod( aMethodSignature )) )
-		if ( (can_save = ml.synchroniseMethods( aMethodSignature )) )
+		if ( (extra_methods = ml.synchroniseMethods( aMethodSignature )) )
 		{
 			cu.save();
 			this->reregister( cu );
@@ -93,7 +93,7 @@ CodeBase::saveMethod( const MethodSignature& aMethodSignature )
 		delete ex;
 	}
 	
-	return can_save;
+	return extra_methods;
 }
 
 void
@@ -127,10 +127,10 @@ CodeBase::getCompilationUnit( const ClassSignature& aClassSignature )
 	}
 	catch ( NoSuchElementException* ex )
 	{
-		delete ex;
-		fprintf( stderr, "CodeBase::getCompilationUnit\n" );
-		fprintf( stderr, "\t could not find: %s, aborting!!!", fq_class );
-		abort();
+		//	It is questionable whether this should really throw an except as
+		//	it is often expected that the desired CompilationUnit will not
+		//	be found, i.e. when it is a Java library class.
+		throw;
 	}
 }
 
@@ -165,60 +165,62 @@ CodeBase::completeMemberSignature( const char* fqClassType, const char* member )
 }
 
 MethodSignature*
-CodeBase::completeMethodSignature( const char* cls, const char* method, const char* parameters ) const
+CodeBase::completeMethodSignature( const char* fqClass, const char* methodName, const char* parameters ) const
 {
-	MethodSignature* ret = new MethodSignature();
+	MethodSignature* signature = new MethodSignature();
+	try
 	{
-		StringBuffer call;
-		call.append( method );
-		call.append( "(" );
-		call.append( parameters );
-		call.append( ")" );
+		ClassSignature classSignature( fqClass );
+		const CompilationUnit& cu = this->getCompilationUnit( classSignature );
 
-		StringBuffer full;
-		full.append( cls );
-		full.append( '.' );
-		full.append( call.getChars() );
-
-		try
+		delete signature;
+		signature = cu.matchingMethodSignature( methodName, parameters );
+		if ( ! signature )
 		{
-			const CompilationUnit& cu = this->symbolDB->getCompilationUnitForSymbolPrefix( full.getChars() );
-
-			String* rtype = cu.resolveMethodType( call.getChars() );
+			String* fqSuperclass = cu.resolveFQTypeOfType( cu.getSuperclass().getChars() );
 			{
-				StringBuffer sb;
-				sb.append( full.getChars() );
-				sb.append( '|' );
-				sb.append( *rtype );
-
-				delete ret;
-				ret = new MethodSignature( sb.getChars() );
+				signature = this->completeMethodSignature( fqSuperclass->getChars(), methodName, parameters );
 			}
-			delete rtype;
-		}
-		catch ( NoSuchElementException* ex )
-		{
-			delete ex;
-			
-			//	If the method is not available, recursively check superclasses.
-			try
-			{
-				const CompilationUnit& cu = this->symbolDB->getCompilationUnitForSymbolPrefix( cls );
-				String* super = cu.resolveFQTypeOfType( cu.getSuperclass().getChars() );
-				if ( ! super->contentEquals( "" ) )
-				{
-					delete ret;
-					ret = this->completeMethodSignature( super->getChars(), method, parameters );
-				}
-				delete super;
-			}
-			catch ( NoSuchElementException* ex )
-			{
-				delete ex;
-			}
+			delete fqSuperclass;
 		}
 	}
-	return ret;
+	catch ( NoSuchElementException* ex )
+	{
+		delete ex;
+	}
+	return signature;
+
+//		try
+//		{
+//			//String* rtype = cu.resolveMethodType( call.getChars() );
+//			String* rtype = cu.resolveMethodType( methodName, parameters );
+//			{
+//				delete ret;
+//				ret = new MethodSignature( classSignature, methodName, parameters, rtype->getChars() );
+//			}
+//			delete rtype;
+//		}
+//		catch ( NoSuchElementException* ex )
+//		{
+//			delete ex;
+//			
+//			//	If the method is not available, recursively check superclasses.
+//			try
+//			{
+//				const CompilationUnit& cu = this->symbolDB->getCompilationUnitForSymbolPrefix( cls );
+//				String* super = cu.resolveFQTypeOfType( cu.getSuperclass().getChars() );
+//				if ( ! super->contentEquals( "" ) )
+//				{
+//					delete ret;
+//					ret = this->completeMethodSignature( super->getChars(), method, parameters );
+//				}
+//				delete super;
+//			}
+//			catch ( NoSuchElementException* ex )
+//			{
+//				delete ex;
+//			}
+//		}
 }
 
 bool

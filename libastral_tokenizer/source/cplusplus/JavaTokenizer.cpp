@@ -12,6 +12,7 @@ JavaTokenizer::isKeyword( const String& word ) const
 			word.contentEquals( "package" )
 		||	word.contentEquals( "class" )
 		||	word.contentEquals( "interface" )
+		||	word.contentEquals( "enum" )
 		||	word.contentEquals( "extends" )
 		||	word.contentEquals( "implements" )
 		||	word.contentEquals( "this" )

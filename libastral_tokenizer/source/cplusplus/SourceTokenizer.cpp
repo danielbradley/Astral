@@ -335,7 +335,7 @@ SourceTokenizer::parseSymbolToken( String* word )
 			source_token = new SourceToken( SourceToken::PREFIXOP, word );
 			break;
 		case '@':
-			source_token = new SourceToken( SourceToken::ANNOTATION, word );
+			source_token = parseAnnotation( word );
 			break;
 		case '=':
 			switch ( ch2 )
@@ -712,6 +712,68 @@ SourceTokenizer::parseDoubleQuote( openxds::base::String* word )
 	return new SourceToken( SourceToken::DOUBLEQUOTE, sb.asString() );
 }
 
+SourceToken*
+SourceTokenizer::parseAnnotation( openxds::base::String* word )
+{
+	StringBuffer sb;
+	sb.append( *word );
+	delete word;
+
+	bool parsed_word = false;
+	int  brackets = 0;
+
+	bool loop = true;
+	while ( loop && this->tt->hasMoreTokens() )
+	{
+		const ITextToken& token = this->tt->peekNextToken();
+		{
+			switch ( token.getTokenType() )
+			{
+			case ITextToken::WORD:
+				if ( brackets || !parsed_word )
+				{
+					sb.append( token.getValue() );
+					delete this->tt->nextToken();
+					
+					if ( !brackets ) parsed_word = true;
+				}
+				else
+				{
+					loop = false;
+				}
+				break;
+				
+			case ITextToken::SYMBOL:
+				switch ( token.getValue().charAt(0) )
+				{
+				case '(':
+					brackets++;
+					break;
+				case ')':
+					brackets--;
+					break;
+				}
+				sb.append( token.getValue() );
+				delete this->tt->nextToken();
+				break;
+				
+			default:
+				if ( 0 < brackets )
+				{
+					sb.append( token.getValue() );
+					delete this->tt->nextToken();
+				}
+				else
+				{
+					loop = false;
+				}
+				break;
+			}
+		}
+	}
+	
+	return new SourceToken( SourceToken::ANNOTATION, sb.asString() );
+}
 
 static bool processExpression( ISequence<SourceToken>& tokens, SourceTokenizer& tokenizer )
 {
@@ -765,10 +827,11 @@ SourceTokenizer::sneakyPeek()
 	int blocks    = 0;
 	int stops     = 0;
 	
-	bool is_package = false;
-	bool is_import  = false;
-	bool is_else    = false;
-	bool is_throws  = false;
+	bool is_package    = false;
+	bool is_import     = false;
+	bool is_enum       = false;
+	bool is_else       = false;
+	bool is_throws     = false;
 	
 	bool loop = true;
 	while ( loop && this->hasMoreTokens() )
@@ -789,13 +852,16 @@ SourceTokenizer::sneakyPeek()
 		case SourceToken::WHITESPACE:
 			spaces++;
 			break;
+
 		case SourceToken::KEYWORD:
 			keywords++;
 			     if ( token->getValue().contentEquals( "package" ) ) { is_package = true; }
 			else if ( token->getValue().contentEquals( "import"  ) ) { is_import  = true; }
+			else if ( token->getValue().contentEquals( "enum"    ) ) { is_enum    = true; }
 			else if ( token->getValue().contentEquals( "else"    ) ) { is_else    = true; }
 			else if ( token->getValue().contentEquals( "throws"  ) ) { is_throws  = true; }
 			break;
+
 		case SourceToken::TYPE:
 		case SourceToken::WORD:
 			words++;
@@ -826,24 +892,30 @@ SourceTokenizer::sneakyPeek()
 				}
 			}
 			break;
+
 		case SourceToken::STARTEXPRESSION:
 			exp++;
 			break;
+
 		case SourceToken::ASSIGNMENTOP:
 			ass++;
 			loop = false;
 			break;
+
 		case SourceToken::STARTBLOCK:
 			blocks++;
 			loop = false;
 			break;
+
 		case SourceToken::ENDBLOCK:
 			loop = false;
 			break;
+
 		case SourceToken::STOP:
 			stops++;
 			loop = false;
 			break;
+
 		default:
 			break;
 		}
@@ -866,6 +938,10 @@ SourceTokenizer::sneakyPeek()
 			{
 				//	method
 				ret = SourceToken::METHOD;
+			}
+			else if ( is_enum )
+			{
+				ret = SourceToken::ENUM;
 			}
 			else if ( exp || is_else )
 			{
