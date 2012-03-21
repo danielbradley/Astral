@@ -19,11 +19,12 @@ namespace astral {
 class Enum : openxds::Object
 {
 private:
-	CompilationUnit&               cu;
-	IPosition<SourceToken>*         p;
-	String*                 className;
-	String*                      name;
-	IDictionary<String>*       fields;
+	CompilationUnit&                 cu;
+	IPosition<SourceToken>*           p;
+	String*                   className;
+	String*                 declaration;
+	String*                        name;
+	IDictionary<String>*         fields;
 
 public:
 	         Enum( CompilationUnit& cu, IPosition<SourceToken>& p );
@@ -31,16 +32,18 @@ public:
 
 	virtual void addField( const String& key );
 	
-	virtual const String&           getClassName() const { return *this->className; }
-	virtual const String&                getName() const { return *this->name;      }
-	virtual       IDictionary<String>& getFields()       { return *this->fields;    }
-	virtual const IDictionary<String>& getFields() const { return *this->fields;    }
+	virtual const String&           getClassName() const { return *this->className;   }
+	virtual const String&         getDeclaration() const { return *this->declaration; }
+	virtual const String&                getName() const { return *this->name;        }
+	virtual       IDictionary<String>& getFields()       { return *this->fields;      }
+	virtual const IDictionary<String>& getFields() const { return *this->fields;      }
 
 private:
-	virtual String* determineClassName();
-	virtual void             parseEnum();
-	virtual void        parseEnumBlock( IPosition<SourceToken>& pBlock );
-	virtual void    parseEnumStatement( IPosition<SourceToken>& pStatement );
+	virtual String*   determineClassName();
+	virtual String* determineDeclaration();
+	virtual void               parseEnum();
+	virtual void          parseEnumBlock( IPosition<SourceToken>& pBlock );
+	virtual void      parseEnumStatement( IPosition<SourceToken>& pStatement );
 
 };
 
@@ -61,6 +64,7 @@ private:
 #include <openxds.adt/ITree.h>
 #include <openxds.adt.std/Dictionary.h>
 #include <openxds.base/String.h>
+#include <openxds.base/StringBuffer.h>
 
 using namespace astral;
 
@@ -70,10 +74,11 @@ using namespace openxds::base;
 
 Enum::Enum( CompilationUnit& cu, IPosition<SourceToken>& p ) : cu( cu )
 {
-	this->p         = p.copy();
-	this->className = determineClassName();
-	this->fields    = new Dictionary<String>();
-	this->name      = NULL;
+	this->p           = p.copy();
+	this->className   = determineClassName();
+	this->declaration = determineDeclaration();
+	this->fields      = new Dictionary<String>();
+	this->name        = NULL;
 
 	this->parseEnum();
 }
@@ -131,6 +136,42 @@ Enum::determineClassName()
 		delete p;
 	}
 	return cls;
+}
+
+String*
+Enum::determineDeclaration()
+{
+	StringBuffer sb;
+
+	IPIterator<SourceToken>* it = this->cu.getAST().getTree().children( *this->p );
+	bool loop = true;
+	while ( loop && it->hasNext() )
+	{
+		IPosition<SourceToken>* p = it->next();
+		{
+			SourceToken& token = p->getElement();
+			
+			switch ( token.getTokenType() )
+			{
+			case SourceToken::KEYWORD:
+			case SourceToken::NAME:
+			case SourceToken::SPACE:
+			case SourceToken::WORD:
+				sb.append( token.getValue() );
+				break;
+			
+			case SourceToken::BLOCK:
+				break;
+			
+			default:
+				break;
+			}
+		}
+		delete p;
+	}
+	delete it;
+	
+	return sb.asString();
 }
 
 void

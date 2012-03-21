@@ -29,9 +29,11 @@ public:
 	         EnumsList( CompilationUnit& cu );
 	virtual ~EnumsList();
 
-	virtual       ISequence<IPosition<SourceToken> >& getEnumPositions()       { return *this->enumPositions; }
-	virtual       IDictionary<Enum>&                          getEnums()       { return *this->dict; }
-	virtual const IDictionary<Enum>&                          getEnums() const { return *this->dict; }
+	virtual       ISequence<IPosition<SourceToken> >& getEnumPositions()                    { return *this->enumPositions; }
+	virtual       IDictionary<Enum>&                          getEnums()                    { return *this->dict; }
+	virtual const IDictionary<Enum>&                          getEnums()              const { return *this->dict; }
+	virtual const String&                                  getStringFor( long index ) const;
+	virtual long                                                  size()              const;
 
 	virtual void initialise();
 };
@@ -67,6 +69,32 @@ EnumsList::~EnumsList()
 {
 	delete this->enumPositions;
 	delete this->dict;
+}
+
+const String&
+EnumsList::getStringFor( long index ) const
+{
+	const String* str = &String::emptyString();
+
+	long len = this->dict->size();
+	const IIterator<Enum>* it = this->dict->values();
+	for ( long i=0; i < len; i++ )
+	{
+		const Enum& enumeration = it->next();
+		if ( index == i )
+		{
+			str = &enumeration.getDeclaration();
+		}
+	}
+	delete it;
+
+	return *str;
+}
+
+long
+EnumsList::size() const
+{
+	return this->dict->size();
 }
 
 void
