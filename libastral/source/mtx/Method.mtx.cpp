@@ -192,7 +192,7 @@ public:
 	virtual const IPosition<SourceToken>&  getPosition() const { return *this->p;         }
 	virtual const AST&                    getMethodAST() const { return *this->methodAST; }
 	virtual       bool                         isEmpty() const { return  this->empty;     }
-	virtual       bool                      isModified() const { return this->modified;   }
+	virtual       bool                      isModified() const { return  this->modified;  }
 ~
 
 
@@ -301,7 +301,7 @@ class MethodTuple
 {
 public:
 	MethodSignature* signature;
-	AST*             ast;
+	AST*                   ast;
 	
 	MethodTuple( MethodSignature* sig, AST* ast )
 	{
@@ -440,6 +440,7 @@ Method::reparseMethod( const String& content )
 		}
 	}
 	this->modified = true;
+
 	delete this->methodAST;
 	this->methodAST = pAST;
 }
@@ -501,7 +502,7 @@ Method::sync()
 {
 	bool status = false;
 	
-	if ( this->isModified() )
+	if ( this->isModified() && this->isValid() )
 	{
 		MethodSignature* method_signature = extractMethodSignature( *this->methodAST );
 		if ( method_signature )
