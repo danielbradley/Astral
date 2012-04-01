@@ -70,23 +70,32 @@ const String* SourceToken::LineComment     = new String( "LINECOMMENT" );
 const String* SourceToken::Escaped         = new String( "ESCAPED" );
 const String* SourceToken::Other           = new String( "OTHER" );
 
+static long countNewlines( const char* cstring );
+
 SourceToken::SourceToken( TokenType aType, openxds::base::String* aValue )
 {
 	this->type  = aType;
 	this->value = aValue->asString();
-	delete aValue;
 
 	this->nrOfCharacters = this->value->getLength();
 	switch ( aType )
 	{
+	case COMMENT:
+		this->nrOfLines = countNewlines( this->value->getChars() );
+		break;
+	
+	case LINECOMMENT:
 	case BLANKLINE:
 	case NEWLINE:
 		this->nrOfLines = 1;
 		break;
+
 	default:
 		this->nrOfLines = 0;
 	}
 	this->offset = 1;
+
+	delete aValue;
 }
 
 SourceToken::SourceToken( const SourceToken& aSourceToken )
@@ -260,4 +269,24 @@ long
 SourceToken::getOffset() const
 {
 	return this->offset;
+}
+
+static long countNewlines( const char* cstring )
+{
+	long count = 0;
+
+	while ( '\0' != *cstring )
+	{
+		switch ( *cstring )
+		{
+		case '\n':
+			count++;
+			break;
+		default:
+			break;
+		}
+		cstring++;
+	}
+	
+	return count;
 }
