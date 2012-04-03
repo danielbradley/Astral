@@ -618,7 +618,8 @@ Method::extractExtraMethods()
 			while ( ie->hasNext() )
 			{
 				IEntry<IPosition<SourceToken> >* e = ie->next();
-				MethodSignature* s = MethodSignature::createInContext( e->getKey(), cu.getName() );
+				const char* method_key = e->getKey();
+				MethodSignature* s = MethodSignature::createInContext( method_key, cu.getName() );
 				{
 					IPosition<SourceToken>* p = method_positions->remove( e );
 			
@@ -668,7 +669,14 @@ Method::getFirstLine() const
 long
 Method::getNrOfLines() const
 {
-	return this->p->getElement().getNrOfLines();
+	if ( this->p )
+	{
+		return this->p->getElement().getNrOfLines();
+	}
+	else
+	{
+		return 1;
+	}
 }
 ~
 

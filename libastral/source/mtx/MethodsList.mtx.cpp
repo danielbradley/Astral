@@ -193,28 +193,37 @@ New save method
 ISequence<MethodSignature>*
 MethodsList::synchroniseMethods( const MethodSignature& aMethodSignature )
 {
-	ISequence<MethodSignature>* extra_method_signatures = NULL;
+	ISequence<MethodSignature>* method_signatures = NULL;
 	{
 		Method& method = this->getMethod( aMethodSignature );
 
 		if ( method.isEmpty() )
 		{
-			if ( removeMethodFromAST( method ) ) extra_method_signatures = new Sequence<MethodSignature>();
+			if ( removeMethodFromAST( method ) ) method_signatures = new Sequence<MethodSignature>();
 		}
 		else if ( method.isModified() )
 		{
-			extra_method_signatures = extractAndSyncAnyExtraMethods( method );
-			if ( extra_method_signatures )
+			method_signatures = extractAndSyncAnyExtraMethods( method );
+			if ( method_signatures )
 			{
-				if ( !method.sync() )
+				const ClassSignature& cls = aMethodSignature.getClassSignature();
+
+				if ( method.sync() )
 				{
-					delete extra_method_signatures;
-					extra_method_signatures = NULL;
+					const char*      method_key = method.getSignature().getMethodKey().getChars();
+					MethodSignature* first      = new MethodSignature( cls, method_key );
+
+					method_signatures->addFirst( first );
+				}
+				else
+				{
+					delete method_signatures;
+					method_signatures = NULL;
 				}
 			}
 		}
 	}
-	return extra_method_signatures;
+	return method_signatures;
 }
 ~
 
@@ -257,7 +266,7 @@ MethodsList::removeMethodFromAST( Method& method )
 ISequence<MethodSignature>*
 MethodsList::extractAndSyncAnyExtraMethods( Method& method )
 {
-	ISequence<MethodSignature>* extra_method_signatures = new Sequence<MethodSignature>();
+	ISequence<MethodSignature>* method_signatures = new Sequence<MethodSignature>();
 	{
 		ISequence<Method>* extra_methods = method.extractExtraMethods();
 		if ( extra_methods )
@@ -270,19 +279,19 @@ MethodsList::extractAndSyncAnyExtraMethods( Method& method )
 				{
 					const char* method_key = method->getSignature().getMethodKey().getChars();
 					this->methods->insert( method_key, method );
-					extra_method_signatures->addLast( new MethodSignature( class_signature, method_key ) );
+					method_signatures->addLast( new MethodSignature( class_signature, method_key ) );
 				}
 				else
 				{
-					delete extra_method_signatures;
-					extra_method_signatures = NULL;
+					delete method_signatures;
+					method_signatures = NULL;
 					break;
 				}
 			}
 		}
 		delete extra_methods;
 	}
-	return extra_method_signatures;
+	return method_signatures;
 }
 ~
 
