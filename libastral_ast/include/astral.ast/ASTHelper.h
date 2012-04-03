@@ -27,11 +27,13 @@ public:
 	virtual IPosition<SourceToken>* insertPackageAST( const AST& packageAST );
 	virtual IPosition<SourceToken>*  insertImportAST( const AST&  importAST );
 	virtual IPosition<SourceToken>*   insertClassAST( const AST&   classAST );
+	virtual IPosition<SourceToken>*    insertEnumAST( const AST&    enumAST );
 	virtual IPosition<SourceToken>*  insertMemberAST( const AST&  memberAST );
 	virtual IPosition<SourceToken>*  insertMethodAST( const AST&  methodAST );
 
 	virtual void          reorder( IDictionary<IPosition<SourceToken> >& positions );
 	virtual void replaceImportAST( IPosition<SourceToken>& p, const AST& importAST );
+	virtual void   replaceEnumAST( IPosition<SourceToken>& p, const AST& methodAST );
 	virtual void replaceMethodAST( IPosition<SourceToken>& p, const AST& methodAST );
 	virtual void replaceMemberAST( IPosition<SourceToken>& p, const AST& memberAST );
 	virtual AST*    removeSubtree( IPosition<SourceToken>* p );

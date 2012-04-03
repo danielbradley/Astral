@@ -52,6 +52,16 @@ ASTHelper::insertClassAST( const AST& ast )
 }
 
 IPosition<SourceToken>*
+ASTHelper::insertEnumAST( const AST& anEnumAST )
+{
+	IPosition<SourceToken>* p = insertPosition( this->ast, SourceToken::ENUM );
+	{
+		this->replaceEnumAST( *p, anEnumAST );
+	}
+	return p;
+}
+
+IPosition<SourceToken>*
 ASTHelper::insertMemberAST( const AST& aMemberAST )
 {
 	IPosition<SourceToken>* p = insertPosition( this->ast, SourceToken::MEMBER );
@@ -110,6 +120,12 @@ void
 ASTHelper::replaceImportAST( IPosition<SourceToken>& p, const AST& importAST )
 {
 	this->replaceReparsedAST( p, importAST );
+}
+
+void
+ASTHelper::replaceEnumAST( IPosition<SourceToken>& p, const AST& enumAST )
+{
+	this->replaceReparsedAST( p, enumAST );
 }
 
 void
