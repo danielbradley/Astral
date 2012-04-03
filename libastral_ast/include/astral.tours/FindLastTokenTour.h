@@ -62,6 +62,11 @@ public:
 			this->parentType = SourceToken::FILE;
 			this->prevType   = SourceToken::IMPORT;
 			break;
+
+		case SourceToken::ENUM:
+			this->parentType = SourceToken::FILE;
+			this->prevType   = SourceToken::IMPORT;
+			break;
 		
 		case SourceToken::MEMBER:
 			this->parentType = SourceToken::BLOCK;
