@@ -1,16 +1,18 @@
-BODY          { font-family:menlo; font-size:12px; }
+BODY           { font-family:menlo; font-size:12px; }
 
-DIV           { margin-left: 20px; }
-DIV.inline    { display:inline-block; margin-left:0; }
-DIV.PACKAGE   { margin-left:0; }
-DIV.IMPORT    { margin-left:0; }
-DIV.BLOCK     { margin-left:0; } 
-DIV.CLASS     { margin-left:0; } 
-DIV.FILE      { margin-left:0; } 
+DIV            { margin-left: 20px; }
+DIV.inline     { display:inline-block; margin-left:0; }
+DIV.PACKAGE    { margin-left:0; }
+DIV.IMPORT     { margin-left:0; }
+DIV.BLOCK      { margin-left:0; } 
+DIV.CLASS      { margin-left:0; } 
+DIV.FILE       { margin-left:0; } 
+DIV.EXPRESSION { display:inline-block; margin-left:0; }
+DIV.CLAUSE     { display:inline-block; margin-left:0; }
 
-PRE.COMMENT   { color:darkgreen; margin:0; margin-left:20px; }
-PRE.JAVADOC   { color:darkgreen; margin:0; }
+PRE.COMMENT    { color:darkgreen; margin:0; margin-left:20px; }
+PRE.JAVADOC    { color:darkgreen; margin:0; }
 
-SPAN.TYPE     { color:purple; }
-SPAN.KEYWORD  { color:purple; }
-SPAN.MODIFIER { color:purple; }
+SPAN.TYPE      { color:purple; }
+SPAN.KEYWORD   { color:purple; }
+SPAN.MODIFIER  { color:purple; }
