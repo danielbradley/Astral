@@ -78,6 +78,7 @@ private:
 	openxds::base::String*                                   platformType;
 	openxds::adt::ISequence<openxds::base::String>* methodCallReturnTypes;
 	openxds::base::StringBuffer*                           compoundString;
+	bool                                                           primed;
 
 public:
 	 InvocationClass();
@@ -88,6 +89,7 @@ public:
 	virtual void                                clearTypes();
 	virtual void                             clearLastType();
 
+	virtual void                                   unprime() { this->primed = false; }
 	virtual void                            setUnknownName( const openxds::base::String& aName );
 	virtual void                               setLastType( const openxds::base::String& aType );
 	virtual void                               setLastType(       openxds::base::String* aType );
@@ -98,6 +100,7 @@ public:
 	virtual void                            pushReturnType();
 	virtual void                             popReturnType();
 
+	virtual bool                                 wasPrimed() const { return this->primed; }
 	virtual bool                          hasEnclosingType() const;
 	virtual bool                               hasLastType() const;
 	virtual bool                           hasPlatformType() const;
@@ -143,6 +146,7 @@ InvocationClass::InvocationClass()
 	this->platformType          = new String();
 	this->methodCallReturnTypes = new Sequence<String>();
 	this->compoundString        = new StringBuffer();
+	this->primed                = false;
 }
 ~
 
@@ -171,6 +175,8 @@ InvocationClass::reset()
 
 	delete this->compoundString;
 	       this->compoundString = new StringBuffer();
+		   
+	this->primed = false;
 }
 ~
 
@@ -207,6 +213,8 @@ InvocationClass::setUnknownName( const String& aName )
 		this->appendName( this->getLastType() );
 	}
 	this->appendName( aName );
+
+	this->primed = true;
 }
 ~
 
@@ -218,6 +226,8 @@ InvocationClass::setLastType( const String& aType )
 
 	delete this->lastType;
 	       this->lastType = new String( aType );
+
+	this->primed = true;
 }
 ~
 
@@ -231,6 +241,8 @@ InvocationClass::setLastType( String* aType )
 	       this->lastType = new String( *aType );
 
 	delete aType;
+
+	this->primed = true;
 }
 ~
 
@@ -242,6 +254,8 @@ InvocationClass::setPlatformType( const String& aType )
 
 	delete this->platformType;
 	       this->platformType = new String( aType );
+
+	this->primed = true;
 }
 ~
 
@@ -257,6 +271,8 @@ InvocationClass::appendName( const String& aName )
 	this->compoundString->append( aName );
 
 	this->clearLastType();
+	
+	this->primed = true;
 }
 ~
 
@@ -265,6 +281,8 @@ void
 InvocationClass::pushReturnType()
 {
 	this->methodCallReturnTypes->addLast( this->lastType->asString() );
+	
+	this->primed = false;
 }
 ~
 
@@ -280,6 +298,7 @@ InvocationClass::popReturnType()
 		fprintf( stderr, "!!! InvocationClass::popReturnType: NoSuchElementException thrown.\n" );
 		delete ex;
 	}
+	this->primed = true;
 }
 ~
 
