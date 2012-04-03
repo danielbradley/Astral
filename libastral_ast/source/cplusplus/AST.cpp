@@ -35,6 +35,9 @@ static void         parseParameters( ITree<SourceToken>& ast, IPosition<SourceTo
 static String*       parseParameter( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
 static void    handleStartArguments( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
 static void          parseArguments( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
+static void   handleStartExpression( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
+static void         parseExpression( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
+
 //static void           parseArgument( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
 static bool              parseBlock( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer, bool parseEnum );
 static void      parseEnumStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
@@ -271,8 +274,12 @@ parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceT
 			case SourceToken::METHOD:
 				handleStartParameters( ast, parent, tokenizer );
 				break;
+
 			default:
-				delete ast.addChild( parent, tokenizer.nextToken() );
+				handleStartExpression( ast, parent, tokenizer );
+				break;
+
+				//delete ast.addChild( parent, tokenizer.nextToken() );
 			}
 			break;
 
@@ -830,6 +837,63 @@ static void handleStartArguments( ITree<SourceToken>& ast, IPosition<SourceToken
 //				}
 //			}
 //		}
+
+static void handleStartExpression( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer )
+{
+	IPosition<SourceToken>* exp = ast.addChild( parent, new SourceToken( SourceToken::EXPRESSION, new String() ) );
+	{
+		delete ast.addChild( *exp, tokenizer.nextToken() );
+		parseTrailingWhitespace( ast, *exp, tokenizer );
+		parseExpression( ast, *exp, tokenizer );
+		parseTrailingWhitespace( ast, *exp, tokenizer );
+	}
+	countup( ast, *exp );
+	delete exp;
+}
+
+	static void parseExpression( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer )
+	{
+		StringBuffer sb;
+	
+		bool loop = true;
+		while ( loop && tokenizer.hasMoreTokens() )
+		{
+			const SourceToken&      token = tokenizer.peekNextToken();
+			SourceToken::TokenType  ttype = token.getTokenType();
+			IPosition<SourceToken>* stmt  = NULL;
+			
+			switch ( ttype )
+			{
+			case SourceToken::ENDEXPRESSION:
+				delete ast.addChild( parent, tokenizer.nextToken() );
+				loop = false;
+				break;
+
+			case SourceToken::ENDBLOCK:
+				loop = false;
+				break;
+
+			case SourceToken::BLANKLINE:
+			case SourceToken::TAB:
+			case SourceToken::SPACE:
+			case SourceToken::NEWLINE:
+				delete ast.addChild( parent, tokenizer.nextToken() );
+				break;
+
+			case SourceToken::SYMBOL:
+				delete ast.addChild( parent, tokenizer.nextToken() );
+
+			default:
+				stmt = ast.addChild( parent, new SourceToken( SourceToken::CLAUSE, new String() ) );
+				parseStatement( ast, *stmt, tokenizer, true );
+				countup( ast, *stmt );
+				delete stmt;
+			}
+		}
+		
+		sb.removeLast();
+		parent.getElement().setValue( sb.asString() );
+	}
 
 static void handleStop( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer )
 {
