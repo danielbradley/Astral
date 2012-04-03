@@ -9,11 +9,13 @@
 #include <astral.tokenizer.h>
 #include <openxds.adt.h>
 #include <openxds.base.h>
+#include <openxds.exceptions/NoSuchElementException.h>
 
 using astral::tokenizer::SourceToken;
 using openxds::adt::IDictionary;
 using openxds::adt::IPosition;
 using openxds::adt::ISequence;
+using openxds::exceptions::NoSuchElementException;
 
 namespace astral {
 
@@ -29,6 +31,9 @@ public:
 	         EnumsList( CompilationUnit& cu );
 	virtual ~EnumsList();
 
+	virtual void                                              addBlank();
+	virtual void                                                remove( long index );
+	virtual       Enum&                                            get( long index ) throw (NoSuchElementException*);
 	virtual       ISequence<IPosition<SourceToken> >& getEnumPositions()                    { return *this->enumPositions; }
 	virtual       IDictionary<Enum>&                          getEnums()                    { return *this->dict; }
 	virtual const IDictionary<Enum>&                          getEnums()              const { return *this->dict; }
@@ -71,6 +76,50 @@ EnumsList::~EnumsList()
 	delete this->dict;
 }
 
+void
+EnumsList::addBlank()
+{
+	this->dict->insert( "", new Enum( this->cu ) );
+}
+
+void
+EnumsList::remove( long index )
+{
+	IEIterator<Enum>* ie = this->dict->entries();
+	{
+		for ( long i=0; i < index; i++ ) delete ie->next();
+
+		IEntry<Enum>* e = ie->next();
+		Enum* _enum = this->dict->remove( e );
+		{
+			_enum->removeEnum();
+		}
+		delete _enum;
+	}
+	delete ie;
+}
+
+Enum&
+EnumsList::get( long index ) throw (NoSuchElementException*)
+{
+	Enum* ret = NULL;
+
+	long len = this->dict->size();
+	IIterator<Enum>* it = this->dict->values();
+	for ( long i=0; i < len; i++ )
+	{
+		Enum& enumeration = it->next();
+		if ( index == i )
+		{
+			ret = &enumeration;
+			i = len;
+		}
+	}
+	delete it;
+
+	return *ret;
+}
+
 const String&
 EnumsList::getStringFor( long index ) const
 {
@@ -107,5 +156,7 @@ EnumsList::initialise()
 		this->dict->insert( anEnum->getName().getChars(), anEnum );
 	}
 	delete it;
+	
+	this->addBlank();
 }
 ~

@@ -4,11 +4,13 @@
 #define ASTRAL_ENUM_H
 
 #include <astral.h>
+#include <astral.ast.h>
 #include <astral.tokenizer.h>
 #include <openxds/Object.h>
 #include <openxds.adt.h>
 #include <openxds.base.h>
 
+using astral::ast::AST;
 using astral::tokenizer::SourceToken;
 using openxds::adt::IDictionary;
 using openxds::adt::IPosition;
@@ -21,19 +23,29 @@ class Enum : openxds::Object
 private:
 	CompilationUnit&                 cu;
 	IPosition<SourceToken>*           p;
+	AST*                        enumAST;
+	String*                     content;
 	String*                   className;
 	String*                 declaration;
 	String*                        name;
 	IDictionary<String>*         fields;
 
 public:
+	         Enum( CompilationUnit& cu );
 	         Enum( CompilationUnit& cu, IPosition<SourceToken>& p );
 	virtual ~Enum();
 
+	virtual String*             determineContent();
+	virtual void reparseEnum( const String& content );
+	virtual void  removeEnum();
+	virtual void setContent( const String& content );
+
 	virtual void addField( const String& key );
+
 	
+	virtual const String&             getContent() const { return *this->content;     }
 	virtual const String&           getClassName() const { return *this->className;   }
-	virtual const String&         getDeclaration() const { return *this->declaration; }
+	virtual const String&         getDeclaration() const { return *this->content;     } // Kludge.
 	virtual const String&                getName() const { return *this->name;        }
 	virtual       IDictionary<String>& getFields()       { return *this->fields;      }
 	virtual const IDictionary<String>& getFields() const { return *this->fields;      }
@@ -45,6 +57,7 @@ private:
 	virtual void          parseEnumBlock( IPosition<SourceToken>& pBlock );
 	virtual void      parseEnumStatement( IPosition<SourceToken>& pStatement );
 
+	virtual void              initialise();
 };
 
 };
@@ -56,6 +69,8 @@ private:
 #include "astral/CompilationUnit.h"
 #include "astral/Enum.h"
 
+#include <astral.ast/ASTHelper.h>
+#include <astral.tours/PrintSourceTour.h>
 #include <astral.tokenizer/SourceToken.h>
 
 #include <openxds.adt/IDictionary.h>
@@ -65,36 +80,137 @@ private:
 #include <openxds.adt.std/Dictionary.h>
 #include <openxds.base/String.h>
 #include <openxds.base/StringBuffer.h>
+#include <openxds.io/IOBuffer.h>
+#include <openxds.io/OutputStream.h>
+#include <openxds.io/PrintWriter.h>
 
 using namespace astral;
+using namespace astral::ast;
+using namespace astral::tours;
 
 using namespace openxds::adt;
 using namespace openxds::adt::std;
 using namespace openxds::base;
+using namespace openxds::io;
+
+Enum::Enum( CompilationUnit& cu ) : cu( cu )
+{
+	this->p           = NULL;
+	this->enumAST     = new AST();
+
+	this->content     = new String();
+
+	this->className   = new String();
+	this->declaration = new String();
+	this->fields      = new Dictionary<String>();
+	this->name        = new String();
+}
 
 Enum::Enum( CompilationUnit& cu, IPosition<SourceToken>& p ) : cu( cu )
 {
 	this->p           = p.copy();
-	this->className   = determineClassName();
-	this->declaration = determineDeclaration();
-	this->fields      = new Dictionary<String>();
-	this->name        = NULL;
+	this->enumAST     = cu.getAST().copySubtree( p );
 
-	this->parseEnum();
+	this->content     = new String();
+
+	this->className   = new String();
+	this->declaration = new String();
+	this->fields      = new Dictionary<String>();
+	this->name        = new String();
+	
+	this->initialise();
 }
 
 Enum::~Enum()
 {
 	delete this->p;
+	delete this->enumAST;
+	delete this->content;
 	delete this->className;
-	delete this->name;
+	delete this->declaration;
 	delete this->fields;
+	delete this->name;
 }
 
 void
-Enum::addField( const String& key )
+Enum::initialise()
 {
-	this->fields->insert( key.getChars(), new String( key ) );
+	delete this->content;
+	       this->content     = determineContent(); 
+	delete this->className;
+	       this->className   = determineClassName();
+	delete this->declaration;
+	       this->declaration = determineDeclaration();
+
+	this->parseEnum();
+}
+
+String*
+Enum::determineContent()
+{
+	IOBuffer        buffer;
+	OutputStream    os( buffer );
+	PrintWriter     writer( os );
+	PrintSourceTour pst( this->enumAST->getTree(), writer );
+
+	pst.doGeneralTour();
+
+	return buffer.toString();
+}
+
+void
+Enum::reparseEnum( const String& content )
+{
+	this->setContent( content );
+
+	delete this->enumAST;
+	       this->enumAST = new AST();
+		   this->enumAST->parseString( *this->content );
+
+	if ( this->enumAST->isValid() )
+	{
+		CompilationUnit& cu  = this->cu;
+		AST&             ast = cu.getAST();
+
+		ASTHelper helper( ast );
+
+		if ( this->p )
+		{
+			helper.replaceEnumAST( *this->p, *this->enumAST );
+		}
+		else
+		{
+			this->p = helper.insertEnumAST( *this->enumAST );
+		}
+		
+		this->cu.save();
+		
+		this->initialise();
+	}
+}
+
+void
+Enum::removeEnum()
+{
+	if ( this->p )
+	{
+		CompilationUnit& cu  = this->cu;
+		AST&             ast = cu.getAST();
+
+		ASTHelper helper( ast );
+		delete helper.removeSubtree( this->p ); this->p = NULL;
+	}
+}
+
+void
+Enum::setContent( const String& content )
+{
+	StringBuffer sb;
+	sb.append( content );
+	sb.append( '\n' );
+	
+	delete this->content;
+	this->content = sb.asString();
 }
 
 String*
@@ -188,7 +304,11 @@ Enum::parseEnum()
 			switch ( token.getTokenType() )
 			{
 			case SourceToken::NAME:
-				if ( !this->name ) this->name = new String( token.getValue() );
+				if ( 0 == this->name->getLength() )
+				{
+					delete this->name;
+					       this->name = new String( token.getValue() );
+				}
 				break;
 				
 			case SourceToken::BLOCK:
@@ -252,6 +372,12 @@ Enum::parseEnumStatement( IPosition<SourceToken>& pStatement )
 		delete p;
 	}
 	delete it;
+}
+
+void
+Enum::addField( const String& key )
+{
+	this->fields->insert( key.getChars(), new String( key ) );
 }
 ~
 
