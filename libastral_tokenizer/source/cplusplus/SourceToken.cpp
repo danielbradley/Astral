@@ -28,6 +28,7 @@ const String* SourceToken::MemberName      = new String( "MEMBERNAME" );
 const String* SourceToken::Expression      = new String( "EXPRESSION" );
 const String* SourceToken::StartExpression = new String( "STARTEXPRESSION" );
 const String* SourceToken::EndExpression   = new String( "ENDEXPRESSION" );
+const String* SourceToken::Clause          = new String( "CLAUSE" );
 const String* SourceToken::Parameters      = new String( "PARAMETERS" );
 const String* SourceToken::Parameter       = new String( "PARAMETER" );
 const String* SourceToken::Arguments       = new String( "ARGUMENTS" );
@@ -208,6 +209,7 @@ SourceToken::getTokenTypeString() const
 	case EXPRESSION:      return *SourceToken::Expression;
 	case STARTEXPRESSION: return *SourceToken::StartExpression;
 	case ENDEXPRESSION:   return *SourceToken::EndExpression;
+	case CLAUSE:          return *SourceToken::Clause;
 	case PARAMETERS:      return *SourceToken::Parameters;
 	case PARAMETER:       return *SourceToken::Parameter;
 	case ARGUMENTS:       return *SourceToken::Arguments;

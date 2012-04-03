@@ -34,6 +34,7 @@ public:
 		_EXPRESSION,
 		_STARTEXPRESSION,
 		_ENDEXPRESSION,
+		_CLAUSE,
 		_PARAMETERS,
 		_PARAMETER,
 		_ARGUMENTS,
@@ -123,6 +124,7 @@ public:
 	static const TokenType EXPRESSION      = _EXPRESSION;
 	static const TokenType STARTEXPRESSION = _STARTEXPRESSION;
 	static const TokenType ENDEXPRESSION   = _ENDEXPRESSION;
+	static const TokenType CLAUSE          = _CLAUSE;
 	static const TokenType PARAMETERS      = _PARAMETERS;
 	static const TokenType PARAMETER       = _PARAMETER;
 	static const TokenType ARGUMENTS       = _ARGUMENTS;
@@ -187,6 +189,7 @@ private:
 	static const openxds::base::String* Expression;
 	static const openxds::base::String* StartExpression;
 	static const openxds::base::String* EndExpression;
+	static const openxds::base::String* Clause;
 	static const openxds::base::String* Parameters;
 	static const openxds::base::String* Parameter;
 	static const openxds::base::String* Arguments;
