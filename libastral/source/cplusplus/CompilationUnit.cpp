@@ -605,14 +605,44 @@ CompilationUnit::recurseMethodArgument( const CodeBase& codebase, const ITree<So
 						is_array = true;
 					}
 					break;
+
 				case SourceToken::FLOAT:
+					if ( ! is_array )
+					{
+						delete argument_type;
+						argument_type = new String( "float" );
+					}
+					break;
+
 				case SourceToken::INTEGER:
 					if ( ! is_array )
 					{
 						delete argument_type;
-						argument_type = new String( p->getElement().getTokenTypeString() );
+						argument_type = new String( "int" );
 					}
 					break;
+					
+				case SourceToken::DOUBLEQUOTE:
+					delete argument_type;
+					argument_type = new String( "String" );
+					break;
+					
+				case SourceToken::QUOTE:
+					delete argument_type;
+					argument_type = new String( "char" );
+					break;
+
+//
+//	Removed because argument resolution is now based on actual types i.e. int etc.
+//				
+//				case SourceToken::INTEGER:
+//					if ( ! is_array )
+//					{
+//						delete argument_type;
+//						argument_type = new String( p->getElement().getTokenTypeString() );
+//					}
+//					break;
+
 				case SourceToken::METHODCALL:
 					delete argument_type;
 					argument_type = this->resolveMethodCallReturnType( codebase, tree, *p, scopes, *invocation_class );

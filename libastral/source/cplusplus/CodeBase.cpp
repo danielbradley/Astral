@@ -73,7 +73,7 @@ CodeBase::refreshImports()
 ISequence<MethodSignature>*
 CodeBase::saveMethod( const MethodSignature& aMethodSignature )
 {
-	ISequence<MethodSignature>* extra_methods = NULL;
+	ISequence<MethodSignature>* method_signatures = NULL;
 
 	try
 	{
@@ -81,7 +81,7 @@ CodeBase::saveMethod( const MethodSignature& aMethodSignature )
 		MethodsList&     ml = cu.getMethodsList();
 
 		//if ( (can_save = ml.saveMethod( aMethodSignature )) )
-		if ( (extra_methods = ml.synchroniseMethods( aMethodSignature )) )
+		if ( (method_signatures = ml.synchroniseMethods( aMethodSignature )) )
 		{
 			cu.save();
 			this->reregister( cu );
@@ -93,7 +93,7 @@ CodeBase::saveMethod( const MethodSignature& aMethodSignature )
 		delete ex;
 	}
 	
-	return extra_methods;
+	return method_signatures;
 }
 
 void
