@@ -204,8 +204,9 @@ VariableScopes::addVariableDeclaration( const IPosition<SourceToken>& p )
 	String* type = new String();
 	String* name = new String();
 	{
+		bool loop = true;
 		const IPIterator<SourceToken>* it = this->ast.children( p );
-		while ( it->hasNext() )
+		while ( loop && it->hasNext() )
 		{
 			const IPosition<SourceToken>* pos = it->next();
 			{
@@ -218,6 +219,7 @@ VariableScopes::addVariableDeclaration( const IPosition<SourceToken>& p )
 				case SourceToken::VARIABLE:
 					delete name;
 					name = new String( pos->getElement().getValue() );
+					loop = false;
 					break;
 				default:
 					break;
