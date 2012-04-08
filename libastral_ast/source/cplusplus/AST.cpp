@@ -137,6 +137,11 @@ parseAll( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokeniz
 		//case SourceToken::COMMENT:
 			delete ast.addChild( parent, tokenizer.nextToken() );
 			break;
+			
+		case SourceToken::ENDBLOCK:
+			delete ast.addChild( parent, tokenizer.nextToken() );
+			break;
+		
 		default:
 			SourceToken* token = new SourceToken( SourceToken::STATEMENT, new String() );
 			IPosition<SourceToken>* p = ast.addChild( parent, token );
@@ -181,15 +186,6 @@ static bool isMethodCall( SourceTokenizer& tokenizer )
 	return ret;
 }
 
-enum Looksie
-{
-	UNKNOWN,
-	BLOCK,
-	BLOCKSTATEMENT,
-	LVAL,
-	RVAL
-};
-
 static bool
 parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer, bool parseArg )
 {
@@ -198,24 +194,21 @@ parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceT
 	SourceToken::TokenType looksie = tokenizer.sneakyPeek();
 	if ( parseArg )
 	{
-		looksie = SourceToken::OTHER;
+		looksie = parent.getElement().getTokenType();
 	}
 	else
 	{
 		parent.getElement().setType( looksie );
 	}
-	
 
-	bool parsed_type   = false;
-	bool parsed_new    = false;
-	//bool parsed_params = false;
-	int  words         = 0;
+	bool parsed_new  = false;
 
 	SourceToken* st_type = NULL;
 	
 	bool loop = true;
 	while ( loop && tokenizer.hasMoreTokens() )
 	{
+		const char* _value = tokenizer.peekNextToken().getValue().getChars(); _value = _value;
 		SourceToken::TokenType type = tokenizer.peekNextToken().getTokenType();
 
 		switch ( type )
@@ -227,14 +220,6 @@ parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceT
 
 		case SourceToken::ENDBLOCK:
 			loop = false;
-//			if ( parseArg )
-//			{
-//				loop = false;
-//			}
-//			else
-//			{
-//				delete ast.addChild( parent, tokenizer.nextToken() );
-//			}
 			break;
 
 		case SourceToken::SYMBOL:
@@ -265,7 +250,6 @@ parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceT
 				parsed_new = true;
 			}
 			delete ast.addChild( parent, tokenizer.nextToken() );
-			//handleKeyword( ast, parent, tokenizer );
 			break;
 
 		case SourceToken::STARTEXPRESSION:
@@ -277,9 +261,6 @@ parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceT
 
 			default:
 				handleStartExpression( ast, parent, tokenizer );
-				break;
-
-				//delete ast.addChild( parent, tokenizer.nextToken() );
 			}
 			break;
 
@@ -295,20 +276,24 @@ parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceT
 			break;
 
 		case SourceToken::TYPE:
+			switch ( looksie )
+			{
+			case SourceToken::METHOD:
+				st_type = parseType( tokenizer );
+				parent.getElement().setValue( new String( st_type->getValue() ) );
+				delete ast.addChild( parent, st_type );
+				break;
+			
+			default:
+				st_type = parseType( tokenizer );
+				delete ast.addChild( parent, st_type );
+			}
+			break;
+
 		case SourceToken::WORD:
-			if ( !parsed_type )
 			{
 				switch ( looksie )
 				{
-				case SourceToken::METHOD:
-				case SourceToken::DECLARATION:
-					{
-						st_type = parseType( tokenizer );
-						st_type->setType( SourceToken::METHODNAME );
-						parent.getElement().setValue( new String( st_type->getValue() ) );
-						delete ast.addChild( parent, st_type );
-					}
-					break;
 				case SourceToken::PACKAGE:
 				case SourceToken::IMPORT:
 					{
@@ -317,6 +302,7 @@ parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceT
 						delete ast.addChild( parent, parsed );
 					}
 					break;
+
 				case SourceToken::CLASS:
 					{
 						SourceToken* parsed = parseType( tokenizer );
@@ -324,11 +310,200 @@ parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceT
 						delete ast.addChild( parent, parsed );
 					}
 					break;
+
+				case SourceToken::METHOD:
+					{
+						SourceToken* token = tokenizer.nextToken();
+						token->setType( SourceToken::NAME );
+						if ( st_type )
+						{
+							token->setType( SourceToken::METHODNAME );
+							parent.getElement().setValue( new String( token->getValue() ) );
+						}
+						delete ast.addChild( parent, token );
+					}
+					break;
+
 				default:
 					if ( isMethodCall( tokenizer ) )
 					{
 						handleMethodCall( ast, parent, tokenizer, parsed_new );
 						parsed_new = false;
+					}
+					else if ( st_type )
+					{
+						SourceToken* token = tokenizer.nextToken();
+						token->setType( SourceToken::VARIABLE );
+						delete ast.addChild( parent, token );
+						
+						st_type = NULL;
+					}
+					else
+					{
+						SourceToken* token = tokenizer.nextToken();
+						token->setType( SourceToken::NAME );
+						delete ast.addChild( parent, token );
+					}
+				}
+			}
+			break;
+
+		default:
+			delete ast.addChild( parent, tokenizer.nextToken() );
+			break;
+		}
+	}
+
+	status &= (false == loop);
+
+	return status;
+}
+
+static bool
+parseStatementX( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer, bool parseArg )
+{
+	bool status = true;
+
+	SourceToken::TokenType looksie = tokenizer.sneakyPeek();
+	if ( parseArg )
+	{
+		looksie = parent.getElement().getTokenType();// SourceToken::OTHER;
+	}
+	else
+	{
+		parent.getElement().setType( looksie );
+	}
+
+	bool could_be_type = true;
+
+	bool parsed_type   = false;
+	bool parsed_new    = false;
+	//bool parsed_params = false;
+	int  words         = 0;
+
+	SourceToken* st_type = NULL;
+	
+	bool loop = true;
+	while ( loop && tokenizer.hasMoreTokens() )
+	{
+		const char* _value = tokenizer.peekNextToken().getValue().getChars();
+		SourceToken::TokenType type = tokenizer.peekNextToken().getTokenType();
+
+		switch ( type )
+		{
+		case SourceToken::STOP:
+			handleStop( ast, parent, tokenizer );
+			loop = false;
+			break;
+
+		case SourceToken::ENDBLOCK:
+			loop = false;
+			break;
+
+		case SourceToken::SYMBOL:
+			if ( parseArg && tokenizer.peekNextToken().getValue().contentEquals( "," ) )
+			{
+				handleStop( ast, parent, tokenizer );
+				loop = false;
+			}
+			else
+			{
+				delete ast.addChild( parent, tokenizer.nextToken() );
+			}
+			break;
+
+		case SourceToken::LINECOMMENT:
+			delete ast.addChild( parent, tokenizer.nextToken() );
+			loop = false;
+			break;
+
+		case SourceToken::STARTBLOCK:
+			status = handleStartBlock( ast, parent, tokenizer, (SourceToken::ENUM == looksie) );
+			loop = false;
+			break;
+
+		case SourceToken::KEYWORD:
+			if ( tokenizer.peekNextToken().getValue().contentEquals( "new" ) )
+			{
+				parsed_new = true;
+			}
+			delete ast.addChild( parent, tokenizer.nextToken() );
+			break;
+
+		case SourceToken::STARTEXPRESSION:
+			switch ( looksie )
+			{
+			case SourceToken::METHOD:
+				handleStartParameters( ast, parent, tokenizer );
+				break;
+
+			default:
+				handleStartExpression( ast, parent, tokenizer );
+			}
+			break;
+
+		case SourceToken::ENDEXPRESSION:
+			if ( parseArg )
+			{
+				loop = false;
+			}
+			else
+			{
+				delete ast.addChild( parent, tokenizer.nextToken() );
+			}
+			break;
+
+		case SourceToken::SELECTOR:
+			words = 0;
+			delete ast.addChild( parent, tokenizer.nextToken() );
+			break;
+
+		case SourceToken::TYPE:
+		case SourceToken::WORD:
+		
+			if ( !parsed_type )
+			{
+				switch ( looksie )
+				{
+				case SourceToken::METHOD:
+					{
+						st_type = parseType( tokenizer );
+						st_type->setType( SourceToken::METHODNAME );
+						parent.getElement().setValue( new String( st_type->getValue() ) );
+						delete ast.addChild( parent, st_type );
+					}
+					break;
+
+				case SourceToken::PACKAGE:
+				case SourceToken::IMPORT:
+					{
+						SourceToken* parsed = parseType( tokenizer );
+						parsed->setType( SourceToken::NAME );
+						delete ast.addChild( parent, parsed );
+					}
+					break;
+
+				case SourceToken::CLASS:
+					{
+						SourceToken* parsed = parseType( tokenizer );
+						parsed->setType( SourceToken::CLASSNAME );
+						delete ast.addChild( parent, parsed );
+					}
+					break;
+
+				case SourceToken::DECLARATION:
+					{
+						st_type = parseType( tokenizer );
+						delete ast.addChild( parent, st_type );
+					}
+					break;
+
+				default:
+					if ( isMethodCall( tokenizer ) )
+					{
+						handleMethodCall( ast, parent, tokenizer, parsed_new );
+						parsed_new = false;
+						words--;
 					} else {
 						SourceToken* token = tokenizer.nextToken();
 						token->setType( SourceToken::NAME );
@@ -341,6 +516,7 @@ parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceT
 			{
 				switch ( looksie )
 				{
+				case SourceToken::CLAUSE:
 				case SourceToken::DECLARATION:
 					{
 						if ( (1 != words) && isMethodCall( tokenizer ) )
@@ -382,6 +558,7 @@ parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceT
 					{
 						handleMethodCall( ast, parent, tokenizer, parsed_new );
 						parsed_new = false;
+						words--;
 					} else {
 						SourceToken* token = tokenizer.nextToken();
 						token->setType( SourceToken::NAME );
@@ -1027,9 +1204,16 @@ void countup( ITree<SourceToken>& ast, IPosition<SourceToken>& parent )
 		IPosition<SourceToken>* p = it->next();
 		{
 			SourceToken& token = p->getElement();
-			token.setOffset( lines );
-			characters += token.getNrOfCharacters();
-			lines      += token.getNrOfLines();
+			if ( &token )
+			{
+				token.setOffset( lines );
+				characters += token.getNrOfCharacters();
+				lines      += token.getNrOfLines();
+			}
+			else
+			{
+				;
+			}
 		}
 		delete p;
 	}
