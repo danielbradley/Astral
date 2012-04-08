@@ -243,59 +243,172 @@ SourceTokenizer::parseWordToken( String* word )
 	SourceToken::TokenType ttype = SourceToken::TOKEN;
 	StringBuffer sb;
 	sb.append( *word );
-	delete word;
+
+	if ( isKeyword( *word ) )
 	{
-		bool loop = true;
-		while ( loop == this->tt->hasMoreTokens() )
-		{
-			const ITextToken& token = this->tt->peekNextToken();
+		ttype = SourceToken::KEYWORD;
+	}
+	else if ( isModifier( *word ) )
+	{
+		ttype = SourceToken::MODIFIER;
+	}
+	else if ( isPrimitiveType( *word ) )
+	{
+		ttype = SourceToken::TYPE;
+		if ( isType() ) parseType( sb );
+	}
+	else if ( isType() )
+	{
+		ttype = SourceToken::TYPE;
+		parseType( sb );
+	}
+	else
+	{
+		ttype = SourceToken::WORD;
+		parseWord( sb );
+	}
+	delete word;
+
+	return new SourceToken( ttype, sb.asString() );
+}
+
+void
+SourceTokenizer::parseType( StringBuffer& sb )
+{
+	int generic_state = 0;
+	int array_state = 0;
+
+	bool loop = true;
+	while ( loop == this->tt->hasMoreTokens() )
+	{
+		const ITextToken& token = this->tt->peekNextToken();
 			
-			switch ( token.getTokenType() )
+		switch ( token.getTokenType() )
+		{
+		case ITextToken::WORD:
+			sb.append( token.getValue() );
+			delete this->tt->nextToken();
+			break;
+
+		case ITextToken::NUMBER:
+			sb.append( token.getValue() );
+			delete this->tt->nextToken();
+			break;
+
+		case ITextToken::SYMBOL:
+			switch ( token.getValue().charAt( 0 ) )
 			{
-			case ITextToken::SYMBOL:
-				switch ( token.getValue().charAt( 0 ) )
-				{
-				case '_':
-				case '[':
-				case ']':
-					sb.append( token.getValue() );
-					delete this->tt->nextToken();
-					break;
-				default:
-					loop = false;
-				}
-				break;
-			case ITextToken::WORD:
-			case ITextToken::NUMBER:
+			case '_':
+			case '.':
 				sb.append( token.getValue() );
 				delete this->tt->nextToken();
 				break;
+
+
+			case '<':
+				if ( 0 == generic_state )
+				{
+					sb.append( token.getValue() );
+					delete this->tt->nextToken();
+					generic_state = 1;
+				} else loop = false;
+				break;
+
+			case ',':
+				if ( 1 == generic_state )
+				{
+					sb.append( token.getValue() );
+					delete this->tt->nextToken();
+				}
+				else loop = false;
+				break;
+
+			case '>':
+				sb.append( token.getValue() );
+				delete this->tt->nextToken();
+				generic_state = 2;
+				break;
+
+			case '[':
+				if ( 0 == array_state )
+				{
+					sb.append( token.getValue() );
+					delete this->tt->nextToken();
+					array_state = 1;
+				} else loop = false;
+				break;
+
+			case ']':
+				sb.append( token.getValue() );
+				delete this->tt->nextToken();
+				array_state = 0;
+				break;
+
 			default:
 				loop = false;
 			}
-		}
+			break;
 
-		word = sb.asString();
-
-		if ( isKeyword( *word ) )
-		{
-			ttype = SourceToken::KEYWORD;
-		}
-		else if ( isModifier( *word ) )
-		{
-			ttype = SourceToken::MODIFIER;
-		}
-		else if ( isType( *word ) )
-		{
-			ttype = SourceToken::TYPE;
-		}
-		else
-		{
-			ttype = SourceToken::WORD;
+		default:
+			loop = false;
 		}
 	}
-	delete word;
-	return new SourceToken( ttype, sb.asString() );
+}
+
+void
+SourceTokenizer::parseWord( StringBuffer& sb )
+{
+//	int array_state = 0;
+
+	bool loop = true;
+	while ( loop == this->tt->hasMoreTokens() )
+	{
+		const ITextToken& token = this->tt->peekNextToken();
+			
+		switch ( token.getTokenType() )
+		{
+		case ITextToken::SYMBOL:
+			switch ( token.getValue().charAt( 0 ) )
+			{
+			case '_':
+				sb.append( token.getValue() );
+				delete this->tt->nextToken();
+				break;
+
+//			case '[':
+//				if ( 0 == array_state )
+//				{
+//					sb.append( token.getValue() );
+//					delete this->tt->nextToken();
+//					array_state = 1;
+//				}
+//				break;
+//
+//			case ']':
+//				sb.append( token.getValue() );
+//				delete this->tt->nextToken();
+//				loop = false;
+//				break;
+
+			default:
+				loop = false;
+			}
+			break;
+
+		case ITextToken::NUMBER:
+			sb.append( token.getValue() );
+			delete this->tt->nextToken();
+			break;
+
+		case ITextToken::WORD:
+			sb.append( token.getValue() );
+			delete this->tt->nextToken();
+			break;
+
+		default:
+			loop = false;
+		}
+	}
 }
 
 SourceToken*
@@ -902,6 +1015,11 @@ SourceTokenizer::sneakyPeek()
 			loop = false;
 			break;
 
+		//	Just added this and it broke things.
+		case SourceToken::INFIXOP:
+			loop = false;
+			break;
+
 		case SourceToken::STARTBLOCK:
 			blocks++;
 			loop = false;
@@ -1016,4 +1134,78 @@ SourceTokenizer::sneakyPeek()
 	}
 
 	return ret;
+}
+
+bool
+SourceTokenizer::isType()
+{
+	bool is_type = false;
+
+	int generic_state = 0;
+
+	Sequence<ITextToken> tokens;
+
+	bool loop = true;
+	while ( loop && this->tt->hasMoreTokens() )
+	{
+		tokens.addLast( this->tt->nextToken() );
+		ITextToken& token = tokens.getLast();
+
+		switch ( token.getTokenType() )
+		{
+		case ITextToken::WORD:
+			break;
+
+		case ITextToken::SYMBOL:
+			switch ( token.getValue().charAt(0) )
+			{
+			case '_':
+			case '?':
+			case '[':
+			case ']':
+			case '.':
+				break;
+
+			case '<':
+				generic_state = 1;
+				break;
+
+			case '>':
+				generic_state = 2;
+				break;
+
+			case ',':
+				if ( 1 != generic_state ) loop = false;
+				break;
+
+			default:
+				loop = false;
+			}
+			break;
+			
+		case ITextToken::SPACE:
+		case ITextToken::NEWLINE:
+		case ITextToken::TAB:
+		case ITextToken::WHITESPACE:
+			if ( this->tt->hasMoreTokens() )
+			{
+				if ( ITextToken::WORD == this->tt->peekNextToken().getTokenType() )
+				{
+					is_type = true;
+				}
+			}
+			break;
+
+		default:
+			loop = false; //LAST CHANGE
+			break;
+		}
+	}
+	
+	while ( ! tokens.isEmpty() )
+	{
+		this->tt->pushback( tokens.removeLast() );
+	}
+	
+	return is_type;
 }

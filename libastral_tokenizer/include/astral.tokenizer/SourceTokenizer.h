@@ -43,11 +43,17 @@ protected:
 	virtual		  SourceToken*       parseQuote( openxds::base::String* word );
 	virtual		  SourceToken* parseDoubleQuote( openxds::base::String* word );
 	virtual		  SourceToken*  parseAnnotation( openxds::base::String* word );
+	
+	
+	virtual void                      parseType( openxds::base::StringBuffer& sb );
+	virtual void                      parseWord( openxds::base::StringBuffer& sb );
 
 	
-	virtual       bool  isKeyword( const openxds::base::String& word ) const { return false; };
-	virtual       bool isModifier( const openxds::base::String& word ) const { return false; };
-	virtual       bool     isType( const openxds::base::String& word ) const { return false; };
+	virtual       bool       isKeyword( const openxds::base::String& word ) const { return false; };
+	virtual       bool      isModifier( const openxds::base::String& word ) const { return false; };
+	virtual       bool isPrimitiveType( const openxds::base::String& word ) const { return false; };
+
+	virtual       bool          isType();
 };
 	
 };};

@@ -39,21 +39,21 @@ bool
 JavaTokenizer::isModifier( const String& word ) const
 {
 	return (
-			word.contentEquals( "public" )
-		||	word.contentEquals( "protected" )
-		||	word.contentEquals( "private" )
-		||	word.contentEquals( "static" )
-		||	word.contentEquals( "abstract" )
-		||	word.contentEquals( "final" )
-		||	word.contentEquals( "native" )
+			word.contentEquals( "abstract"     )
+		||	word.contentEquals( "final"        )
+		||	word.contentEquals( "native"       )
+		||	word.contentEquals( "public"       )
+		||	word.contentEquals( "private"      )
+		||	word.contentEquals( "protected"    )
+		||	word.contentEquals( "static"       )
+		||	word.contentEquals( "stringfp"     )
 		||	word.contentEquals( "synchronized" )
-		||	word.contentEquals( "transient" )
-		||	word.contentEquals( "volatile" )
-		||	word.contentEquals( "stringfp" ) );
+		||	word.contentEquals( "transient"    )
+		||	word.contentEquals( "volatile"     ) );
 }
 
 bool
-JavaTokenizer::isType( const String& word ) const
+JavaTokenizer::isPrimitiveType( const String& word ) const
 {
 	return (
 			word.contentEquals( "byte" )

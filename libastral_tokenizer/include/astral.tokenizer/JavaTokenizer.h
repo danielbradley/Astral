@@ -18,9 +18,9 @@ public:
 	virtual ~JavaTokenizer() {};
 
 protected:
-	virtual bool  isKeyword( const openxds::base::String& word ) const;
-	virtual bool isModifier( const openxds::base::String& word ) const;
-	virtual bool     isType( const openxds::base::String& word ) const;
+	virtual bool       isKeyword( const openxds::base::String& word ) const;
+	virtual bool      isModifier( const openxds::base::String& word ) const;
+	virtual bool isPrimitiveType( const openxds::base::String& word ) const;
 };
 	
 };};
