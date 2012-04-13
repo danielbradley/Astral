@@ -314,12 +314,8 @@ parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceT
 				case SourceToken::METHOD:
 					{
 						SourceToken* token = tokenizer.nextToken();
-						token->setType( SourceToken::NAME );
-						if ( st_type )
-						{
-							token->setType( SourceToken::METHODNAME );
-							parent.getElement().setValue( new String( token->getValue() ) );
-						}
+						token->setType( SourceToken::METHODNAME );
+						parent.getElement().setValue( new String( token->getValue() ) );
 						delete ast.addChild( parent, token );
 					}
 					break;
