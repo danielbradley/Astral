@@ -1017,7 +1017,10 @@ SourceTokenizer::sneakyPeek()
 
 		//	Just added this and it broke things.
 		case SourceToken::INFIXOP:
-			loop = false;
+			{
+				char ch = token->getValue().charAt(0);
+				if ( ! (('<' == ch) || ('>' == ch)) ) loop = false;
+			}
 			break;
 
 		case SourceToken::STARTBLOCK:
