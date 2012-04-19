@@ -44,7 +44,7 @@ public new( instance : MethodCall& )
 
 public combinations()
 {
-	if ( @paramters.length && !@combinations.length )
+	if ( @parameters.length && !@combinations.length )
 	{
 		@combinations[0] = concat( @parameters, ',' );
 
@@ -75,6 +75,7 @@ public combinations()
 #include <openxds.adt.std.h>
 #include <openxds.base.h>
 
+using openxds::adt::IMap;
 using openxds::adt::ISequence;
 using openxds::base::String;
 
@@ -93,10 +94,13 @@ public:
 	 MethodCall( const char* methodName, const char* parameters );
 	 MethodCall( const char* methodName, const ISequence<String>& parameters );
 	~MethodCall();
+	
+	void             applyParameterisation( const IMap<String>& parameterisation );
 
 	const String&            getMethodCall() const { return *this->methodCall; }
 	const String&            getMethodName() const { return *this->methodName; }
 	const ISequence<String>& getParameters() const { return *this->parameters; }
+
 	const ISequence<String>& generateVariations();
 	
 private:
@@ -112,18 +116,21 @@ private:
 ~!source/cplusplus/MethodCall.cpp~
 #include "astral/MethodCall.h"
 
+#include <openxds.adt/IMap.h>
 #include <openxds.adt/ISequence.h>
 #include <openxds.adt.std/Sequence.h>
 #include <openxds.base/FormattedString.h>
 #include <openxds.base/String.h>
 #include <openxds.base/StringBuffer.h>
 #include <openxds.base/StringTokenizer.h>
+#include <openxds.exceptions/NoSuchElementException.h>
 
 using namespace astral;
 
 using namespace openxds::adt;
 using namespace openxds::adt::std;
 using namespace openxds::base;
+using namespace openxds::exceptions;
 
 static ISequence<String>*     explode( const String&            string,  char delimiter );
 static String*                 concat( const ISequence<String>& strings, char delimiter );
@@ -175,6 +182,35 @@ MethodCall::~MethodCall()
 	delete this->methodCall;
 	delete this->parameters;
 	delete this->variations;
+}
+
+void
+MethodCall::applyParameterisation( const IMap<String>& parameterisation )
+{
+	StringBuffer sb;
+	sb.append( *this->methodName );
+	sb.append( '(' );
+
+	long len = this->parameters->size();
+	for ( int i=0; i < len; i++ )
+	{
+		const String& parameter = this->parameters->get(i);
+		try
+		{
+			const String& substitute = parameterisation.get( parameter.getChars() );
+			delete this->parameters->set( i, new String( substitute ) );
+		}
+		catch ( NoSuchElementException* ex )
+		{
+			delete ex;
+		}
+		sb.append( this->parameters->get(i) );
+		sb.append( ',' );
+	}
+	if ( len ) sb.removeLast();
+	sb.append( ')' );
+
+	delete this->methodCall; this->methodCall = sb.asString();
 }
 
 const ISequence<String>&

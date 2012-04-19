@@ -3,6 +3,7 @@
 #include <astral.tokenizer/SourceToken.h>
 #include <openxds.adt/IEntry.h>
 #include <openxds.base/StringBuffer.h>
+#include <openxds.base/StringTokenizer.h>
 
 using namespace astral::ast;
 using namespace astral::tokenizer;
@@ -59,6 +60,18 @@ MemberDiscoveryTour::addMemberToDirectory( IPosition<SourceToken>& p )
 			delete px;
 		}
 		delete it;
+
+		bool strip_parameterization = false;
+
+		if ( strip_parameterization )
+		{
+			StringTokenizer st( *type );
+			st.setDelimiter( '<' );
+			if ( st.hasMoreTokens() )
+			{
+				delete type; type = st.nextToken();
+			}
+		}
 
 		StringBuffer sb;
 		{

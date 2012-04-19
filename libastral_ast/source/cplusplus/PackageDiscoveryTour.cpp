@@ -17,15 +17,18 @@ PackageDiscoveryTour::PackageDiscoveryTour( ITree<SourceToken>& tree, IList<Stri
 {
 	this->packageName  = new String();
 	this->className    = new String();
+	this->genericName  = new StringBuffer();
 	this->extendsClass = new String();
 	
-	this->capture = false;
+	this->inClassname = false;
+	this->capture     = false;
 }
 	
 PackageDiscoveryTour::~PackageDiscoveryTour()
 {
 	delete this->packageName;
 	delete this->className;
+	delete this->genericName;
 	delete this->extendsClass;
 }
 
@@ -62,15 +65,44 @@ PackageDiscoveryTour::visitExternal( IPosition<SourceToken>& p, Result& r )
 	case SourceToken::CLASSNAME:
 		delete this->className;
 		this->className = token.getValue().asString();
+		this->genericName->append( *this->className );
+		this->inClassname = true;
 		break;
+
+	case SourceToken::INFIXOP:
+		if ( this->inClassname )
+		{
+			char ch = token.getValue().charAt( 0 );
+			switch ( ch )
+			{
+			case '<':
+				this->genericName->append( ch );
+				break;
+
+			case '>':
+				this->genericName->append( ch );
+				this->inClassname = false;
+				break;
+
+			default:
+				break;
+			}
+		}
+		break;
+
 	case SourceToken::KEYWORD:
 		if ( token.getValue().contentEquals( "extends" ) )
 		{
 			this->capture = true;
 		}
 		break;
+
 	case SourceToken::NAME:
-		if ( this->capture )
+		if ( this->inClassname )
+		{
+			this->genericName->append( token.getValue() );
+		}
+		else if ( this->capture )
 		{
 			const char* _token = token.getValue().getChars();
 			delete this->extendsClass;
@@ -93,6 +125,12 @@ const String&
 PackageDiscoveryTour::getClassName() const
 {
 	return *this->className;
+}
+
+const String&
+PackageDiscoveryTour::getGenericName() const
+{
+	return this->genericName->getContent();
 }
 
 const String&

@@ -7,6 +7,7 @@
 #include <astral/Import.h>
 #include <astral/ImportsList.h>
 #include <astral/Member.h>
+#include <astral/MemberSignature.h>
 #include <astral/MembersList.h>
 #include <astral/Method.h>
 #include <astral/MethodCall.h>
@@ -34,9 +35,11 @@
 #include <openxds.io/IOBuffer.h>
 #include <openxds.adt/IEIterator.h>
 #include <openxds.adt/IIterator.h>
+#include <openxds.adt/IMap.h>
 #include <openxds.adt/IPosition.h>
 #include <openxds.adt/ITree.h>
 #include <openxds.adt.std/Dictionary.h>
+#include <openxds.adt.std/Map.h>
 #include <openxds.adt.std/Sequence.h>
 #include <openxds.base/String.h>
 #include <openxds.base/StringBuffer.h>
@@ -66,6 +69,7 @@ CompilationUnit::CompilationUnit( const char* location )
 	this->ast             = new AST();
 	this->packageName     = NULL;
 	this->className       = NULL;
+	this->genericName     = NULL;
 	this->extendsClass    = NULL;
 	
 	this->declaration     = new Declaration( *this );
@@ -85,6 +89,7 @@ CompilationUnit::~CompilationUnit()
 	delete this->ast;
 	delete this->packageName;
 	delete this->className;
+	delete this->genericName;
 	delete this->extendsClass;
 
 	delete this->declaration;
@@ -112,6 +117,7 @@ CompilationUnit::initialise()
 
 			this->packageName  = pdt.getPackageName().asString();
 			this->className    = pdt.getClassName().asString();
+			this->genericName  = pdt.getGenericName().asString();
 			this->fqName       = new FormattedString( "%s.%s", this->packageName->getChars(), this->className->getChars() );
 			this->extendsClass = pdt.getExtendsClass().asString();
 
@@ -230,30 +236,28 @@ CompilationUnit::deregisterSymbols( IDictionary<const IEntry<CompilationUnit> >&
 String*
 CompilationUnit::resolveFQTypeOfName( const char* name, const VariableScopes& scopes ) const
 {
-	String* type = this->resolveTypeOfName( name, scopes );
-
-	if ( ! type->contentEquals( "" ) )
+	String* fq_type = new String();
 	{
-		const char* _type = type->getChars();
+		String* type = this->resolveTypeOfName( name, scopes );
+		if ( type->getLength() )
+		{
+			ClassSignature class_signature( *type );
+			const char* _type = class_signature.getClassName().getChars();
 
-		String* fq_type = this->resolveFQTypeOfType( _type );
-//		if ( ! fq_type->contentEquals( "" ) )
-//		{
-//			delete type;
-//			type = new String( *fq_type );
-//		}
+			String* tmp = this->resolveFQTypeOfType( _type );
+			if ( tmp->getLength() )
+			{
+				ClassSignature fq_sig( *tmp );
+				const char* _nspace = fq_sig.getNamespace().getChars();
+				const char* _gClass = class_signature.getGenericClass().getChars();
+				
+				delete fq_type; fq_type = new FormattedString( "%s.%s", _nspace, _gClass );
+			}
+			delete type; type = this->resolveFQTypeOfType( _type );
+		}
 		delete type;
-		type = fq_type;
 	}
-//	else
-//	{
-//		delete type;
-//		       type = new String( name );
-//	}
-	
-	//fprintf( stderr, "CompilationUnit::resolveFQTypeOfName( %s, scopes ) | %s\n", name, type->getChars() );
-	
-	return type;
+	return fq_type;
 }
 
 String*
@@ -374,14 +378,10 @@ CompilationUnit::resolveMemberType( const char* name ) const
 	{
 		IEntry<IPosition<SourceToken> >* e = this->members->startsWith( name );
 		{
-			StringTokenizer st( e->getKey() );
-			st.setDelimiter( '|' );
-			if ( st.hasMoreTokens() ) delete st.nextToken();
-			if ( st.hasMoreTokens() )
-			{
-				delete ret;
-				ret = st.nextToken();
-			}
+				//	e->getKey returns name|type (or name|type<?>)
+
+				MemberSignature member_signature( e->getKey() );
+				delete ret; ret = member_signature.getType().asString();
 		}
 		delete e;
 	}
@@ -418,27 +418,43 @@ CompilationUnit::resolveMethodType( const char* methodCall ) const
 	return ret;
 }
 
+static IMap<String>* generateParameterisationMap( const ClassSignature& specified, const ClassSignature& generic )
+{
+	IMap<String>* p = new Map<String>();
+	{
+		p->put( "Character", new String( "E" ) );
+	}
+	return p;
+}
+
 MethodSignature*
-CompilationUnit::matchingMethodSignature( const char* methodName, const char* parameters ) const
+CompilationUnit::matchingMethodSignatureX( const ClassSignature& fqClassSig, const char* methodName, const char* parameters ) const
 {
 	MethodSignature* signature = NULL;
-
-	MethodCall methodCall( methodName, parameters );
-	const IIterator<String>* it = methodCall.generateVariations().elements();
-	bool loop = true;
-	while ( loop && it->hasNext() )
+	
+	IMap<String>* parameterisation = generateParameterisationMap( fqClassSig, ClassSignature( *this->genericName ) );
 	{
-		const String& method_call = it->next();
-		String* returnType = resolveMethodType( method_call.getChars() );
-		if( returnType->getLength() )
+		MethodCall methodCall( methodName, parameters );
+		methodCall.applyParameterisation( *parameterisation );
+		
+		const IIterator<String>* it = methodCall.generateVariations().elements();
+		bool loop = true;
+		while ( loop && it->hasNext() )
 		{
-			ClassSignature cls( this->getFQName().getChars() );
-			signature = new MethodSignature( cls, FormattedString( "%s|%s", method_call.getChars(), returnType->getChars() ) );
-			loop = false;
+			const String& method_call = it->next();
+			String* returnType = resolveMethodType( method_call.getChars() );
+			if( returnType->getLength() )
+			{
+				ClassSignature cls( this->getFQName().getChars() );
+				signature = new MethodSignature( cls, FormattedString( "%s|%s", method_call.getChars(), returnType->getChars() ) );
+				loop = false;
+			}
+			delete returnType;
 		}
-		delete returnType;
+		delete it;
 	}
-	delete it;
+	delete parameterisation;
+	
 	return signature;
 }
 

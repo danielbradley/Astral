@@ -31,10 +31,13 @@ class PackageDiscoveryTour : public openxds::adt::std::GeneralTour<SourceToken>
 private:
 	openxds::base::String* packageName;
 	openxds::base::String* className;
+	openxds::base::StringBuffer* genericName;
 	openxds::base::String* extendsClass;
 	openxds::adt::IList<openxds::base::String>& imports;
 	openxds::adt::IList<openxds::adt::IPosition<SourceToken> >& importPositions;
+	bool inClassname;
 	bool capture;
+
 public:
 	PackageDiscoveryTour( openxds::adt::ITree<astral::tokenizer::SourceToken>& tree,
 	                      openxds::adt::IList<openxds::base::String>& imports,
@@ -47,6 +50,7 @@ public:
 
 	const openxds::base::String&  getPackageName() const;
 	const openxds::base::String&    getClassName() const;
+	const openxds::base::String&  getGenericName() const;
 	const openxds::base::String& getExtendsClass() const;
 	
 private:

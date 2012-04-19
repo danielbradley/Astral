@@ -7,6 +7,7 @@
 #include <openxds.adt.std/Dictionary.h>
 #include <openxds.adt.std/Sequence.h>
 #include <openxds.base/String.h>
+#include <openxds.base/StringTokenizer.h>
 #include <openxds.exceptions/NoSuchElementException.h>
 
 using namespace astral;
@@ -128,6 +129,18 @@ VariableScopes::addVariableDeclaration( const IPosition<SourceToken>& p )
 			delete pos;
 		}
 		delete it;
+		
+		bool strip_parameterization = false;
+		
+		if ( strip_parameterization )
+		{
+			StringTokenizer st( *type );
+			st.setDelimiter( '<' );
+			if ( st.hasMoreTokens() )
+			{
+				delete type; type = st.nextToken();
+			}
+		}
 		
 		if ( ! this->scopes->isEmpty() )
 		{

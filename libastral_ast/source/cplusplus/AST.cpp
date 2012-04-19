@@ -43,7 +43,6 @@ static bool              parseBlock( ITree<SourceToken>& ast, IPosition<SourceTo
 static void      parseEnumStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
 static void parseTrailingWhitespace( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
 
-static SourceToken* parseType( SourceTokenizer& tokenizer );
 static void pushbackTokens( SourceTokenizer& tokenizer, Sequence<SourceToken>& tokens );
 
 static bool           isMemberLevel( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
@@ -201,7 +200,8 @@ parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceT
 		parent.getElement().setType( looksie );
 	}
 
-	bool parsed_new  = false;
+	bool parsed_new       = false;
+	bool parsed_classname = false;
 
 	SourceToken* st_type = NULL;
 	
@@ -279,13 +279,13 @@ parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceT
 			switch ( looksie )
 			{
 			case SourceToken::METHOD:
-				st_type = parseType( tokenizer );
+				st_type = tokenizer.nextToken();
 				parent.getElement().setValue( new String( st_type->getValue() ) );
 				delete ast.addChild( parent, st_type );
 				break;
 			
 			default:
-				st_type = parseType( tokenizer );
+				st_type = tokenizer.nextToken();
 				delete ast.addChild( parent, st_type );
 			}
 			break;
@@ -297,7 +297,7 @@ parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceT
 				case SourceToken::PACKAGE:
 				case SourceToken::IMPORT:
 					{
-						SourceToken* parsed = parseType( tokenizer );
+						SourceToken* parsed = tokenizer.nextToken();
 						parsed->setType( SourceToken::NAME );
 						delete ast.addChild( parent, parsed );
 					}
@@ -305,9 +305,19 @@ parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceT
 
 				case SourceToken::CLASS:
 					{
-						SourceToken* parsed = parseType( tokenizer );
-						parsed->setType( SourceToken::CLASSNAME );
-						delete ast.addChild( parent, parsed );
+						if ( ! parsed_classname )
+						{
+							SourceToken* parsed = tokenizer.nextToken();
+							parsed->setType( SourceToken::CLASSNAME );
+							delete ast.addChild( parent, parsed );
+							parsed_classname = true;
+						}
+						else
+						{
+							SourceToken* parsed = tokenizer.nextToken();
+							parsed->setType( SourceToken::NAME );
+							delete ast.addChild( parent, parsed );
+						}
 					}
 					break;
 
@@ -463,7 +473,7 @@ parseStatementX( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, Source
 				{
 				case SourceToken::METHOD:
 					{
-						st_type = parseType( tokenizer );
+						st_type = tokenizer.nextToken();
 						st_type->setType( SourceToken::METHODNAME );
 						parent.getElement().setValue( new String( st_type->getValue() ) );
 						delete ast.addChild( parent, st_type );
@@ -473,7 +483,7 @@ parseStatementX( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, Source
 				case SourceToken::PACKAGE:
 				case SourceToken::IMPORT:
 					{
-						SourceToken* parsed = parseType( tokenizer );
+						SourceToken* parsed = tokenizer.nextToken();
 						parsed->setType( SourceToken::NAME );
 						delete ast.addChild( parent, parsed );
 					}
@@ -481,7 +491,7 @@ parseStatementX( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, Source
 
 				case SourceToken::CLASS:
 					{
-						SourceToken* parsed = parseType( tokenizer );
+						SourceToken* parsed = tokenizer.nextToken();
 						parsed->setType( SourceToken::CLASSNAME );
 						delete ast.addChild( parent, parsed );
 					}
@@ -489,7 +499,7 @@ parseStatementX( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, Source
 
 				case SourceToken::DECLARATION:
 					{
-						st_type = parseType( tokenizer );
+						st_type = tokenizer.nextToken();
 						delete ast.addChild( parent, st_type );
 					}
 					break;
@@ -590,62 +600,6 @@ static void concatTokens( StringBuffer& sb, Sequence<SourceToken>& tokens )
 		sb.append( tokens.getFirst().getValue() );
 		delete tokens.removeFirst();
 	}
-}
-
-static SourceToken* parseType( SourceTokenizer& tokenizer )
-{
-	SourceToken* ret = NULL;
-	{
-		StringBuffer sb;
-		{
-			const char* val = tokenizer.peekNextToken().getValue().getChars();
-
-			Sequence<SourceToken> tokens;
-			tokens.addLast( tokenizer.nextToken() );
-			
-			bool loop = true;
-			while ( loop && tokenizer.hasMoreTokens() )
-			{
-				val = tokenizer.peekNextToken().getValue().getChars();
-			
-				switch ( tokenizer.peekNextToken().getTokenType() )
-				{
-				case SourceToken::SELECTOR:
-				case SourceToken::WORD:
-				case SourceToken::INFIXOP:
-					tokens.addLast( tokenizer.nextToken() );
-					break;
-				case SourceToken::STOP:
-					concatTokens( sb, tokens );
-					ret = new SourceToken( SourceToken::TYPE, sb.asString() );
-					loop = false;
-					break;
-				case SourceToken::SPACE:
-					tokens.addLast( tokenizer.nextToken() );
-					switch ( tokenizer.peekNextToken().getTokenType() )
-					{
-					case SourceToken::WORD:
-						tokenizer.pushback( tokens.removeLast() );
-						concatTokens( sb, tokens );
-						ret = new SourceToken( SourceToken::TYPE, sb.asString() );
-						loop = false;
-						break;
-					default:
-						pushbackTokens( tokenizer, tokens );
-						ret = tokenizer.nextToken();
-						loop = false;
-					}
-					break;
-				case SourceToken::STARTEXPRESSION:
-				default:
-					pushbackTokens( tokenizer, tokens );
-					ret = tokenizer.nextToken();
-					loop = false;
-				}
-			}
-		}
-	}
-	return ret;
 }
 
 static String* generalizeType( const String& type )
@@ -879,7 +833,7 @@ static void handleStartParameters( ITree<SourceToken>& ast, IPosition<SourceToke
 					case SourceToken::WORD:
 						if ( NULL == word1 )
 						{
-							word1 = parseType( tokenizer );
+							word1 = tokenizer.nextToken();
 							//word1 = tokenizer.nextToken();
 							word1->setType( SourceToken::VARIABLE );
 							delete ast.addChild( parent, word1 );
@@ -1072,24 +1026,27 @@ static void handleStop( ITree<SourceToken>& ast, IPosition<SourceToken>& parent,
 {
 	delete ast.addChild( parent, tokenizer.nextToken() );
 
-	IPosition<SourceToken>* p1 = ast.hasParent( parent ) ? ast.parent( parent ) : NULL;
-	if ( p1 )
+	if ( SourceToken::DECLARATION == parent.getElement().getTokenType() )
 	{
-		IPosition<SourceToken>* p2 = ast.hasParent( *p1 ) ? ast.parent( *p1 ) : NULL;
-		if ( p2 )
+		IPosition<SourceToken>* p1 = ast.hasParent( parent ) ? ast.parent( parent ) : NULL;
+		if ( p1 )
 		{
-			switch ( p2->getElement().getTokenType() )
+			IPosition<SourceToken>* p2 = ast.hasParent( *p1 ) ? ast.parent( *p1 ) : NULL;
+			if ( p2 )
 			{
-			case SourceToken::CLASS:
-				parent.getElement().setType( SourceToken::MEMBER );
-				break;
-			default:
-				break;
+				switch ( p2->getElement().getTokenType() )
+				{
+				case SourceToken::CLASS:
+					parent.getElement().setType( SourceToken::MEMBER );
+					break;
+				default:
+					break;
+				}
 			}
+			delete p2;
 		}
-		delete p2;
+		delete p1;
 	}
-	delete p1;
 
 	parseTrailingWhitespace( ast, parent, tokenizer );
 }

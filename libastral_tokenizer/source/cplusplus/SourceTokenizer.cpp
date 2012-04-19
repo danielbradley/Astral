@@ -933,6 +933,7 @@ SourceTokenizer::sneakyPeek()
 
 	//int modifiers = 0;
 	int keywords  = 0;
+	int types     = 0;
 	int words     = 0;
 	int spaces    = 0;
 	int exp       = 0;
@@ -976,6 +977,7 @@ SourceTokenizer::sneakyPeek()
 			break;
 
 		case SourceToken::TYPE:
+			types++;
 		case SourceToken::WORD:
 			words++;
 			{
@@ -1123,7 +1125,14 @@ SourceTokenizer::sneakyPeek()
 			}
 			else if ( words >= 2 )
 			{
-				ret = SourceToken::DECLARATION;
+				if ( exp )
+				{
+					ret = SourceToken::METHOD;
+				}
+				else
+				{
+					ret = SourceToken::DECLARATION;
+				}
 			}
 			else
 			{
@@ -1192,9 +1201,14 @@ SourceTokenizer::isType()
 		case ITextToken::WHITESPACE:
 			if ( this->tt->hasMoreTokens() )
 			{
-				if ( ITextToken::WORD == this->tt->peekNextToken().getTokenType() )
+				const ITextToken& word_token = this->tt->peekNextToken();
+				if ( ITextToken::WORD == word_token.getTokenType() )
 				{
-					is_type = true;
+					const String& value = word_token.getValue();
+					const char* val = value.getChars();
+				
+					is_type = !( this->isModifier( value ) || this->isKeyword( value ) || this->isPrimitiveType( value ) );
+					loop = false;
 				}
 			}
 			break;

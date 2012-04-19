@@ -174,7 +174,7 @@ CodeBase::completeMethodSignature( const char* fqClass, const char* methodName, 
 		const CompilationUnit& cu = this->getCompilationUnit( classSignature );
 
 		delete signature;
-		signature = cu.matchingMethodSignature( methodName, parameters );
+		signature = cu.matchingMethodSignatureX( classSignature, methodName, parameters );
 		if ( ! signature )
 		{
 			String* fqSuperclass = cu.resolveFQTypeOfType( cu.getSuperclass().getChars() );
