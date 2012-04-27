@@ -786,9 +786,22 @@ CompilationUnit::resolveMethodType( const char* methodCall ) const
 ~source/cplusplus/CompilationUnit.cpp~
 static IMap<String>* generateParameterisationMap( const ClassSignature& specified, const ClassSignature& generic )
 {
+	const ISequence<String>& pSpecified = specified.getParameters();
+	const ISequence<String>& pGeneric   = generic.getParameters();
+	
+	long len = Math::min( pSpecified.size(), pGeneric.size() );
+
 	IMap<String>* p = new Map<String>();
 	{
-		p->put( "Character", new String( "E" ) );
+		for ( long i=0; i < len; i++ )
+		{
+			//	Example: p->put( "Character", new String( "E" ) );
+
+			const String& spec = pSpecified.get( i );
+			const String& gen  = pGeneric.get( i );
+		
+			p->put( spec.getChars(), new String( gen.getChars() ) );
+		}
 	}
 	return p;
 }
