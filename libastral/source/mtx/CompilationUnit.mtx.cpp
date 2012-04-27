@@ -186,6 +186,7 @@ public:
 #include <astral.tours/MethodDiscoveryTour.h>
 #include <astral.tours/PackageDiscoveryTour.h>
 #include <astral.tours/PrintSourceTour.h>
+#include <astral.tokenizer/JavaTokenizer.h>
 #include <astral.tokenizer/SourceToken.h>
 #include <openxds.io/File.h>
 #include <openxds.io/FileOutputStream.h>
@@ -560,24 +561,32 @@ Implementation
 String*
 CompilationUnit::resolveFQTypeOfType( const char* type ) const
 {
-	StringBuffer sb;
+	JavaTokenizer java_tokenizer;
 
-	try
+	String* fq_type = new String( type );
+
+	if ( ! java_tokenizer.isPrimitiveType( type ) )
 	{
-		const IEntry<String>* e = this->importedTypes->find( type );
+		StringBuffer sb;
+
+		try
 		{
-			sb.append( e->getValue() );
-			sb.append( "." );
-			sb.append( type );
+			const IEntry<String>* e = this->importedTypes->find( type );
+			{
+				sb.append( e->getValue() );
+				sb.append( "." );
+				sb.append( type );
+			}
+			delete e;
 		}
-		delete e;
-	}
-	catch ( NoSuchElementException* ex )
-	{
-		delete ex;
-	}
+		catch ( NoSuchElementException* ex )
+		{
+			delete ex;
+		}
 
-	return sb.asString();
+		delete fq_type; fq_type = sb.asString();
+	}
+	return fq_type;
 }
 ~
 
@@ -970,7 +979,9 @@ CompilationUnit::recurseMethodArguments( const CodeBase& codebase, const ITree<S
 	{
 		const IPosition<SourceToken>* p = it->next();
 		{
-			switch ( p->getElement().getTokenType() )
+			SourceToken::TokenType ttype = p->getElement().getTokenType();
+		
+			switch ( ttype )
 			{
 			case SourceToken::ARGUMENT:
 				{
@@ -1024,9 +1035,9 @@ CompilationUnit::recurseMethodArgument( const CodeBase& codebase, const ITree<So
 				case SourceToken::NAME:
 					delete invocation_class;
 					delete argument_type;
-					//invocation_class = generaliseType( this->resolveTypeOfName( value, scopes ) );
-					invocation_class = this->resolveTypeOfName( value, scopes );
-					argument_type    = new String( *invocation_class );
+
+					argument_type    = this->resolveTypeOfName( value, scopes );
+					invocation_class = this->resolveFQTypeOfType( argument_type->getChars() );
 					break;
 				case SourceToken::SYMBOL:
 					if ( p->getElement().getValue().contentEquals( "[" ) )
