@@ -12,12 +12,12 @@ namespace astral {
 class JavaTokenizer : public SourceTokenizer
 {
 public:
+	         JavaTokenizer() : SourceTokenizer() {};
 	         JavaTokenizer( const openxds::base::String& location ) : SourceTokenizer( location ) {};
 	         JavaTokenizer( openxds::util::ITextTokenizer* aTextTokenizer ) : SourceTokenizer( aTextTokenizer ) {};
 	         JavaTokenizer( openxds::io::Reader* aReader ) : SourceTokenizer( aReader ) {};
 	virtual ~JavaTokenizer() {};
 
-protected:
 	virtual bool       isKeyword( const openxds::base::String& word ) const;
 	virtual bool      isModifier( const openxds::base::String& word ) const;
 	virtual bool isPrimitiveType( const openxds::base::String& word ) const;

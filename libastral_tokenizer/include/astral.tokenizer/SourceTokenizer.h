@@ -21,6 +21,7 @@ private:
 	openxds::adt::ISequence<SourceToken>* tokenQueue;
 
 public:
+	         SourceTokenizer();
 	         SourceTokenizer( const openxds::base::String& location );
 	         SourceTokenizer( openxds::util::ITextTokenizer* aTextTokenizer );
 	         SourceTokenizer( openxds::io::Reader* reader );
@@ -33,6 +34,10 @@ public:
 	virtual void               pushback( SourceToken* token );
 
 	virtual       SourceToken::TokenType sneakyPeek();
+
+	virtual       bool       isKeyword( const openxds::base::String& word ) const { return false; };
+	virtual       bool      isModifier( const openxds::base::String& word ) const { return false; };
+	virtual       bool isPrimitiveType( const openxds::base::String& word ) const { return false; };
 
 protected:
 	virtual       SourceToken*  parseWhitespace( const openxds::util::ITextToken& textToken );
@@ -47,11 +52,6 @@ protected:
 	
 	virtual void                      parseType( openxds::base::StringBuffer& sb );
 	virtual void                      parseWord( openxds::base::StringBuffer& sb );
-
-	
-	virtual       bool       isKeyword( const openxds::base::String& word ) const { return false; };
-	virtual       bool      isModifier( const openxds::base::String& word ) const { return false; };
-	virtual       bool isPrimitiveType( const openxds::base::String& word ) const { return false; };
 
 	virtual       bool          isType();
 };

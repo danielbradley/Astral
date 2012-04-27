@@ -22,6 +22,12 @@ using namespace openxds::util;
 
 static String* combine( char ch1, char ch2, char ch3=' ', char ch4=' ' );
 
+SourceTokenizer::SourceTokenizer()
+{
+	this->tt = NULL;
+	this->tokenQueue = new Sequence<SourceToken>();
+}
+
 SourceTokenizer::SourceTokenizer( const String& location )
 {
 	File*              file   = new File( location );
