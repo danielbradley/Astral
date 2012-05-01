@@ -357,8 +357,10 @@ Method::Method( CompilationUnit& cu, MethodsList& ml, const MethodSignature& aMe
 ~source/cplusplus/Method.cpp~
 Method::Method( CompilationUnit& cu, MethodsList& ml, const MethodSignature& aMethodSignature, IPosition<SourceToken>& aPosition ) : cu( cu ), ml( ml )
 {
+	ASTHelper helper( cu.getAST() );
+
 	this->p         = aPosition.copy();
-	this->methodAST = cu.getAST().copySubtree( aPosition );
+	this->methodAST = helper.retrieveMethodAST( aPosition );// cu.getAST().copySubtree( aPosition );
 	this->signature = new MethodSignature( aMethodSignature );
 	this->modified  = false;
 	this->empty     = false;
@@ -371,13 +373,15 @@ Method::Method( CompilationUnit& cu, MethodsList& ml, const MethodSignature& aMe
 ~source/cplusplus/Method.cpp~
 Method::Method( CompilationUnit& cu, MethodsList& ml, const MethodSignature& aMethodSignature, AST& ast, IPosition<SourceToken>& p ) : cu( cu ), ml( ml )
 {
+	ASTHelper helper( ast );
+
 	this->p = NULL;
-	this->methodAST = ast.copySubtree( p );
+	this->methodAST = helper.retrieveMethodAST( p ); //ast.copySubtree( p );
 	this->signature = new MethodSignature( aMethodSignature );
 	this->modified  = true;
 	this->empty     = false;
 	
-	delete this->methodAST->copySubtree( this->methodAST->getTree().getRoot() );
+	//delete this->methodAST->copySubtree( this->methodAST->getTree().getRoot() );
 }
 ~
 

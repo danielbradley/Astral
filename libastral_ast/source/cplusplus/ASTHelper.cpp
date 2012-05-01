@@ -116,6 +116,12 @@ ASTHelper::reorder( IDictionary<IPosition<SourceToken> >& positions )
 	delete dictionary;
 }
 
+AST*
+ASTHelper::retrieveMethodAST( IPosition<SourceToken>& p )
+{
+	return this->ast.copySubtree( p );
+}
+
 void
 ASTHelper::replaceImportAST( IPosition<SourceToken>& p, const AST& importAST )
 {
