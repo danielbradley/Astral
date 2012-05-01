@@ -17,6 +17,7 @@ private:
 	openxds::base::String*                               location;
 	openxds::adt::ITree<astral::tokenizer::SourceToken>*      ast;
 	bool                                                    valid;
+	//openxds::base::String*                                 offset;
 
 public:
 	         AST();

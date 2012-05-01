@@ -449,9 +449,7 @@ static bool handleStartBlock( ITree<SourceToken>& ast, IPosition<SourceToken>& p
 			switch ( ttype )
 			{
 			case SourceToken::BLANKLINE:
-			//case SourceToken::COMMENT:
 			case SourceToken::NEWLINE:
-			case SourceToken::TAB:
 				delete ast.addChild( parent, tokenizer.nextToken() );
 				break;
 			case SourceToken::ENDBLOCK:
