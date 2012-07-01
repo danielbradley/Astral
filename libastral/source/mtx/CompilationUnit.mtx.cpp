@@ -43,6 +43,7 @@ It has the following private members - some of which are accessible via accessor
 
 ~include/astral/CompilationUnit.h~
 private:
+	const CodeBase&                            codebase;
 	AST*                                            ast; 
 	String*                                    location;
 	String*                                 packageName;
@@ -70,7 +71,7 @@ Usually, /CompilationUnit/ instances would be instantiated by the /CodeBase/ cla
 
 ~include/astral/CompilationUnit.h~
 public:
-	                CompilationUnit( const char* location );
+	                CompilationUnit( const CodeBase& codebase, const char* location );
 	virtual        ~CompilationUnit();
 ~
 
@@ -91,6 +92,7 @@ public:
 
 ~include/astral/CompilationUnit.h~
 public:
+	virtual const    CodeBase&          getCodeBase() const { return this->codebase;      }
 	virtual               AST&               getAST()       { return *this->ast;          }
 	virtual const         AST&               getAST() const { return *this->ast;          }
 	virtual       Declaration&       getDeclaration()       { return *this->declaration;  }
@@ -239,7 +241,7 @@ static String* searchForNameInLocalScopes( const char* name, const ISequence<IDi
 ..		Constructors
 
 ~source/cplusplus/CompilationUnit.cpp~
-CompilationUnit::CompilationUnit( const char* location )
+CompilationUnit::CompilationUnit( const CodeBase& codebase, const char* location ) : codebase( codebase )
 {
 	this->location        = new String( location );
 	this->members         = new Dictionary<IPosition<SourceToken> >();
@@ -822,10 +824,11 @@ CompilationUnit::matchingMethodSignatureX( const ClassSignature& fqClassSig, con
 	
 	IMap<String>* parameterisation = generateParameterisationMap( fqClassSig, ClassSignature( *this->genericName ) );
 	{
-		MethodCall methodCall( methodName, parameters );
+		MethodCall methodCall( *this, methodName, parameters );
 		methodCall.applyParameterisation( *parameterisation );
 		
-		const IIterator<String>* it = methodCall.generateVariations().elements();
+		const ISequence<String>& variations = methodCall.generateVariations();
+		const IIterator<String>* it = variations.elements();
 		bool loop = true;
 		while ( loop && it->hasNext() )
 		{
@@ -922,8 +925,12 @@ CompilationUnit::resolveMethodCallReturnType( const CodeBase& codebase, const IT
 		String* arguments = this->resolveMethodCallArgumentTypes( codebase, tree, methodcall, scopes );
 		{
 			MethodSignature* method_signature = codebase.completeMethodSignature( invocationClass.getChars(), name, arguments->getChars() );
-			delete return_type;
-			return_type = new String( method_signature->getReturnType() );
+			if ( method_signature && method_signature->isValid() )
+			{
+				delete return_type;
+				return_type = new String( method_signature->getReturnType() );
+			}
+			delete method_signature;
 		}
 		delete arguments;
 	}
@@ -1030,8 +1037,12 @@ CompilationUnit::recurseMethodArgument( const CodeBase& codebase, const ITree<So
 				{
 				case SourceToken::KEYWORD:
 					delete invocation_class;
+					delete argument_type;	
+						
+					argument_type    = this->resolveTypeOfName( value, scopes );
 					invocation_class = this->resolveFQTypeOfName( value, scopes );
 					break;
+
 				case SourceToken::NAME:
 					delete invocation_class;
 					delete argument_type;
@@ -1039,6 +1050,7 @@ CompilationUnit::recurseMethodArgument( const CodeBase& codebase, const ITree<So
 					argument_type    = this->resolveTypeOfName( value, scopes );
 					invocation_class = this->resolveFQTypeOfType( argument_type->getChars() );
 					break;
+
 				case SourceToken::SYMBOL:
 					if ( p->getElement().getValue().contentEquals( "[" ) )
 					{

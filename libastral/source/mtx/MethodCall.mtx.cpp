@@ -1,68 +1,49 @@
 .	MethodCall
 
+The /MethodCall/ class is used to generate all of the possible permutations
+of a method-call that might match up against a defined method.
+For example, a method may be passed an /int/, but the corresponding method only accepts a /long/.
+Or a subclass may be passed to a method that accepts a parent class.
+
+Additionaly, the /Method Call/ class is also used to perform parameterisation conversion.
+For example, a generic class may be parameterised with /E/ == /String/.
+Methods defined in terms of /E/ will need to be matched with methodcalls that pass /String/.
+
+The general usage is:
+
 ~
-
-Copyright 2012 Daniel Bradley. All rights reserved.
-
-License: LGPLv2
-
-namespace astral;
-
-public class MethodCall
+MethodCall* method_call = new MethodCall( *cu, "insertAt", "int,String" );
 {
-	@methodName   : readonly string;
-	@parameters   : readonly string[];
-	@combinations : readonly string[];
-}
-
-public new()
-{
-	@methodName   = new string();
-	@parameters   = new string[];
-	@combinations = new string[];
-}
-
-public new( methodCall : string& )
-{
-	string[] strings = methodCall.extact( "%(%)" );
-	new ( strings[0], strings[1] );
-}
-
-public new( methodName : string&, parameters : string& )
-{
-	@methodName   = new string( methodName );
-	@parameters   = parameters.tokenize( ',' );
-	@combinations = new string[];
-}
-
-public new( instance : MethodCall& )
-{
-	@methodName = instance.methodName.copy();
-	@parameters = instance.parameters.copy();
-	@parameters = instance.combinations.copy();
-}
-
-public combinations()
-{
-	if ( @parameters.length && !@combinations.length )
+	ISequence<String>* variations = method_call->generateVariations();
 	{
-		@combinations[0] = concat( @parameters, ',' );
-
-		integer c=0;
-		integer n=1;
-
-		while ( c < n )
-		{
-			for ( integer i=0; i < @parameters.length )
-			{
-				@combinations[n] = increment( c, i );
-				if ( @combinations[n] ) n++;
-			}
-			c++;
-		}
+		...
 	}
+	delete variations;
 }
+delete method_call;
 ~
+
+/generateVariations/ returns a sequence of possible methodcalls.
+
+The /apply Parameterisation/ method may be called to perform parameterisation substitutions.
+
+~
+Map parameterisation;
+parameterisation.put( "String", new String( "E" ) );
+
+MethodCall* method_call = new MethodCall( *cu, "insertAt", "int,String" );
+{
+	method_call->applyParameterisation( parameterisation );
+	ISequence<String>* variations = method_call->generateVariations();
+	{
+		...
+	}
+	delete variations;
+}
+delete method_call;
+~
+
+
 
 
 
@@ -71,6 +52,7 @@ public combinations()
 #ifndef ASTRAL_METHODCALL_H
 #define ASTRAL_METHODCALL_H
 
+#include <astral.h>
 #include <openxds.adt.h>
 #include <openxds.adt.std.h>
 #include <openxds.base.h>
@@ -84,15 +66,17 @@ namespace astral {
 class MethodCall
 {
 private:
+	const CompilationUnit&   cu;
+
 	String*            methodName;
 	String*            methodCall;
 	ISequence<String>* parameters;
 	ISequence<String>* variations;
 
 public:
-	 MethodCall( const char* methodName );
-	 MethodCall( const char* methodName, const char* parameters );
-	 MethodCall( const char* methodName, const ISequence<String>& parameters );
+	 MethodCall( const CompilationUnit& cu, const char* methodName );
+	 MethodCall( const CompilationUnit& cu, const char* methodName, const char* parameters );
+	 MethodCall( const CompilationUnit& cu, const char* methodName, const ISequence<String>& parameters );
 	~MethodCall();
 	
 	void             applyParameterisation( const IMap<String>& parameterisation );
@@ -115,6 +99,10 @@ private:
 
 ~!source/cplusplus/MethodCall.cpp~
 #include "astral/MethodCall.h"
+#include "astral/ClassSignature.h"
+#include "astral/CodeBase.h"
+#include "astral/CompilationUnit.h"
+#include <astral.tokenizer/JavaTokenizer.h>
 
 #include <openxds.adt/IMap.h>
 #include <openxds.adt/ISequence.h>
@@ -126,6 +114,7 @@ private:
 #include <openxds.exceptions/NoSuchElementException.h>
 
 using namespace astral;
+using namespace astral::tokenizer;
 
 using namespace openxds::adt;
 using namespace openxds::adt::std;
@@ -137,7 +126,7 @@ static String*                 concat( const ISequence<String>& strings, char de
 static ISequence<String>* copyStrings( const ISequence<String>& strings );
 static ISequence<String>*    tokenize( const char* pattern, const char* content );
 
-MethodCall::MethodCall( const char* methodCall )
+MethodCall::MethodCall( const CompilationUnit& cu, const char* methodCall ) : cu( cu )
 {
 	ISequence<String>* tokens = tokenize( "%(%)", methodCall );		//TODO tokenize
 	if ( tokens )
@@ -156,7 +145,7 @@ MethodCall::MethodCall( const char* methodCall )
 	}
 }
 
-MethodCall::MethodCall( const char* methodName, const char* parameters )
+MethodCall::MethodCall( const CompilationUnit& cu, const char* methodName, const char* parameters ) : cu( cu )
 {
 	this->methodName = new String( methodName );
 	this->methodCall = new FormattedString( "%s(%s)", methodName, parameters );
@@ -164,7 +153,7 @@ MethodCall::MethodCall( const char* methodName, const char* parameters )
 	this->variations = new Sequence<String>();
 }
 
-MethodCall::MethodCall( const char* _methodName, const ISequence<String>& parameters )
+MethodCall::MethodCall( const CompilationUnit& cu, const char* _methodName, const ISequence<String>& parameters ) : cu( cu )
 {
 	String* params = concat( parameters, ',' );
 	{
@@ -195,14 +184,10 @@ MethodCall::applyParameterisation( const IMap<String>& parameterisation )
 	for ( int i=0; i < len; i++ )
 	{
 		const String& parameter = this->parameters->get(i);
-		try
+		if ( parameterisation.has( parameter.getChars() ) )
 		{
 			const String& substitute = parameterisation.get( parameter.getChars() );
 			delete this->parameters->set( i, new String( substitute ) );
-		}
-		catch ( NoSuchElementException* ex )
-		{
-			delete ex;
 		}
 		sb.append( this->parameters->get(i) );
 		sb.append( ',' );
@@ -244,45 +229,72 @@ MethodCall::variateVariationAtParameter( long c, long i )
 {
 	const char* base = this->variations->get( c ).getChars();
 
-	MethodCall mc( base );
+	MethodCall mc( cu, base );
 	ISequence<String>* parameters = copyStrings( mc.getParameters() );
 	{
 		bool hit = false;
 	
-		const String& target_parameter = parameters->get( i );
-		if ( 0 < target_parameter.getLength() )
+		if ( parameters->has( i ) )
 		{
-			switch ( target_parameter.charAt( 0 ) )
+			const String& target_parameter = parameters->get( i );
+			if ( 0 < target_parameter.getLength() )
 			{
-			case 's': // short
-				if ( target_parameter.contentEquals( "short" ) )
+				switch ( target_parameter.charAt( 0 ) )
 				{
-					delete parameters->set( i, new String( "int" ) );
-					hit = true;
+				case 's': // short
+					if ( target_parameter.contentEquals( "short" ) )
+					{
+						delete parameters->set( i, new String( "int" ) );
+						hit = true;
+					}
+					break;
+				case 'i': // int
+					if ( target_parameter.contentEquals( "int" ) )
+					{
+						delete parameters->set( i, new String( "long" ) );
+						hit = true;
+					}
+					break;
+				case 'f': // float
+					if ( target_parameter.contentEquals( "float" ) )
+					{
+						delete parameters->set( i, new String( "double" ) );
+						hit = true;
+					}
+					break;
+				default:
+					break;
 				}
-				break;
-			case 'i': // int
-				if ( target_parameter.contentEquals( "int" ) )
-				{
-					delete parameters->set( i, new String( "long" ) );
-					hit = true;
-				}
-				break;
-			case 'f': // float
-				if ( target_parameter.contentEquals( "float" ) )
-				{
-					delete parameters->set( i, new String( "double" ) );
-					hit = true;
-				}
-				break;
-			default:
-				break;
-			}
 
-			if ( hit )
-			{
-				MethodCall new_variant( mc.getMethodName().getChars(), *parameters );
-				this->variations->insertLast( new String( new_variant.getMethodCall() ) );
+				if ( !hit && !target_parameter.contentEquals( "E" ) )
+				{
+					JavaTokenizer java_tokenizer;
+					if ( ! java_tokenizer.isPrimitiveType( target_parameter ) )
+					{
+						String* fq_type = cu.resolveFQTypeOfType( target_parameter.getChars() );
+						{
+							ClassSignature cls( *fq_type );
+							if ( cu.getCodeBase().hasCompilationUnit( cls ) )
+							{
+								const CompilationUnit& comp = cu.getCodeBase().getCompilationUnit( cls );
+								const String& superclass = comp.getSuperclass();
+								
+								if ( ! superclass.contentEquals( "" ) )
+								{
+									delete parameters->set( i, new String( superclass ) );
+									hit = true;
+								}
+							}
+						}
+						delete fq_type;
+					}
+				}
+
+				if ( hit )
+				{
+					MethodCall new_variant( cu, mc.getMethodName().getChars(), *parameters );
+					this->variations->insertLast( new String( new_variant.getMethodCall() ) );
+				}
 			}
 		}
 	}

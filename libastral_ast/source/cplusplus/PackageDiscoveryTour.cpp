@@ -58,9 +58,24 @@ PackageDiscoveryTour::visitPostorder( IPosition<SourceToken>& p, Result& r )
 void
 PackageDiscoveryTour::visitExternal( IPosition<SourceToken>& p, Result& r )
 {
-	SourceToken& token = p.getElement();
+	SourceToken&            token = p.getElement();
+	SourceToken::TokenType  type  = token.getTokenType();
+	//const char*            _value = token.getValue().getChars();
+
+	switch ( type )
+	{
+	case SourceToken::CLASSNAME:
+	case SourceToken::INFIXOP:
+	case SourceToken::KEYWORD:
+	case SourceToken::NAME:
+		//fprintf( stdout, "PackageDiscoveryTour::visitExternal( %s )\n", _value );
+		break;
+
+	default:
+		break;
+	}
 	
-	switch ( token.getTokenType() )
+	switch ( type )
 	{
 	case SourceToken::CLASSNAME:
 		delete this->className;
@@ -91,6 +106,7 @@ PackageDiscoveryTour::visitExternal( IPosition<SourceToken>& p, Result& r )
 		break;
 
 	case SourceToken::KEYWORD:
+		this->inClassname = false;
 		if ( token.getValue().contentEquals( "extends" ) )
 		{
 			this->capture = true;

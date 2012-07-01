@@ -121,7 +121,7 @@ MethodSignature::MethodSignature( const ClassSignature& aClassSignature, const S
 	this->initialise( signature );
 }
 
-MethodSignature::MethodSignature( const ClassSignature& aClassSignature, const char* methodName, const char* parameters, const char* returnType )
+MethodSignature::MethodSignature( const ClassSignature& aClassSignature, const char* methodName, const char* parameters, const char* rType )
 {
 	this->original       = new String();
 	this->classSignature = new ClassSignature();
@@ -139,7 +139,7 @@ MethodSignature::MethodSignature( const ClassSignature& aClassSignature, const c
 	sb.append( parameters );
 	sb.append( ")" );
 	sb.append( "|" );
-	sb.append( returnType );
+	sb.append( rType );
 	
 	const char* signature = sb.getChars();
 
@@ -190,6 +190,8 @@ MethodSignature::initialise( const String& aSignature )
 
 		delete this->returnType;
 		       this->returnType = st.hasMoreTokens() ? st.nextToken() : new String();
+			   
+		if ( ! this->returnType ) abort();
 	}
 	
 	Sequence<String> bits;

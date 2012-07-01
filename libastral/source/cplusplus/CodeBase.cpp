@@ -44,7 +44,7 @@ void
 CodeBase::addSourceFile( const char* path )
 {
 	
-	CompilationUnit* cu = new CompilationUnit( path );
+	CompilationUnit* cu = new CompilationUnit( *this, path );
 	cu->initialise();
     
 	IEntry<CompilationUnit>* entry = this->files->insert( path, cu );
@@ -140,6 +140,22 @@ CodeBase::getCompilationUnit( const ClassSignature& aClassSignature ) const
 	return const_cast<CodeBase*>( this )->getCompilationUnit( aClassSignature );
 }
 
+bool
+CodeBase::hasCompilationUnit( const ClassSignature& aClassSignature ) const
+{
+	bool _has = false;
+	try
+	{
+		this->getCompilationUnit( aClassSignature );
+		_has = true;
+	}
+	catch ( NoSuchElementException* ex )
+	{
+		delete ex;
+	}
+	return _has;
+}
+
 MemberSignature*
 CodeBase::completeMemberSignature( const char* fqClassType, const char* member ) const
 {
@@ -167,20 +183,25 @@ CodeBase::completeMemberSignature( const char* fqClassType, const char* member )
 MethodSignature*
 CodeBase::completeMethodSignature( const char* fqClass, const char* methodName, const char* parameters ) const
 {
-	MethodSignature* signature = new MethodSignature();
+	MethodSignature* signature = null;//new MethodSignature();
 	try
 	{
 		ClassSignature classSignature( fqClass );
 		const CompilationUnit& cu = this->getCompilationUnit( classSignature );
 
-		delete signature;
+		//delete signature;
 		signature = cu.matchingMethodSignatureX( classSignature, methodName, parameters );
 		if ( ! signature )
 		{
 			String* fqSuperclass = cu.resolveFQTypeOfType( cu.getSuperclass().getChars() );
+			if ( ! fqSuperclass->contentEquals( "" ) )
 			{
 				signature = this->completeMethodSignature( fqSuperclass->getChars(), methodName, parameters );
 			}
+//			else
+//			{
+//				signature = new MethodSignature();
+//			}
 			delete fqSuperclass;
 		}
 	}

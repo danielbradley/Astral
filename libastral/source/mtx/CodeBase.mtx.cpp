@@ -88,6 +88,7 @@ public:
 //	virtual const CompilationUnit&                            getCompilationUnit( const openxds::base::String& methodSignature ) const;
 	virtual       CompilationUnit&                            getCompilationUnit( const ClassSignature& aClassSignature );
 	virtual const CompilationUnit&                            getCompilationUnit( const ClassSignature& aClassSignature ) const;
+	virtual bool                                              hasCompilationUnit( const ClassSignature& aClassSignature ) const;
 
 	virtual       MemberSignature*                       completeMemberSignature( const char* cls, const char* member ) const;
 	virtual       MethodSignature*                       completeMethodSignature( const char* cls, const char* method, const char* parameters ) const;
@@ -283,7 +284,7 @@ void
 CodeBase::addSourceFile( const char* path )
 {
 	
-	CompilationUnit* cu = new CompilationUnit( path );
+	CompilationUnit* cu = new CompilationUnit( *this, path );
 	cu->initialise();
     
 	IEntry<CompilationUnit>* entry = this->files->insert( path, cu );
@@ -463,6 +464,23 @@ CodeBase::getCompilationUnit( const ClassSignature& aClassSignature ) const
 }
 ~
 
+~source/cplusplus/CodeBase.cpp~
+bool
+CodeBase::hasCompilationUnit( const ClassSignature& aClassSignature ) const
+{
+	bool _has = false;
+	try
+	{
+		this->getCompilationUnit( aClassSignature );
+		_has = true;
+	}
+	catch ( NoSuchElementException* ex )
+	{
+		delete ex;
+	}
+	return _has;
+}
+~
 
 
 
@@ -547,20 +565,25 @@ Implementation
 MethodSignature*
 CodeBase::completeMethodSignature( const char* fqClass, const char* methodName, const char* parameters ) const
 {
-	MethodSignature* signature = new MethodSignature();
+	MethodSignature* signature = null;//new MethodSignature();
 	try
 	{
 		ClassSignature classSignature( fqClass );
 		const CompilationUnit& cu = this->getCompilationUnit( classSignature );
 
-		delete signature;
+		//delete signature;
 		signature = cu.matchingMethodSignatureX( classSignature, methodName, parameters );
 		if ( ! signature )
 		{
 			String* fqSuperclass = cu.resolveFQTypeOfType( cu.getSuperclass().getChars() );
+			if ( ! fqSuperclass->contentEquals( "" ) )
 			{
 				signature = this->completeMethodSignature( fqSuperclass->getChars(), methodName, parameters );
 			}
+//			else
+//			{
+//				signature = new MethodSignature();
+//			}
 			delete fqSuperclass;
 		}
 	}

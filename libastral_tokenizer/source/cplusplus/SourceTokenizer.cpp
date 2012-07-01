@@ -182,9 +182,12 @@ SourceTokenizer::parseWhitespace( const ITextToken& token )
 					switch ( type )
 					{
 					case ITextToken::SPACE:
-					case ITextToken::TAB:
 					case ITextToken::WHITESPACE:
 						break;
+
+					case ITextToken::TAB:
+						break;
+
 					case ITextToken::NEWLINE:
 						sttype = SourceToken::BLANKLINE;
 						while ( ! tokens->isEmpty() )
@@ -195,6 +198,7 @@ SourceTokenizer::parseWhitespace( const ITextToken& token )
 						}
 						loop = false;
 						break;
+
 					case ITextToken::SYMBOL:
 						if ( next->getValue().contentEquals( "/" ) && this->tt->peekNextToken().getValue().contentEquals( "*" ) )
 						{

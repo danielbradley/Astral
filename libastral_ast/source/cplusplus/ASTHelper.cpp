@@ -119,7 +119,11 @@ ASTHelper::reorder( IDictionary<IPosition<SourceToken> >& positions )
 AST*
 ASTHelper::retrieveMethodAST( IPosition<SourceToken>& p )
 {
-	return this->ast.copySubtree( p );
+	AST* ast = this->ast.copySubtree( p );
+
+	ast->storeIndent();
+	
+	return ast;
 }
 
 void

@@ -344,7 +344,7 @@ AdvancedHTMLPrintTour::visitExternal( openxds::adt::IPosition<SourceToken>& p, o
 						}
 						
 						MethodSignature* method_signature = this->codebase.completeMethodSignature( invocation_class->getChars(), value, parameters->getChars() );
-						if ( method_signature->isValid() )
+						if ( method_signature && method_signature->isValid() )
 						{
 							const char* _fq_class    = method_signature->getFQClass().getChars();
 							const char* _method_name = method_signature->getMethodName().getChars();

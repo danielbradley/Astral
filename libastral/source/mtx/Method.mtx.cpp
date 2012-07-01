@@ -415,7 +415,8 @@ Method::retrieveMethodContent()
 		PrintSourceTour print_tour( tree, writer );
 		print_tour.doGeneralTour();
 		delete ret;
-		       ret = translate( dynamic_cast<IOBuffer&>( writer.getOutputStream().getIOEndPoint() ).toString() );
+		       ret = dynamic_cast<IOBuffer&>( writer.getOutputStream().getIOEndPoint() ).toString();
+        //ret = translate( dynamic_cast<IOBuffer&>( writer.getOutputStream().getIOEndPoint() ).toString() );
 	}
 	return ret;
 }
@@ -428,7 +429,7 @@ Method::retrieveMethodContent()
 void
 Method::reparseMethod( const String& content )
 {
-	AST* pAST = new AST();
+	this->methodAST->clearTree();
 
 	this->empty = content.isOnlyWhitespace() ? true : false;
 
@@ -436,7 +437,7 @@ Method::reparseMethod( const String& content )
 	{
 		try
 		{
-			pAST->parseString( content );
+			this->methodAST->parseString( content );
 		}
 		catch ( Exception* ex )
 		{
@@ -444,10 +445,31 @@ Method::reparseMethod( const String& content )
 		}
 	}
 	this->modified = true;
-
-	delete this->methodAST;
-	this->methodAST = pAST;
 }
+
+//void
+//Method::reparseMethod( const String& content )
+//{
+//	AST* pAST = new AST();
+//
+//	this->empty = content.isOnlyWhitespace() ? true : false;
+//
+//	if ( ! this->empty )
+//	{
+//		try
+//		{
+//			pAST->parseString( content );
+//		}
+//		catch ( Exception* ex )
+//		{
+//			delete ex;
+//		}
+//	}
+//	this->modified = true;
+//
+//	delete this->methodAST;
+//	this->methodAST = pAST;
+//}
 ~
 
 
@@ -501,35 +523,88 @@ Method::reparseMethod( const String& content )
 
 
 ~source/cplusplus/Method.cpp~
+static String* insertIndent( const String& content, const String& indent )
+{
+	StringBuffer sb;
+	sb.append( indent );
+
+//	fprintf( stdout, "--\n" );
+//	fprintf( stdout, "%s\n", content.getChars() );
+	
+	long len = content.getLength();
+	for ( int i=0; i < len; i++ )
+	{
+		long ch = content.charAt( i );
+		sb.append( ch );
+
+		switch ( ch )
+		{
+		case '\n':
+			sb.append( indent );
+			break;
+			
+		default:
+			break;
+		}
+	}
+
+	String* tmp = sb.asString();
+
+//	fprintf( stdout, "--\n" );
+//	fprintf( stdout, "%s\n", tmp->getChars() );
+//	fprintf( stdout, "--\n\n" );
+
+	return tmp;
+}
+
 bool
 Method::sync()
 {
 	bool status = false;
-	
+
 	if ( this->isModified() && this->isValid() )
 	{
 		MethodSignature* method_signature = extractMethodSignature( *this->methodAST );
 		if ( method_signature )
 		{
-			const char* modified_key = method_signature->getMethodKey().getChars();
-			const char* existing_key =  this->signature->getMethodKey().getChars();
-
-			ASTHelper helper( this->cu.getAST() );
-
-			if ( ! this->p )
+			String* content = this->retrieveMethodContent();
 			{
-				this->p = helper.insertMethodAST( *this->methodAST );
-				delete this->ml.getMethodPositions().insert( modified_key, this->p->copy() );
-			}
-			else
-			{
-				this->replaceMethod( modified_key, *this->methodAST, existing_key );
-			}
-			this->modified = false;
+				String* indent = this->methodAST->getIndent();
+				{
+					String* indented_content = insertIndent( *content, *indent );
+					{
+						AST ast;
+						ast.parseString( *indented_content );
 
-			delete this->signature;
-			       this->signature = new MethodSignature( *method_signature );
+						//this->methodAST->unstoreIndent();
+						{
+							const char* modified_key = method_signature->getMethodKey().getChars();
+							const char* existing_key =  this->signature->getMethodKey().getChars();
 
+							ASTHelper helper( this->cu.getAST() );
+
+							if ( ! this->p )
+							{
+								this->p = helper.insertMethodAST( ast );
+								delete this->ml.getMethodPositions().insert( modified_key, this->p->copy() );
+							}
+							else
+							{
+								this->replaceMethod( modified_key, ast, existing_key );
+							}
+							this->modified = false;
+
+							delete this->signature;
+								   this->signature = new MethodSignature( *method_signature );
+						}
+						//this->methodAST->storeIndent();
+					}
+					delete indented_content;
+				}
+				delete indent;
+			}
+			delete content;
+			
 			status = true;
 		}
 		delete method_signature;

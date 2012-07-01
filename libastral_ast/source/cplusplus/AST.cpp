@@ -11,6 +11,7 @@
 #include <openxds.base/Character.h>
 #include <openxds.base/String.h>
 #include <openxds.base/StringBuffer.h>
+#include <openxds.exceptions/NoSuchElementException.h>
 #include <openxds.io/InputStream.h>
 #include <openxds.io/InputStreamReader.h>
 #include <openxds.io/IOBuffer.h>
@@ -20,6 +21,7 @@ using namespace astral::tokenizer;
 using namespace openxds::io;
 using namespace openxds::io::exceptions;
 using namespace openxds::base;
+using namespace openxds::exceptions;
 using namespace openxds::adt;
 using namespace openxds::adt::std;
 
@@ -52,6 +54,7 @@ AST::AST()
 	this->ast      = new Tree<SourceToken>();
 	this->location = new String();
 	this->valid    = true;
+	this->indent   = new Sequence<SourceToken>();
 }
 
 AST::~AST()
@@ -59,6 +62,13 @@ AST::~AST()
 	delete this->location;
 	delete this->ast;
 }
+
+void
+AST::clearTree()
+{
+	delete this->ast; this->ast = new Tree<SourceToken>();
+}
+
 
 openxds::adt::ITree<SourceToken>&
 AST::getTree() const
@@ -69,6 +79,8 @@ AST::getTree() const
 void
 AST::parseString( const String& content )
 {
+	this->clearTree();
+
 	delete ast->addRoot( new SourceToken( SourceToken::OTHER, new String() ) );
 
 	SourceTokenizer* t = new JavaTokenizer( new InputStreamReader( new InputStream( new IOBuffer( content ) ) ) );
@@ -81,6 +93,8 @@ AST::parseString( const String& content )
 void
 AST::parseFile( const char* location )
 {
+	this->clearTree();
+
 	delete this->location;
 	this->location = new String( location );
 
@@ -971,6 +985,251 @@ AST::copySubtree( const IPosition<SourceToken>& p ) const
 	ast->ast = this->ast->copyAsTree( p );
 	
 	return ast;
+}
+
+void
+AST::storeIndent()
+{
+	IPosition<SourceToken>* p = this->findFirstMethodPosition();
+	{
+		this->addWhitespaceTokensToIndent();
+		this->matchAndRemoveIndentFromLines( *p, false );
+	}
+	delete p;
+}
+
+void
+AST::addWhitespaceTokensToIndent()
+{
+	IPosition<SourceToken>* p = this->findFirstMethodPosition();
+	{
+		IPIterator<SourceToken>* it = this->ast->children( *p );
+		{
+			bool loop = true; // until first non-space/tab element.
+			while ( loop && it->hasNext() )
+			{
+				IPosition<SourceToken>* p = it->next();
+				SourceToken& token = p->getElement();
+				switch ( token.getTokenType() )
+				{
+				case SourceToken::TAB:
+				case SourceToken::SPACE:
+				case SourceToken::LINECOMMENT:
+					{
+						SourceToken* t = this->ast->remove( p );
+						this->indent->addLast( t );
+					}
+					break;
+
+				default:
+					loop = false;
+					delete p;
+				}
+			}
+		}
+		delete it;
+	}
+	delete p;
+}
+
+bool
+AST::matchAndRemoveIndentFromLines( IPosition<SourceToken>& p, bool extractMatch )
+{
+	bool extract_match = extractMatch;
+	long token_index   = 0;
+	long indent_len    = this->indent->size();
+
+	IPIterator<SourceToken>* it = this->ast->children( p );
+	while ( it->hasNext() )
+	{
+		IPosition<SourceToken>* p = it->next();
+		{
+			SourceToken&           token  = p->getElement();
+			SourceToken::TokenType tType  = p->getElement().getTokenType();
+			const String&          tValue = p->getElement().getValue();
+			
+			//fprintf( stdout, "%20s - '%s'\n", token.getValue().getChars(), token.getTokenTypeString().getChars() );
+
+			if ( this->ast->isInternal( *p ) )
+			{
+				extract_match = this->matchAndRemoveIndentFromLines( *p, extract_match );
+				token_index   = 0;
+			}
+			else
+			{
+				switch ( tType )
+				{
+				case SourceToken::NEWLINE:
+				case SourceToken::BLANKLINE:
+				case SourceToken::LINECOMMENT:
+					extract_match = true;
+					break;
+					
+				default:
+					if ( extract_match )
+					{
+						try
+						{
+							SourceToken::TokenType iType  = this->indent->get( token_index ).getTokenType();
+							const String&          iValue = this->indent->get( token_index ).getValue();
+							
+							if ( (iType == tType) && iValue.contentEquals( tValue ) )
+							{
+								this->ast->remove( p ); p = null;
+								token_index++;
+								
+								if ( token_index == indent_len )
+								{
+									extract_match = false;
+									token_index   = 0;
+								}
+							}
+							else
+							{
+								extract_match = false;
+								token_index   = 0;
+							}
+						}
+						catch ( NoSuchElementException* ex )
+						{
+							delete ex;
+							extract_match = false;
+							token_index   = 0;
+						}
+					}
+				}
+			}
+		}
+		delete p;
+	}
+	return extract_match;
+}
+
+String*
+AST::getIndent() const
+{
+	StringBuffer sb;
+	long len = this->indent->size();
+	for ( long i=0; i < len; i++ )
+	{
+		sb.append( this->indent->get(i).getValue() );
+	}
+	return sb.asString();
+};
+
+
+//void
+//AST::unstoreIndent()
+//{
+//	IPosition<SourceToken>* p = this->findFirstMethodPosition();
+//	{
+//		long len = this->indent->size();
+//		for ( long i=0; i < len; i++ )
+//		{
+//			const SourceToken& token = this->indent->get(i);
+//			this->ast->insertChildAt( *p, new SourceToken( token ), i );
+//		}
+//		this->addIndentAfterNewlines( *p, false );
+//	}
+//	delete p;
+//	
+//	while ( ! this->indent->isEmpty() ) delete this->indent->removeFirst();
+//}
+//
+//static void insertIndentAt( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, ISequence<SourceToken>& indent, long index )
+//{
+//	IIterator<SourceToken>* it = indent.elements();
+//	while ( it->hasNext() )
+//	{
+//		SourceToken& token = it->next();
+//		ast.insertChildAt( parent, new SourceToken( token ), index++ );
+//	}
+//	delete it;
+//}
+//
+//bool
+//AST::addIndentAfterNewlines( IPosition<SourceToken>& parent, bool insertIndent )
+//{
+//	bool insert_indent = insertIndent;
+//
+//	if ( insertIndent && this->ast->nrChildren( parent ) )
+//	{
+//		IPosition<SourceToken>* p = this->ast->child( parent, 0 );
+//		if ( this->ast->isExternal( *p ) )
+//		{
+//			insertIndentAt( *this->ast, parent, *this->indent, 0 );
+//			insert_indent = false;
+//		}
+//	}
+//
+//	long len = this->ast->nrChildren( parent );
+//	for ( long i=0; i < len; i++ )
+//	{
+//		try
+//		{
+//			IPosition<SourceToken>* p = this->ast->child( parent, i );
+//			{
+//				SourceToken& token = p->getElement();
+//
+//				fprintf( stdout, "%20s - '%s'\n", token.getValue().getChars(), token.getTokenTypeString().getChars() );
+//
+//				if ( this->ast->isInternal( *p ) )
+//				{
+//					insert_indent = this->addIndentAfterNewlines( *p, insert_indent );
+//				}
+//				else
+//				{
+//					SourceToken::TokenType tType = p->getElement().getTokenType();
+//					switch ( tType )
+//					{
+//					case SourceToken::NEWLINE:
+//					case SourceToken::BLANKLINE:
+//					case SourceToken::LINECOMMENT:
+//						insert_indent = true;
+//						break;
+//					
+//					default:
+//						break;
+//					}
+//					
+//					if ( insert_indent && ( i < (len-1) ) )
+//					{
+//						insertIndentAt( *this->ast, *p, *this->indent, i+1 );   //  |\n | \t| }|
+//						insert_indent = false;                                  //    i  i+1| i
+//						
+//						i   += this->indent->size();
+//						len += this->indent->size();
+//					}
+//				}
+//			}
+//			delete p;
+//		}
+//		catch ( NoSuchElementException* ex )
+//		{
+//			delete ex;
+//		}
+//	}
+//	return insert_indent;
+//}
+
+IPosition<SourceToken>*
+AST::findFirstMethodPosition()
+{
+	IPosition<SourceToken>& r = this->ast->getRoot();
+
+	switch ( r.getElement().getTokenType() )
+	{
+	case SourceToken::OTHER:
+		return this->ast->child( r, 0 );
+		break;
+
+	case SourceToken::METHOD:
+		return this->ast->root();
+		break;
+
+	default:
+		return null;
+	}
 }
 
 //void
