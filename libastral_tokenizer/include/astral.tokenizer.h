@@ -7,6 +7,8 @@
 namespace astral {
 	namespace tokenizer {
 
+class PUBLIC IxTokenizer;
+class PUBLIC JavaTokenizer;
 class PUBLIC SourceToken;
 class PUBLIC SourceTokenizer;
 

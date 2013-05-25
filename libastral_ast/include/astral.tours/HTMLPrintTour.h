@@ -49,27 +49,27 @@ public:
 	switch ( token.getTokenType() )
 	{
 	case SourceToken::METHOD:
-		writer.print( openxds::base::FormattedString( "<div class='%s' name='%s'>", type, name ) );
+		writer.print( openxds::base::FormattedString( "<span class='%s' name='%s'>", type, name ) );
 		break;
 	case astral::tokenizer::SourceToken::PARAMETERS:
 	case astral::tokenizer::SourceToken::ARGUMENTS:
-		writer.print( openxds::base::FormattedString( "<div class='%s inline' name='%s'>", type, name ) );
+		writer.print( openxds::base::FormattedString( "<span class='%s inline' name='%s'>", type, name ) );
 		break;
 	case astral::tokenizer::SourceToken::METHODCALL:
-		writer.print( openxds::base::FormattedString( "<div class='%s inline' name='%s'>", type, name ) );
+		writer.print( openxds::base::FormattedString( "<span class='%s inline' name='%s'>", type, name ) );
 		break;
 	case astral::tokenizer::SourceToken::PARAMETER:
 	case astral::tokenizer::SourceToken::ARGUMENT:
-		writer.print( openxds::base::FormattedString( "<div class='%s inline' name='%s'>", type, name ) );
+		writer.print( openxds::base::FormattedString( "<span class='%s inline' name='%s'>", type, name ) );
 		break;
 	case SourceToken::BLOCK:
-		writer.print( openxds::base::FormattedString( "<div class='%s' name='%s'>", type, name ) );
+		writer.print( openxds::base::FormattedString( "<span class='%s' name='%s'>", type, name ) );
 		break;
 	case SourceToken::DECLARATION:
-		writer.print( openxds::base::FormattedString( "<div class='%s' name='%s'>", type, name ) );
+		writer.print( openxds::base::FormattedString( "<span class='%s' name='%s'>", type, name ) );
 		break;
 	default:
-		writer.print( openxds::base::FormattedString( "<div class='%s' name='%s'>", type, name ) );
+		writer.print( openxds::base::FormattedString( "<span class='%s' name='%s'>", type, name ) );
 		break;
 	}
 		
@@ -85,7 +85,7 @@ public:
 		switch ( token.getTokenType() )
 		{
 		default:
-			writer.print( "</div>" );
+			writer.print( "</span>" );
 			break;
 		}
 		
@@ -105,13 +105,13 @@ public:
 			writer.print( " " );
 			break;
 		case SourceToken::TAB:
-			writer.print( openxds::base::FormattedString( "<span class='%s'></span>", ttype ) );
+			writer.print( openxds::base::FormattedString( "<span class='%s'>\t</span>", ttype ) );
 			break;
 		case SourceToken::BLANKLINE:
-			writer.print( openxds::base::FormattedString( "<span class='%s'><br></span>\n", ttype ) );
+			writer.print( openxds::base::FormattedString( "<span class='%s'>\n</span>", ttype ) );
 			break;
 		case SourceToken::NEWLINE:
-			writer.print( openxds::base::FormattedString( "<span class='%s'><br></span>\n", ttype ) );
+			writer.print( openxds::base::FormattedString( "<span class='%s'>\n</span>", ttype ) );
 			break;
 		case SourceToken::STARTBLOCK:
 			writer.print( "<span>{</span>" );

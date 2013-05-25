@@ -21,6 +21,8 @@ public:
 	virtual bool       isKeyword( const openxds::base::String& word ) const;
 	virtual bool      isModifier( const openxds::base::String& word ) const;
 	virtual bool isPrimitiveType( const openxds::base::String& word ) const;
+	
+	static bool  IsPrimitiveType( const openxds::base::String& word );
 };
 	
 };};

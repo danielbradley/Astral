@@ -21,14 +21,15 @@ static void usage()
 static void run( int argc, const char** argv )
 {
 	const char* ext_java   = ".java";
-	const char* ext_cobalt = ".cm";
-	const char* ext = ext_java;
+	const char* ext_ix     = ".ix";
+
+	const char* ext        = ext_java;
 
 	int i=1;
 	
-	if ( (argc > 1) && (0 == strcmp( argv[1], "--cobalt" )) )
+	if ( (argc > 1) && (0 == strcmp( argv[1], "--ix" )) )
 	{
-		ext = ext_cobalt;
+		ext = ext_ix;
 		i++;
 	}
 

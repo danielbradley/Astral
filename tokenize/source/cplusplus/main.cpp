@@ -31,6 +31,7 @@ int main( int argc, const char** argv )
 	case 1:
 		usage();
 		break;
+
 	default:
 		run( argc, argv );
 	}
@@ -39,7 +40,7 @@ int main( int argc, const char** argv )
 
 static void usage()
 {
-	fprintf( stdout, "Usage: tokenize <Java Source File> ...\n" );
+	fprintf( stdout, "Usage: tokenize <Source File> ...\n" );
 }
 
 static void run( int argc, const char** argv )
@@ -73,15 +74,28 @@ void tokenizeEachPath( const Sequence<Path>& paths )
 
 void tokenizePath( const Path& path )
 {
-	JavaTokenizer tokenizer( path.getAbsolute() );
-	while ( tokenizer.hasMoreTokens() )
+	fprintf( stdout, "<style>\n" );
+	fprintf( stdout, "*                   { font-size:12px; font-family:'Lucida Console', 'Monaco', monospace; }\n" );
+	fprintf( stdout, ".KEYWORD, .MODIFIER { color:#800080; }\n" );
+	fprintf( stdout, ".MEMBER             { color:#00AA00; }\n" );
+	fprintf( stdout, ".NAME               { color:#555555; }\n" );
+	fprintf( stdout, ".TYPE               { color:#800080; }\n" );
+	fprintf( stdout, "</style>\n" );
+
+	fprintf( stdout, "<pre id='%s'>", path.getAbsolute().getChars() );
+
+	SourceTokenizer* tokenizer = SourceTokenizer::createFor( path.getAbsolute() );
+	while ( tokenizer->hasMoreTokens() )
 	{
-		SourceToken* token = tokenizer.nextToken();
+		SourceToken* token = tokenizer->nextToken();
 		{
 			printToken( *token );
 		}
 		delete token;
 	}
+	delete tokenizer;
+
+	fprintf( stdout, "</pre" );
 }
 
 void printToken( const SourceToken& token )
@@ -98,6 +112,7 @@ void printToken( const SourceToken& token )
 		fprintf( stdout, "%s", value );
 		break;
 	default:
-		fprintf( stdout, "<%s value='%s' />", type, value );
+		//fprintf( stdout, "<%s value='%s' />", type, value );
+		fprintf( stdout, "<span class='%s'>%s</span>", type, value );
 	}
 }

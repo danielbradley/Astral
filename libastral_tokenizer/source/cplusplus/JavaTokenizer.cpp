@@ -1,9 +1,12 @@
 #include "astral.tokenizer/JavaTokenizer.h"
 
 #include <openxds.base/String.h>
+#include <openxds.io/IO.h>
+#include <openxds.io/PrintWriter.h>
 
 using namespace astral::tokenizer;
 using namespace openxds::base;
+using namespace openxds::io;
 
 bool
 JavaTokenizer::isKeyword( const String& word ) const
@@ -54,6 +57,21 @@ JavaTokenizer::isModifier( const String& word ) const
 
 bool
 JavaTokenizer::isPrimitiveType( const String& word ) const
+{
+	return (
+			word.contentEquals( "byte" )
+		||	word.contentEquals( "short" )
+		||	word.contentEquals( "char" )
+		||	word.contentEquals( "int" )
+		||	word.contentEquals( "long" )
+		||	word.contentEquals( "float" )
+		||	word.contentEquals( "double" )
+		||	word.contentEquals( "boolean" )
+		||	word.contentEquals( "void" ) );
+}
+
+bool
+JavaTokenizer::IsPrimitiveType( const String& word )
 {
 	return (
 			word.contentEquals( "byte" )

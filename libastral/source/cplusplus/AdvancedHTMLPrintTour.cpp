@@ -1,9 +1,12 @@
 #include "astral/AdvancedHTMLPrintTour.h"
 #include "astral/CodeBase.h"
 #include "astral/CompilationUnit.h"
+#include "astral/ExpressionTypeStack.h"
 #include "astral/InvocationClass.h"
 #include "astral/MemberSignature.h"
 #include "astral/MethodSignature.h"
+#include "astral/Name.h"
+#include "astral/Type.h"
 #include "astral/VariableScopes.h"
 
 #include <openxds.io/PrintWriter.h>
@@ -20,6 +23,7 @@
 #include <openxds.base/String.h>
 #include <openxds.base/StringBuffer.h>
 #include <openxds.base/StringTokenizer.h>
+#include <openxds.io/IO.h>
 
 using namespace astral;
 using namespace astral::tokenizer;
@@ -42,14 +46,16 @@ AdvancedHTMLPrintTour::AdvancedHTMLPrintTour(
 {
 	this->depth = -1;
 	
-	this->scopes          = new VariableScopes( this->tree );
-	this->invocationClass = new InvocationClass();
+	this->scopes              = new VariableScopes( this->tree );
+	//this->invocationClass     = new InvocationClass();
+	this->expressionTypeStack = new ExpressionTypeStack( ClassSignature( this->cu.getFQName() ) );
 }
 
 AdvancedHTMLPrintTour::~AdvancedHTMLPrintTour()
 {
 	delete this->scopes;
-	delete this->invocationClass;
+	//delete this->invocationClass;
+	delete this->expressionTypeStack;
 }
 	
 void
@@ -75,7 +81,9 @@ AdvancedHTMLPrintTour::visitPreorder( openxds::adt::IPosition<SourceToken>& p, o
 		break;
 
 	case SourceToken::ARGUMENTS:
-		this->invocationClass->pushReturnType();
+		//this->invocationClass->pushReturnType();
+		this->expressionTypeStack->pushReturnType();
+		break;
 
 	default:
 		break;
@@ -123,7 +131,8 @@ AdvancedHTMLPrintTour::visitPostorder( openxds::adt::IPosition<SourceToken>& p, 
 		break;
 
 	case SourceToken::ARGUMENTS:
-		this->invocationClass->popReturnType();
+		//this->invocationClass->popReturnType();
+		this->expressionTypeStack->popReturnType();
 		break;
 
 	default:
@@ -153,7 +162,8 @@ AdvancedHTMLPrintTour::visitExternal( openxds::adt::IPosition<SourceToken>& p, o
 		break;
 
 	default:
-		this->invocationClass->clearTypes();
+		//this->invocationClass->clearTypes();
+		this->expressionTypeStack->clearTypes();
 	}
 
 	switch ( token.getTokenType() )
@@ -197,67 +207,111 @@ AdvancedHTMLPrintTour::visitExternal( openxds::adt::IPosition<SourceToken>& p, o
 
 	case SourceToken::KEYWORD:
 		{
+			Name           name( value );
 			String this_keyword( "this" );
+
 			if ( this_keyword.contentEquals( value ) )
 			{
-				this->invocationClass->setLastType( this->cu.resolveFQTypeOfName( value, *this->scopes ) );
+				Type* fq_type = this->cu.resolveFQTypeOfName( name, *this->scopes );
+				{
+					const String& fq_type_value = fq_type->getValue();
+				
+					//this->invocationClass->setLastType( fq_type_value );
+					this->expressionTypeStack->setLastType( *fq_type );
+
+					writer.print( openxds::base::FormattedString( "<span class='%s' title='%s'>%s</span>", ttype, fq_type_value.getChars(), value ) );
+				}
+				delete fq_type;
 			}
-			writer.print( openxds::base::FormattedString( "<span class='%s' title='%s'>%s</span>", ttype, this->invocationClass->getLastType().getChars(), value ) );
+			else
+			{
+//				const char* fq_last_type = "";
+//				const Type& t = this->expressionTypeStack->getLastType();
+//				if ( &t )
+//				{
+//					fq_last_type = t.getValue().getChars();
+//				}
+//			
+				writer.print( openxds::base::FormattedString( "<span class='%s'>%s</span>", ttype, value ) );
+			}
 		}
 		break;
 	
 	case SourceToken::NAME:
 		{
-			String* fq_class_of_value = NULL;
+			fprintf( stderr, "AdvancedHTMLPrintTour: %s\n", value );
+		
+			Type* fq_type = null;
 			{
-				if ( this->invocationClass->hasEnclosingType() )
+				if ( this->expressionTypeStack->hasEnclosingType() )
 				{
-					const char* enclosing_type = this->invocationClass->getEnclosingType().getChars();
+					const char* enclosing_type = this->expressionTypeStack->getEnclosingType().getValue().getChars();
 
 					MemberSignature* member_signature = this->codebase.completeMemberSignature( enclosing_type, value );
 					if ( member_signature->isValid() )
 					{
-						fq_class_of_value = this->cu.resolveFQTypeOfType( member_signature->getType().getChars() );
-						this->invocationClass->setLastType( *fq_class_of_value );
+						Type type( member_signature->getType() );
+					
+						fq_type = this->cu.resolveFQTypeOfType( type );
+						this->expressionTypeStack->setLastType( *fq_type );
 					}
 					else
 					{
-						this->invocationClass->setUnknownName( value );
-						fq_class_of_value = new String();
+						this->expressionTypeStack->setUnknownName( Name( value ) );
+						//fq_class_of_value = new String();
 					}
 					delete member_signature;
 				}
 				else
 				{
-					fq_class_of_value = this->cu.resolveFQTypeOfName( value, *this->scopes );
-					if ( ! fq_class_of_value->getLength() )
+					Name name( value );
+				
+					fq_type = this->cu.resolveFQTypeOfName( name, *this->scopes );
+					if ( ! fq_type )
 					{
-						delete fq_class_of_value;
-						fq_class_of_value = this->cu.resolveFQTypeOfType( value );
+						Type type( value );
+
+						fq_type = this->cu.resolveFQTypeOfType( type );
 					}
 					
-					if ( fq_class_of_value->getLength() )
+					if ( fq_type )
 					{
-						this->invocationClass->setLastType( *fq_class_of_value );
+						this->expressionTypeStack->setLastType( *fq_type );
+						//this->invocationClass->setLastType( fq_type->getValue() );
+						//IO::err().printf( "AdvancedHTMLPrintTour: %20s %s\n", name.getValue().getChars(), fq_type->getValue().getChars() );
 					}
 					else
 					{
-						this->invocationClass->setUnknownName( value );
+						this->expressionTypeStack->setUnknownName( Name( value ) );
+						//this->invocationClass->setUnknownName( value );
+						//IO::err().printf( "AdvancedHTMLPrintTour: %20s %s\n", name.getValue().getChars(), "unknown" );
 					}
 				}
-
-				if ( ! fq_class_of_value->contentEquals( "" ) )
+				
+				if ( fq_type )
 				{
-					const char* _fq_class_of_value = fq_class_of_value->getChars();
-					writer.printf( "<a class='%s' title='%s' href='%s.html'>%s</a>", ttype, _fq_class_of_value, _fq_class_of_value, value );
+					switch ( fq_type->getType() )
+					{
+					case Type::PRIMITIVE:
+						{
+							const char* _fq_class_of_value = fq_type->getValue().getChars();
+							writer.printf( "<a class='%s' title='%s' href='%s.html'>%s</a>", ttype, _fq_class_of_value, _fq_class_of_value, value );
+						}
+						break;
+
+					default:
+						{
+							//const char* compound_string = this->expressionTypeStack->getCompoundString().getChars();
+							writer.printf( "<span class='%s' title='' style='color:#555'>%s</span>", ttype, value );
+						}
+					}
 				}
 				else
 				{
-					const char* compound_string = this->invocationClass->getCompoundString().getChars();
-					writer.printf( "<span class='%s' title='%s' style='color:#555'>%s</span>", ttype, compound_string, value );
+					writer.printf( "<span class='%s' style='color:#555'>%s</span>", ttype, value );
 				}
 			}
-			delete fq_class_of_value;
+			delete fq_type;
 		}
 		break;
 
@@ -275,50 +329,109 @@ AdvancedHTMLPrintTour::visitExternal( openxds::adt::IPosition<SourceToken>& p, o
 					//	2)	The type of the last name, or methodcall return type, e.g. name.methodcall()
 					//	3)	A method resolved within the current scope, e.g. StringBuffer() or methodcall()
 				
-					String* invocation_class = NULL;
+					Type type( value );
+				
+					Type* invocation_type = NULL;
 					{
-						if ( this->invocationClass->hasEnclosingType() )
+						if ( constructor )
 						{
-							invocation_class = this->invocationClass->getEnclosingType().asString();
-						}
-						else if ( constructor )
-						{
-							invocation_class = this->cu.resolveFQTypeOfType( value );
+							invocation_type = this->cu.resolveFQTypeOfType( type );
 						}
 						else
 						{
-							invocation_class = this->cu.getFQName().asString();
+							invocation_type = this->expressionTypeStack->copyEnclosingType();
 						}
 						
-						MethodSignature* method_signature = this->codebase.completeMethodSignature( invocation_class->getChars(), value, parameters->getChars() );
-						if ( method_signature && method_signature->isValid() )
+						if ( invocation_type && !invocation_type->isUserType() )
 						{
-							const char* _fq_class    = method_signature->getFQClass().getChars();
-							const char* _method_name = method_signature->getMethodName().getChars();
-							const char* _parameters  = parameters->getChars();
-						
-							writer.printf( "<a class='%s' href='%s.html#%s(%s)'>%s</a>", ttype, _fq_class, _method_name, _parameters, value );
-
-							this->invocationClass->setLastType( this->cu.resolveFQTypeOfType( method_signature->getReturnType().getChars() ) );
+							writer.printf( "<span class='%s'>%s</span>", ttype, value );
 						}
 						else
+						if ( invocation_type )
 						{
-							String* title = new String( value );
+							MethodSignature* method_signature = this->codebase.completeMethodSignature( *invocation_type, value, parameters->getChars() );
+							if ( method_signature && method_signature->isValid() )
 							{
-								if ( invocation_class->getLength() )
+								Type  return_type( method_signature->getReturnType() );
 								{
-									delete title;
-									       title = new FormattedString( "%s.%s", invocation_class->getChars(), value );
-								}
-								writer.printf( "<span class='%s' title='%s' style='color:red;'>%s</span>", ttype, title->getChars(), value );
-							}
-							delete title;
+									Type* fq_return_type = this->cu.resolveFQTypeOfType( return_type );
+									{
+										this->expressionTypeStack->setLastType( *fq_return_type );
 
-							this->invocationClass->clearTypes();
+										const char* _original       = method_signature->getOriginal().getChars();
+										const char* _fq_class       = method_signature->getFQClass().getChars();
+										const char* _method_name    = method_signature->getMethodName().getChars();
+										const char* _parameters     = parameters->getChars();
+										const char* _fq_return_type = fq_return_type->getValue().getChars();
+								
+										writer.printf( "<a class='%s' href='%s.html#%s(%s)' title='%s' data-returns='%s'>%s</a>", ttype, _fq_class, _method_name, _parameters, _original, _fq_return_type, value );
+									}
+									delete fq_return_type;
+								}
+							}
+							else
+							{
+								String* title = new FormattedString( "%s.%s", invocation_type->getValue().getChars(), value );
+								{
+									writer.printf( "<span class='%s' title='%s' style='color:red;'>%s</span>", ttype, title->getChars(), value );
+								}
+								delete title;
+
+								this->expressionTypeStack->clearTypes();
+							}
+							delete method_signature;
 						}
-						delete method_signature;
+						else
+						{
+							writer.printf( "<span style='color:red;'>%s</span>", value );
+						}
 					}
-					delete invocation_class;
+					delete invocation_type;
+					
+//					Type* invocation_class = NULL;
+//					{
+//						if ( //this->invocationClass->hasEnclosingType() )
+//						{
+//							invocation_class = //this->invocationClass->getEnclosingType().asString();
+//						}
+//						else if ( constructor )
+//						{
+//							invocation_class = this->cu.resolveFQTypeOfType( Type( value ) );
+//						}
+//						else
+//						{
+//							invocation_class = this->cu.getFQName().asString();
+//						}
+//						
+//						MethodSignature* method_signature = this->codebase.completeMethodSignature( invocation_class->getChars(), value, parameters->getChars() );
+//						if ( method_signature && method_signature->isValid() )
+//						{
+//							const char* _fq_class    = method_signature->getFQClass().getChars();
+//							const char* _method_name = method_signature->getMethodName().getChars();
+//							const char* _parameters  = parameters->getChars();
+//						
+//							writer.printf( "<a class='%s' href='%s.html#%s(%s)'>%s</a>", ttype, _fq_class, _method_name, _parameters, value );
+//
+//							//this->invocationClass->setLastType( this->cu.resolveFQTypeOfType( Type( method_signature->getReturnType().getChars() ) ) );
+//						}
+//						else
+//						{
+//							String* title = new String( value );
+//							{
+//								if ( invocation_class->getLength() )
+//								{
+//									delete title;
+//									       title = new FormattedString( "%s.%s", invocation_class->getChars(), value );
+//								}
+//								writer.printf( "<span class='%s' title='%s' style='color:red;'>%s</span>", ttype, title->getChars(), value );
+//							}
+//							delete title;
+//
+//							//this->invocationClass->clearTypes();
+//						}
+//						delete method_signature;
+//					}
+//					delete invocation_class;
 				}
 				delete parameters;
 			}
@@ -332,10 +445,43 @@ AdvancedHTMLPrintTour::visitExternal( openxds::adt::IPosition<SourceToken>& p, o
 
 	case SourceToken::TYPE:
 		{
-			String* fq_class = this->cu.resolveFQTypeOfType( value );
-			if ( fq_class->getLength() )
+			bool platform_type = false;
+		
+			Type type( value );
+			Type* fq_class = this->cu.resolveFQTypeOfType( type );
+//			if ( ! fq_class )
+//			{
+//				fq_class = this->cu.resolveFQTypeOfPlatformType( type );
+//				if ( fq_class ) platform_type = true;
+//			}
+			
+			if ( fq_class )
 			{
-				writer.print( openxds::base::FormattedString( "<a class='%s' title='%s' href='%s.html'>%s</a>", ttype, fq_class->getChars(), fq_class->getChars(), value ) );
+				const String& fq_class_value = fq_class->getValue();
+			
+				switch ( fq_class->getType() )
+				{
+				case Type::PRIMITIVE:
+					writer.print( openxds::base::FormattedString( "<span class='%s' title='%s'>%s</span>", ttype, fq_class_value.getChars(), value ) );
+					break;
+					
+				case Type::COMPLEX:
+					if ( fq_class->isUserType() )
+					{
+						writer.print( openxds::base::FormattedString( "<a class='%s' title='%s' href='%s.html'>%s</a>", ttype, fq_class_value.getChars(), fq_class_value.getChars(), value ) );
+					}
+					else
+					{
+						writer.print( openxds::base::FormattedString( "<span class='%s' title='%s'>%s</span>", ttype, fq_class_value.getChars(), value ) );
+					}
+					break;
+				}
+			}
+			else
+			if ( fq_class )
+			{
+				const String& fq_class_value = fq_class->getValue();
+				writer.print( openxds::base::FormattedString( "<span class='%s' title='%s'>%s</span>", ttype, fq_class_value.getChars(), value ) );
 			}
 			else
 			{

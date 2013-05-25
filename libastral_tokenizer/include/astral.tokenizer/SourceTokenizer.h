@@ -16,6 +16,9 @@ namespace astral {
 	
 class SourceTokenizer : public openxds::Object
 {
+public:
+	static SourceTokenizer* createFor( const openxds::base::String& location );
+
 private:
 	openxds::util::ITextTokenizer* tt;
 	openxds::adt::ISequence<SourceToken>* tokenQueue;

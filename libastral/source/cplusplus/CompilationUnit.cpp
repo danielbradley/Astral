@@ -13,7 +13,11 @@
 #include <astral/MethodCall.h>
 #include <astral/MethodsList.h>
 #include <astral/MethodSignature.h>
+#include <astral/Name.h>
+#include <astral/Type.h>
+#include <astral/Platform.h>
 #include <astral/PlatformTypes.h>
+#include <astral/PrimitiveType.h>
 #include <astral/SymbolDB.h>
 #include <astral/VariableScopes.h>
 #include <astral.ast/AST.h>
@@ -81,6 +85,9 @@ CompilationUnit::CompilationUnit( const CodeBase& codebase, const char* location
 	
 	this->importedTypes   = new Dictionary<String>();
 	this->methodObjects   = new Dictionary<Method>();
+	
+	Dictionary<String>* dict = dynamic_cast<Dictionary<String>* >( this->importedTypes );
+	dict->setThrowExceptions( FALSE );
 }
 
 CompilationUnit::~CompilationUnit()
@@ -234,121 +241,226 @@ CompilationUnit::deregisterSymbols( IDictionary<const IEntry<CompilationUnit> >&
 	delete ie;
 }
 
-String*
-CompilationUnit::resolveFQTypeOfName( const char* name, const VariableScopes& scopes ) const
+const CompilationUnit&
+CompilationUnit::getSuperclassCU() const
+throw (NoSuchElementException*)
 {
-	String* fq_type = new String();
+	const CompilationUnit* cu = null;
 	{
-		String* type = this->resolveTypeOfName( name, scopes );
-		if ( type->getLength() )
+		ClassSignature* cs = dynamic_cast<ClassSignature*>( this->resolveFQTypeOfType( *this->extendsClass ) );
+		if ( cs )
 		{
-			ClassSignature class_signature( *type );
-			const char* _type = class_signature.getClassName().getChars();
+			cu = &this->codebase.getCompilationUnit( *cs );
+		}
+		else
+		{
+			throw new NoSuchElementException();
+		}
+		delete cs;
+	}
+	
+	return *cu;
+}
 
-			String* tmp = this->resolveFQTypeOfType( _type );
-			if ( tmp->getLength() )
-			{
-				ClassSignature fq_sig( *tmp );
-				const char* _nspace = fq_sig.getNamespace().getChars();
-				const char* _gClass = class_signature.getGenericClass().getChars();
-				
-				delete fq_type; fq_type = new FormattedString( "%s.%s", _nspace, _gClass );
-			}
-			delete type; type = this->resolveFQTypeOfType( _type );
+//String*
+//CompilationUnit::resolveFQTypeOfName( const char* name, const VariableScopes& scopes ) const
+//{
+//	String* fq_type = new String();
+//	{
+//		String* type = this->resolveTypeOfName( name, scopes );
+//		if ( type->getLength() )
+//		{
+//			ClassSignature class_signature( *type );
+//			const char* _type = class_signature.getClassName().getChars();
+//
+//			String* tmp = this->resolveFQTypeOfType( _type );
+//			if ( tmp->getLength() )
+//			{
+//				ClassSignature fq_sig( *tmp );
+//				const char* _nspace = fq_sig.getNamespace().getChars();
+//				const char* _gClass = class_signature.getGenericClass().getChars();
+//				
+//				delete fq_type; fq_type = new FormattedString( "%s.%s", _nspace, _gClass );
+//			}
+//			delete type; type = this->resolveFQTypeOfType( _type );
+//		}
+//		delete type;
+//	}
+//	return fq_type;
+//}
+
+Type*
+CompilationUnit::resolveFQTypeOfName( const Name& name, const VariableScopes& scopes ) const
+{
+	Type* fq_type = null;
+	{
+		Type* type = this->resolveTypeOfName( name, scopes );
+		if ( type )
+		{
+			fq_type = this->resolveFQTypeOfType( *type );
 		}
 		delete type;
 	}
 	return fq_type;
 }
 
-String*
-CompilationUnit::resolveFQTypeOfType( const char* type ) const
+//String*
+//CompilationUnit::resolveFQTypeOfType( const char* type ) const
+//{
+//	String* fq_type = new String( type );
+//
+//	if ( ! JavaTokenizer::IsPrimitiveType( type ) )
+//	{
+//		StringBuffer sb;
+//
+//		const IEntry<String>* e = this->importedTypes->find( type );
+//		if ( e )
+//		{
+//			sb.append( e->getValue() );
+//			sb.append( "." );
+//			sb.append( type );
+//
+//			delete e;
+//		}
+//
+//		delete fq_type; fq_type = sb.asString();
+//	}
+//	return fq_type;
+//}
+
+Type*
+CompilationUnit::resolveFQTypeOfType( const Type& type ) const
 {
-	JavaTokenizer java_tokenizer;
-
-	String* fq_type = new String( type );
-
-	if ( ! java_tokenizer.isPrimitiveType( type ) )
+	Type* fq_type = null;
+	
+	const String& type_string = type.getValue();
+	
+	if ( ! JavaTokenizer::IsPrimitiveType( type_string ) )
 	{
 		StringBuffer sb;
 
 		try
 		{
-			const IEntry<String>* e = this->importedTypes->find( type );
+			const IEntry<String>* e = this->importedTypes->find( type.getValue().getChars() );
+			if ( e )
 			{
 				sb.append( e->getValue() );
 				sb.append( "." );
-				sb.append( type );
+				sb.append( type.getValue() );
+
+				fq_type = new ClassSignature( sb.getChars() );
+
+				delete e;
 			}
-			delete e;
+			else
+			{
+				fq_type = this->resolveFQTypeOfPlatformType( type );
+			}
 		}
 		catch ( NoSuchElementException* ex )
 		{
 			delete ex;
 		}
-
-		delete fq_type; fq_type = sb.asString();
+	}
+	else
+	{
+		fq_type = new PrimitiveType( type.getValue() );
 	}
 	return fq_type;
 }
 
-String*
-CompilationUnit::resolveFQTypeOfPlatformType( const char* type ) const
-{
-	PTypes platformTypes;
+//String*
+//CompilationUnit::resolveFQTypeOfPlatformType( const char* type ) const
+//{
+//	PTypes platformTypes;
+//
+//	if ( platformTypes.hasType( type ) )
+//	{
+//		return new String( platformTypes.resolve( type ) );
+//	}
+//	else
+//	{
+//		return new String();
+//	}
+//}
 
-	if ( platformTypes.hasType( type ) )
-	{
-		return new String( platformTypes.resolve( type ) );
-	}
-	else
-	{
-		return new String();
-	}
+Type*
+CompilationUnit::resolveFQTypeOfPlatformType( const Type& type ) const
+{
+	return this->codebase.getPlatform().resolve( this->getImportsList(), type );
 }
 
-String*
-CompilationUnit::resolveTypeOfName( const char* name, const VariableScopes& scopes ) const
-{
-	String* type = NULL;
+//String*
+//CompilationUnit::resolveTypeOfName( const char* name, const VariableScopes& scopes ) const
+//{
+//	String* type = NULL;
+//
+//	String _name( name );
+//	if ( _name.contentEquals( "this" ) )
+//	{
+//		type = new String( this->getName() );
+//	}
+//	else
+//	{
+//		StringTokenizer st( _name );
+//		st.setDelimiter( '[' );
+//		if ( st.hasMoreTokens() )
+//		{
+//			String* variable_name = st.nextToken();
+//			{
+//				Name _variable_name( variable_name->getChars() );
+//			
+//				Type* _type = scopes.searchForTypeOfName( _variable_name );
+//				{
+//					type = _type->getValue().asString();
+//				
+//					if ( type->contentEquals( "" ) )
+//					{
+//						delete type;
+//						type = this->resolveMemberType( variable_name->getChars() );
+//					}
+//
+//					if ( ! variable_name->contentEquals( name ) )
+//					{
+//						StringBuffer sb;
+//						sb.append( *type );
+//						if ( ']' == sb.charAt( sb.getLength() - 1 ) ) sb.removeLast();
+//						if ( '[' == sb.charAt( sb.getLength() - 1 ) ) sb.removeLast();
+//
+//						delete type;
+//						type = sb.asString();
+//					}
+//				}
+//				delete _type;
+//			}
+//			delete variable_name;
+//		}
+//	}
+//
+//	//fprintf( stderr, "CompilationUnit::resolveTypeOfName( %s, scopes ) | %s\n", name, type->getChars() );
+//
+//	return type;
+//}
 
-	String _name( name );
-	if ( _name.contentEquals( "this" ) )
+Type*
+CompilationUnit::resolveTypeOfName( const Name& name, const VariableScopes& scopes ) const
+{
+	Type* type = null;
+
+	if ( name.getValue().contentEquals( "this" ) )
 	{
-		type = new String( this->getName() );
+		type = new Type( this->getName() );
 	}
 	else
 	{
-		StringTokenizer st( _name );
-		st.setDelimiter( '[' );
-		if ( st.hasMoreTokens() )
+		type = scopes.searchForTypeOfName( name );
+		
+		if ( ! type )
 		{
-			String* variable_name = st.nextToken();
-			{
-				type = scopes.searchForTypeOfName( variable_name->getChars() );
-				if ( type->contentEquals( "" ) )
-				{
-					delete type;
-					type = this->resolveMemberType( variable_name->getChars() );
-				}
-
-				if ( ! variable_name->contentEquals( name ) )
-				{
-					StringBuffer sb;
-					sb.append( *type );
-					if ( ']' == sb.charAt( sb.getLength() - 1 ) ) sb.removeLast();
-					if ( '[' == sb.charAt( sb.getLength() - 1 ) ) sb.removeLast();
-
-					delete type;
-					type = sb.asString();
-				}
-			}
-			delete variable_name;
+			type = this->resolveMemberType( name );
 		}
 	}
-
-	//fprintf( stderr, "CompilationUnit::resolveTypeOfName( %s, scopes ) | %s\n", name, type->getChars() );
-
+	
 	return type;
 }
 
@@ -379,18 +491,40 @@ CompilationUnit::resolveTypeOfName( const char* name, const VariableScopes& scop
 //	return type;
 //}
 
-String*
-CompilationUnit::resolveMemberType( const char* name ) const
+//String*
+//CompilationUnit::resolveMemberType( const char* name ) const
+//{
+//	String* ret = new String( "" );
+//	try
+//	{
+//		IEntry<IPosition<SourceToken> >* e = this->members->startsWith( name );
+//		{
+//				//	e->getKey returns name|type (or name|type<?>)
+//
+//				MemberSignature member_signature( e->getKey() );
+//				delete ret; ret = member_signature.getType().asString();
+//		}
+//		delete e;
+//	}
+//	catch ( NoSuchElementException* ex )
+//	{
+//		delete ex;
+//	}
+//	return ret;
+//}
+
+Type*
+CompilationUnit::resolveMemberType( const Name& name ) const
 {
-	String* ret = new String( "" );
+	Type* ret = null;
 	try
 	{
-		IEntry<IPosition<SourceToken> >* e = this->members->startsWith( name );
+		IEntry<IPosition<SourceToken> >* e = this->members->startsWith( name.getValue().getChars() );
 		{
-				//	e->getKey returns name|type (or name|type<?>)
+			//	e->getKey returns name|type (or name|type<?>)
 
-				MemberSignature member_signature( e->getKey() );
-				delete ret; ret = member_signature.getType().asString();
+			MemberSignature member_signature( e->getKey() );
+			ret = new Type( member_signature.getType() );
 		}
 		delete e;
 	}
@@ -500,10 +634,10 @@ CompilationUnit::resolveMethodCallParametersToTypes( const String& parameters, c
 				}
 				else
 				{
-					const char* name = token->getChars();
-					String* type = this->resolveTypeOfName( name, scopes );
+					Name name( token->getChars() );
+					Type* type = this->resolveTypeOfName( name, scopes );
 					{
-						sb.append( *type );
+						sb.append( type->getValue() );
 						sb.append( ',' );
 					}
 					delete type;
@@ -519,20 +653,19 @@ CompilationUnit::resolveMethodCallParametersToTypes( const String& parameters, c
 	return sb.asString();
 }
 
-String*
-CompilationUnit::resolveMethodCallReturnType( const CodeBase& codebase, const ITree<SourceToken>& tree, const IPosition<SourceToken>& methodcall, const VariableScopes& scopes, const String& invocationClass ) const
+Type*
+CompilationUnit::resolveMethodCallReturnType( const CodeBase& codebase, const ITree<SourceToken>& tree, const IPosition<SourceToken>& methodcall, const VariableScopes& scopes, const Type& invocationClass ) const
 {
 	const char* name = methodcall.getElement().getValue().getChars();
 
-	String* return_type = new String();
+	Type* return_type = NULL;
 	{
 		String* arguments = this->resolveMethodCallArgumentTypes( codebase, tree, methodcall, scopes );
 		{
-			MethodSignature* method_signature = codebase.completeMethodSignature( invocationClass.getChars(), name, arguments->getChars() );
+			MethodSignature* method_signature = codebase.completeMethodSignature( invocationClass.getValue().getChars(), name, arguments->getChars() );
 			if ( method_signature && method_signature->isValid() )
 			{
-				delete return_type;
-				return_type = new String( method_signature->getReturnType() );
+				return_type = new Type( method_signature->getReturnType() );
 			}
 			delete method_signature;
 		}
@@ -546,6 +679,16 @@ CompilationUnit::resolveMethodCallReturnType( const CodeBase& codebase, const IT
 	return return_type;
 }
 
+/*
+ *	This call chain attempts to resolve the types of arguments that have been passed to a method in order to resolve the actual method being called.
+ *
+ *	This method finds the parent ARGUMENTS SourceToken of the AST, then passes it to "recurseMethodArguments", which in turn locates the parent SourceToken
+ *	of each argument and passes it to "recurseMethodArgument".
+ *
+ *	"recurseMethodArgument" iterates through each of the tokens of an expression in until a final return type is resolved.
+ *
+ *	The return types are collected in list (List<Type>), which is returned.
+ */
 String*
 CompilationUnit::resolveMethodCallArgumentTypes( const CodeBase& codebase, const ITree<SourceToken>& tree, const IPosition<SourceToken>& methodcall, const VariableScopes& scopes ) const
 {
@@ -592,13 +735,13 @@ CompilationUnit::recurseMethodArguments( const CodeBase& codebase, const ITree<S
 			{
 			case SourceToken::ARGUMENT:
 				{
-					String* argument_type = this->recurseMethodArgument( codebase, tree, *p, scopes );
+					Type* argument_type = this->recurseMethodArgument( codebase, tree, *p, scopes );
 					{
 						#ifdef DEBUG_ASTRAL_COMPILATIONUNIT
 						fprintf( stderr, "\t %s\n", argument_type->getChars() );
 						#endif
 
-						sb.append( *argument_type );
+						sb.append( argument_type->getValue() );
 						sb.append( "," );
 					}
 					delete argument_type;
@@ -617,19 +760,36 @@ CompilationUnit::recurseMethodArguments( const CodeBase& codebase, const ITree<S
 	return sb.asString();
 }
 
-String*
+/*
+ *	This method iterates through the tokens of an expression then returns the final resulting type.
+ *
+ *	e.g.	myObject.getValue().getString()
+ *
+ *	The code above returns a string, however the system needs to determin this by resolving the type of
+ *	"myObject", the resolving the return type of getValue(), then resolving the return type of getString()
+ *	on that type.
+ *
+ *	In the code below invocation_class defaults to the current class, i.e. "this".
+ */
+
+//String*
+Type*
 CompilationUnit::recurseMethodArgument( const CodeBase& codebase, const ITree<SourceToken>& tree, const IPosition<SourceToken>& argument, const VariableScopes& scopes ) const
 {
-	String* argument_type = new String();
+	Type* argument_type = NULL;
 	{
 		bool is_array = false;
-		String* invocation_class = new String( this->getFQName() );
+
+		Type* invocation_class = new Type( this->getFQName() );
+
 		const IPIterator<SourceToken>* it = tree.children( argument );
 		while ( it->hasNext() )
 		{
 			const IPosition<SourceToken>* p = it->next();
 			{
 				const char* value = p->getElement().getValue().getChars();
+				
+				Name name( value );
 			
 				switch ( p->getElement().getTokenType() )
 				{
@@ -637,16 +797,16 @@ CompilationUnit::recurseMethodArgument( const CodeBase& codebase, const ITree<So
 					delete invocation_class;
 					delete argument_type;	
 						
-					argument_type    = this->resolveTypeOfName( value, scopes );
-					invocation_class = this->resolveFQTypeOfName( value, scopes );
+					argument_type    = this->resolveTypeOfName  ( name, scopes );
+					invocation_class = this->resolveFQTypeOfName( name, scopes );
 					break;
 
 				case SourceToken::NAME:
 					delete invocation_class;
 					delete argument_type;
 
-					argument_type    = this->resolveTypeOfName( value, scopes );
-					invocation_class = this->resolveFQTypeOfType( argument_type->getChars() );
+					argument_type    = this->resolveTypeOfName( name, scopes );
+					invocation_class = this->resolveFQTypeOfType( Type( *argument_type ) );
 					break;
 
 				case SourceToken::SYMBOL:
@@ -660,7 +820,7 @@ CompilationUnit::recurseMethodArgument( const CodeBase& codebase, const ITree<So
 					if ( ! is_array )
 					{
 						delete argument_type;
-						argument_type = new String( "float" );
+						argument_type = new PrimitiveType( "float" );
 					}
 					break;
 
@@ -668,18 +828,18 @@ CompilationUnit::recurseMethodArgument( const CodeBase& codebase, const ITree<So
 					if ( ! is_array )
 					{
 						delete argument_type;
-						argument_type = new String( "int" );
+						argument_type = new PrimitiveType( "int" );
 					}
 					break;
 					
 				case SourceToken::DOUBLEQUOTE:
 					delete argument_type;
-					argument_type = new String( "String" );
+					argument_type = new PrimitiveType( "String" );
 					break;
 					
 				case SourceToken::QUOTE:
 					delete argument_type;
-					argument_type = new String( "char" );
+					argument_type = new PrimitiveType( "char" );
 					break;
 
 //
@@ -706,7 +866,7 @@ CompilationUnit::recurseMethodArgument( const CodeBase& codebase, const ITree<So
 		delete invocation_class;
 	}
 
-	const_cast<SourceToken&>( argument.getElement() ).setValue( new String( *argument_type ) );
+	const_cast<SourceToken&>( argument.getElement() ).setValue( new String( argument_type->getValue() ) );
 	
 	return argument_type;
 }

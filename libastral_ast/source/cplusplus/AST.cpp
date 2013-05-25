@@ -1,5 +1,6 @@
 #include "astral.ast/AST.h"
 #include "astral.tokenizer/SourceToken.h"
+#include "astral.tokenizer/IxTokenizer.h"
 #include "astral.tokenizer/JavaTokenizer.h"
 
 #include <openxds.io/File.h>
@@ -100,8 +101,20 @@ AST::parseFile( const char* location )
 
 	delete ast->addRoot( new SourceToken( SourceToken::FILE, this->location->asString() ) );
 
-	SourceTokenizer* tokenizer = new JavaTokenizer( *this->location );
+	SourceTokenizer* tokenizer = NULL;
 	{
+		String file_path( location );
+	
+		if ( file_path.endsWith( ".java" ) )
+		{
+			tokenizer = new JavaTokenizer( *this->location );
+		}
+		else
+		if ( file_path.endsWith( ".ix" ) )
+		{
+			tokenizer = new IxTokenizer( *this->location );
+		}
+	
 		this->parseFromTokenizer( *tokenizer );
 	}
 	delete tokenizer;

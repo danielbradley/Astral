@@ -5,6 +5,7 @@
 #include "astral/Method.h"
 #include "astral/MethodsList.h"
 #include "astral/MethodSignature.h"
+#include "astral/Platform.h"
 #include "astral/SymbolDB.h"
 
 #include <openxds.adt.std/Dictionary.h>
@@ -26,12 +27,14 @@ CodeBase::CodeBase()
 {
 	this->files    = new Dictionary<CompilationUnit>();
 	this->symbolDB = new SymbolDB();
+	this->platform = new Platform();
 }
 
 CodeBase::~CodeBase()
 {
 	delete this->files;
 	delete this->symbolDB;
+	delete this->platform;
 }
 
 void
@@ -116,6 +119,7 @@ CodeBase::reregister( const CompilationUnit& aCu )
 
 CompilationUnit&
 CodeBase::getCompilationUnit( const ClassSignature& aClassSignature )
+throw (openxds::exceptions::NoSuchElementException*)
 {
 	const char* fq_class = aClassSignature.getFQClass().getChars();
 	try
@@ -127,7 +131,7 @@ CodeBase::getCompilationUnit( const ClassSignature& aClassSignature )
 	}
 	catch ( NoSuchElementException* ex )
 	{
-		//	It is questionable whether this should really throw an except as
+		//	It is questionable whether this should really throw an exception as
 		//	it is often expected that the desired CompilationUnit will not
 		//	be found, i.e. when it is a Java library class.
 		throw;
@@ -136,6 +140,7 @@ CodeBase::getCompilationUnit( const ClassSignature& aClassSignature )
 
 const CompilationUnit&
 CodeBase::getCompilationUnit( const ClassSignature& aClassSignature ) const
+throw (openxds::exceptions::NoSuchElementException*)
 {
 	return const_cast<CodeBase*>( this )->getCompilationUnit( aClassSignature );
 }
@@ -156,6 +161,12 @@ CodeBase::hasCompilationUnit( const ClassSignature& aClassSignature ) const
 	return _has;
 }
 
+/*
+ *	Pass in, e.g. ( "java.lang.String", "toString" )
+ *
+ *  returns MemberSignature( "", "java.lang.String", "toString", "String" )
+ */
+
 MemberSignature*
 CodeBase::completeMemberSignature( const char* fqClassType, const char* member ) const
 {
@@ -165,10 +176,10 @@ CodeBase::completeMemberSignature( const char* fqClassType, const char* member )
 	{
 		const char* fq_member = member_signature->getFQMember().getChars();
 		const CompilationUnit& cu = this->symbolDB->getCompilationUnitForSymbol( fq_member );
-		String* type = cu.resolveMemberType( member );
+		Type* type = cu.resolveMemberType( Type( member ) );
 		{
 			delete member_signature;
-			member_signature = new MemberSignature( "", fqClassType, member, type->getChars() );
+			member_signature = new MemberSignature( "", fqClassType, member, type->getValue().getChars() );
 		}
 		delete type;
 	}
@@ -178,6 +189,12 @@ CodeBase::completeMemberSignature( const char* fqClassType, const char* member )
 	}
 
 	return member_signature;
+}
+
+MethodSignature*
+CodeBase::completeMethodSignature( const Type& invocationType, const char* methodName, const char* parameters ) const
+{
+	return completeMethodSignature( invocationType.getValue().getChars(), methodName, parameters );
 }
 
 MethodSignature*
@@ -193,10 +210,10 @@ CodeBase::completeMethodSignature( const char* fqClass, const char* methodName, 
 		signature = cu.matchingMethodSignatureX( classSignature, methodName, parameters );
 		if ( ! signature )
 		{
-			String* fqSuperclass = cu.resolveFQTypeOfType( cu.getSuperclass().getChars() );
-			if ( ! fqSuperclass->contentEquals( "" ) )
+			Type* fqSuperclass = cu.resolveFQTypeOfType( Type( cu.getSuperclass().getChars() ) );
+			if ( ! fqSuperclass->getValue().contentEquals( "" ) )
 			{
-				signature = this->completeMethodSignature( fqSuperclass->getChars(), methodName, parameters );
+				signature = this->completeMethodSignature( fqSuperclass->getValue().getChars(), methodName, parameters );
 			}
 //			else
 //			{

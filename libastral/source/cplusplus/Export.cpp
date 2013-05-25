@@ -14,6 +14,7 @@
 #include "astral.tours/HTMLPrintTour.h"
 #include <astral.tokenizer/SourceToken.h>
 
+#include <openxds/Exception.h>
 #include <openxds.adt/IDictionary.h>
 #include <openxds.adt/IEIterator.h>
 #include <openxds.adt/IEntry.h>
@@ -26,12 +27,14 @@
 #include <openxds.base/StringBuffer.h>
 #include <openxds.io/File.h>
 #include <openxds.io/FileOutputStream.h>
+#include <openxds.io/IO.h>
 #include <openxds.io/PrintWriter.h>
 #include <openxds.io/Path.h>
 
 using namespace astral;
 using namespace astral::ast;
 using namespace astral::tokenizer;
+using namespace openxds;
 using namespace openxds::adt;
 using namespace openxds::base;
 using namespace openxds::io;
@@ -172,31 +175,43 @@ Export::exportHTMLTo( const char* directory, const CodeBase& cb )
 void
 Export::exportHTMLTo( const char* directory, const CodeBase& cb, const CompilationUnit& cu )
 {
-	FormattedString pathname( "%s/%s.%s.html", directory, cu.getNamespace().getChars(), cu.getName().getChars() );
+	String* ns = new String( cu.getNamespace() );
 	{
-		Path path( pathname );
-		fprintf( stdout, "\n%s\n", path.getAbsolute().getChars() );
-	}
-	PrintWriter* aWriter = createPrintWriter( pathname );
-	{
-		const ImportsList& imports = cu.getImportsList();
-
-		IDictionary<const IEntry<CompilationUnit> >* imported_symbols = cb.getSymbolDB().importedSymbols( imports );
-		IDictionary<String>* imported_types = cb.getSymbolDB().importedTypes( imports, cu.getNamespace() );
+		if ( 0 == ns->getLength() )
 		{
-			top( *aWriter );
-			printHTML( cu, cb, *imported_symbols, *imported_types, *aWriter );
-			bottom( *aWriter );
+			delete ns; ns = new String( "unknown" );
 		}
-		delete imported_symbols;
-		delete imported_types;
+	
+		FormattedString pathname( "%s/%s.%s.html", directory, ns->getChars(), cu.getName().getChars() );
+		{
+			Path path( pathname );
+			fprintf( stdout, "\n%s\n", path.getAbsolute().getChars() );
+		}
+		PrintWriter* aWriter = createPrintWriter( pathname );
+		if ( aWriter )
+		{
+			const ImportsList& imports = cu.getImportsList();
+
+			IDictionary<const IEntry<CompilationUnit> >* imported_symbols = cb.getSymbolDB().importedSymbols( imports );
+			IDictionary<String>* imported_types = cb.getSymbolDB().importedTypes( imports, cu.getNamespace() );
+			{
+				top( *aWriter );
+				printHTML( cu, cb, *imported_symbols, *imported_types, *aWriter );
+				bottom( *aWriter );
+			}
+			delete imported_symbols;
+			delete imported_types;
+		}
+		delete aWriter;
 	}
-	delete aWriter;
+	delete ns;
 }
 
 void
 Export::printHTML( const CompilationUnit& cu, const CodeBase& cb, IDictionary<const IEntry<CompilationUnit> >& symbols, IDictionary<String>& importedTypes, PrintWriter& writer )
 {
+	writer.println( "<pre>\n" );
+
 	ITree<SourceToken>&     ast  = cu.getAST().getTree();
 	IPosition<SourceToken>* root = ast.root();
 	{
@@ -205,10 +220,9 @@ Export::printHTML( const CompilationUnit& cu, const CodeBase& cb, IDictionary<co
 		delete print_tour;
 	}
 	delete root;
+
+	writer.println( "</pre>\n" );
 }
-
-
-
 
 void
 Export::exportAdvancedHTMLTo( const char* directory, const CodeBase& cb )
@@ -235,7 +249,7 @@ Export::exportAdvancedHTMLTo( const char* directory, const CodeBase& cb, const C
 	FormattedString pathname( "%s/%s.%s.html", directory, cu.getNamespace().getChars(), cu.getName().getChars() );
 	{
 		Path path( pathname );
-		fprintf( stdout, "\n%s\n", path.getAbsolute().getChars() );
+		IO::err().printf( "Export: processing: %s\n", path.getAbsolute().getChars() );
 	}
 	PrintWriter* aWriter = createPrintWriter( pathname );
 	{
@@ -422,7 +436,16 @@ static PrintWriter* createPrintWriter( const String& pathname )
 {
 	File* file;
 	PrintWriter* aWriter = new PrintWriter( new FileOutputStream( (file = new File( new Path( pathname ) )) ) );
-	file->open( "w+" );
+
+	try
+	{
+		file->open( "w+" );
+	}
+	catch ( ... )
+	{
+		IO::ERR.printf( "Could not open: %s\n", pathname.getChars() );
+		delete aWriter; aWriter = null;
+	}
 
 	return aWriter;
 } 

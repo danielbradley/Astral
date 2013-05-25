@@ -1,3 +1,5 @@
+#include "astral.tokenizer/IxTokenizer.h"
+#include "astral.tokenizer/JavaTokenizer.h"
 #include "astral.tokenizer/SourceTokenizer.h"
 #include "astral.tokenizer/SourceToken.h"
 
@@ -21,6 +23,24 @@ using namespace openxds::io::exceptions;
 using namespace openxds::util;
 
 static String* combine( char ch1, char ch2, char ch3=' ', char ch4=' ' );
+
+SourceTokenizer*
+SourceTokenizer::createFor( const openxds::base::String& location )
+{
+	if ( location.endsWith( ".java" ) )
+	{
+		return new JavaTokenizer( location );
+	}
+	else
+	if ( location.endsWith( ".ix" ) )
+	{
+		return new IxTokenizer( location );
+	}
+	else
+	{
+		return new JavaTokenizer( location );
+	}
+}
 
 SourceTokenizer::SourceTokenizer()
 {
@@ -458,7 +478,9 @@ SourceTokenizer::parseSymbolToken( String* word )
 			source_token = new SourceToken( SourceToken::PREFIXOP, word );
 			break;
 		case '@':
-			source_token = parseAnnotation( word );
+		case '#':
+			source_token = new SourceToken( SourceToken::SYMBOL, word );
+			//source_token = parseAnnotation( word );
 			break;
 		case '=':
 			switch ( ch2 )
@@ -956,6 +978,7 @@ SourceTokenizer::sneakyPeek()
 	bool is_enum       = false;
 	bool is_else       = false;
 	bool is_throws     = false;
+	bool is_new        = false;
 	
 	bool loop = true;
 	while ( loop && this->hasMoreTokens() )
@@ -979,11 +1002,13 @@ SourceTokenizer::sneakyPeek()
 
 		case SourceToken::KEYWORD:
 			keywords++;
-			     if ( token->getValue().contentEquals( "package" ) ) { is_package = true; }
-			else if ( token->getValue().contentEquals( "import"  ) ) { is_import  = true; }
-			else if ( token->getValue().contentEquals( "enum"    ) ) { is_enum    = true; }
-			else if ( token->getValue().contentEquals( "else"    ) ) { is_else    = true; }
-			else if ( token->getValue().contentEquals( "throws"  ) ) { is_throws  = true; }
+			     if ( token->getValue().contentEquals( "package"   ) ) { is_package = true; }
+			else if ( token->getValue().contentEquals( "namespace" ) ) { is_package = true; }
+			else if ( token->getValue().contentEquals( "import"    ) ) { is_import  = true; }
+			else if ( token->getValue().contentEquals( "enum"      ) ) { is_enum    = true; }
+			else if ( token->getValue().contentEquals( "else"      ) ) { is_else    = true; }
+			else if ( token->getValue().contentEquals( "throws"    ) ) { is_throws  = true; }
+			else if ( token->getValue().contentEquals( "new"       ) ) { is_new     = true; }
 			break;
 
 		case SourceToken::TYPE:
@@ -1067,7 +1092,7 @@ SourceTokenizer::sneakyPeek()
 		{
 			//	class/interface, enum, if, else, while, switch.
 
-			if ( is_throws )
+			if ( is_throws || is_new )
 			{
 				//	method
 				ret = SourceToken::METHOD;

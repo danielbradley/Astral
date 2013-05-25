@@ -122,8 +122,10 @@ static void addTypes( IDictionary<String>& importedTypes, IEIterator<String>& ie
 IDictionary<String>*
 SymbolDB::importedTypes( const ImportsList& imports, const String& defaultNamespace ) const
 {
-	IDictionary<String>* imported_types = new Dictionary<String>();
+	Dictionary<String>* imported_types = new Dictionary<String>();
 	{
+		imported_types->setThrowExceptions( FALSE );
+	
 		if ( defaultNamespace.getLength() )
 		{
 			IEIterator<String>* ie = this->namespace2name->findAll( defaultNamespace.getChars() );

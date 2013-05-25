@@ -1,14 +1,9 @@
-all: clean quasi build
+all: clean build
 
 clean:
 #	make -C libastral_tokenizer  clean
 #	make -C libastral_ast        clean
 #	make -C libastral            clean
-
-quasi:
-#	make -C libastral_tokenizer  quasi
-#	make -C libastral_ast        quasi
-	make -C libastral            quasi
 
 build:
 	cd libastral_tokenizer; build --force

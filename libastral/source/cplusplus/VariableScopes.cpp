@@ -1,5 +1,7 @@
 #include "astral/VariableScopes.h"
 
+#include <astral/Name.h>
+#include <astral/Type.h>
 #include <astral.tokenizer/SourceToken.h>
 #include <openxds.adt/IPIterator.h>
 #include <openxds.adt/IPosition.h>
@@ -156,7 +158,7 @@ VariableScopes::addVariableDeclaration( const IPosition<SourceToken>& p )
 String*
 VariableScopes::searchForTypeOfName( const char* name ) const
 {
-	String* type = new String();
+	String* type = null;
 
 	long nr = this->scopes->size() - 1;
 	while ( 0 <= nr )
@@ -165,7 +167,6 @@ VariableScopes::searchForTypeOfName( const char* name ) const
 		{
 			const IEntry<String>* e = this->scopes->get( (int) nr ).find( name );
 			{
-				delete type;
 				type = new String( e->getValue() );
 			}
 			delete e;
@@ -181,9 +182,25 @@ VariableScopes::searchForTypeOfName( const char* name ) const
 	return type;
 }
 
-String*
-VariableScopes::searchForTypeOfName( const openxds::base::String& name ) const
+//String*
+//VariableScopes::searchForTypeOfName( const openxds::base::String& name ) const
+//{
+//	return this->searchForTypeOfName( name.getChars() );
+//}
+
+Type*
+VariableScopes::searchForTypeOfName( const Name& name ) const
 {
-	return this->searchForTypeOfName( name.getChars() );
+	Type* ret = null;
+	{
+		String* type = this->searchForTypeOfName( name.getValue().getChars() );
+		if ( type )
+		{
+			ret = new Type( *type );
+		}
+		delete type;
+	}
+	return ret;
 }
+
 

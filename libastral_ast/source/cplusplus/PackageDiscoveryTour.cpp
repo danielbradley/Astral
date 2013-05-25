@@ -152,7 +152,6 @@ PackageDiscoveryTour::getGenericName() const
 const String&
 PackageDiscoveryTour::getExtendsClass() const
 {
-	printf( "%s\n", this->extendsClass->getChars() );
 	return *this->extendsClass;
 }
 
