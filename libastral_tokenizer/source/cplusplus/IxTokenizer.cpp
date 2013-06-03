@@ -8,6 +8,9 @@ using namespace astral::tokenizer;
 using namespace openxds::base;
 using namespace openxds::io;
 
+IxTokenizer::~IxTokenizer()
+{}
+
 bool
 IxTokenizer::isKeyword( const String& word ) const
 {

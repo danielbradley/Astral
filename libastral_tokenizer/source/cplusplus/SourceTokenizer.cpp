@@ -31,11 +31,11 @@ SourceTokenizer::createFor( const openxds::base::String& location )
 	{
 		return new JavaTokenizer( location );
 	}
-	else
-	if ( location.endsWith( ".ix" ) )
-	{
-		return new IxTokenizer( location );
-	}
+//	else
+//	if ( location.endsWith( ".ix" ) )
+//	{
+//		return new IxTokenizer( location );
+//	}
 	else
 	{
 		return new JavaTokenizer( location );

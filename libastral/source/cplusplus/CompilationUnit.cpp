@@ -1,4 +1,5 @@
 #include <astral/AdvancedHTMLPrintTour.h>
+#include <astral/ClassSignature.h>
 #include <astral/Codebase.h>
 #include <astral/CompilationUnit.h>
 #include <astral/Declaration.h>
@@ -67,9 +68,11 @@ using namespace openxds::io::exceptions;
 
 static String* searchForNameInLocalScopes( const char* name, const ISequence<IDictionary<String > >& scopes );
 
-CompilationUnit::CompilationUnit( const CodeBase& codebase, const char* location ) : codebase( codebase )
+CompilationUnit::CompilationUnit( const CodeBase& codebase, const char* location, const char* project, const char* sourcePath ) : codebase( codebase )
 {
 	this->location        = new String( location );
+	this->project         = new String( project );
+	this->sourcePath      = new String( sourcePath );
 	this->members         = new Dictionary<IPosition<SourceToken> >();
 	this->ast             = new AST();
 	this->packageName     = NULL;
@@ -93,6 +96,8 @@ CompilationUnit::CompilationUnit( const CodeBase& codebase, const char* location
 CompilationUnit::~CompilationUnit()
 {
 	delete this->location;
+	delete this->project;
+	delete this->sourcePath;
 	delete this->members;
 	delete this->ast;
 	delete this->packageName;
@@ -299,6 +304,12 @@ CompilationUnit::resolveFQTypeOfName( const Name& name, const VariableScopes& sc
 		{
 			fq_type = this->resolveFQTypeOfType( *type );
 		}
+		else
+		{
+			Type name_of_type( name.getValue() );
+
+			fq_type = this->resolveFQTypeOfType( name_of_type );
+		}
 		delete type;
 	}
 	return fq_type;
@@ -335,7 +346,23 @@ CompilationUnit::resolveFQTypeOfType( const Type& type ) const
 	
 	const String& type_string = type.getValue();
 	
-	if ( ! JavaTokenizer::IsPrimitiveType( type_string ) )
+	if ( JavaTokenizer::IsPrimitiveType( type_string ) )
+	{
+		fq_type = new PrimitiveType( type.getValue() );
+	}
+	else
+	if ( type_string.contains( "." ) )
+	{
+//		ClassSignature* cs = new ClassSignature( type_string );
+//		{
+//			bool is_user_type = this->codebase.hasCompilationUnit( *cs );
+//			cs->setUserType( is_user_type );
+//		}
+//		fq_type = cs;
+
+		fq_type = this->resolveFQTypeOfPlatformType( type );
+	}
+	else
 	{
 		StringBuffer sb;
 
@@ -355,16 +382,21 @@ CompilationUnit::resolveFQTypeOfType( const Type& type ) const
 			else
 			{
 				fq_type = this->resolveFQTypeOfPlatformType( type );
+//				if ( !fq_type )
+//				{
+//					FormattedString fs( "%s.%s", this->getNamespace().getChars(), type.getValue().getChars() );
+//					
+//					ClassSignature* cs = new ClassSignature( fs );
+//					cs->setUserType( false );
+//
+//					fq_type = cs;
+//				}
 			}
 		}
 		catch ( NoSuchElementException* ex )
 		{
 			delete ex;
 		}
-	}
-	else
-	{
-		fq_type = new PrimitiveType( type.getValue() );
 	}
 	return fq_type;
 }
@@ -387,7 +419,26 @@ CompilationUnit::resolveFQTypeOfType( const Type& type ) const
 Type*
 CompilationUnit::resolveFQTypeOfPlatformType( const Type& type ) const
 {
-	return this->codebase.getPlatform().resolve( this->getImportsList(), type );
+	Type* fq_type = NULL;
+	{
+		const Platform&    platform = this->codebase.getPlatform();
+		const ImportsList& imports  = this->getImportsList();
+
+		if ( type.getValue().contains( "." ) )
+		{
+			ClassSignature* cs = new ClassSignature( type.getValue() );
+			if ( platform.defines( type.getValue() ) )
+			{
+				cs->setUserType( false );
+			}
+			fq_type = cs;
+		}
+		else
+		{
+			fq_type = platform.resolve( imports, type );
+		}
+		return fq_type;
+	}
 }
 
 //String*
@@ -736,6 +787,7 @@ CompilationUnit::recurseMethodArguments( const CodeBase& codebase, const ITree<S
 			case SourceToken::ARGUMENT:
 				{
 					Type* argument_type = this->recurseMethodArgument( codebase, tree, *p, scopes );
+					if ( argument_type )
 					{
 						#ifdef DEBUG_ASTRAL_COMPILATIONUNIT
 						fprintf( stderr, "\t %s\n", argument_type->getChars() );
@@ -788,85 +840,89 @@ CompilationUnit::recurseMethodArgument( const CodeBase& codebase, const ITree<So
 			const IPosition<SourceToken>* p = it->next();
 			{
 				const char* value = p->getElement().getValue().getChars();
-				
-				Name name( value );
-			
-				switch ( p->getElement().getTokenType() )
+				if ( value )
 				{
-				case SourceToken::KEYWORD:
-					delete invocation_class;
-					delete argument_type;	
-						
-					argument_type    = this->resolveTypeOfName  ( name, scopes );
-					invocation_class = this->resolveFQTypeOfName( name, scopes );
-					break;
-
-				case SourceToken::NAME:
-					delete invocation_class;
-					delete argument_type;
-
-					argument_type    = this->resolveTypeOfName( name, scopes );
-					invocation_class = this->resolveFQTypeOfType( Type( *argument_type ) );
-					break;
-
-				case SourceToken::SYMBOL:
-					if ( p->getElement().getValue().contentEquals( "[" ) )
-					{
-						is_array = true;
-					}
-					break;
-
-				case SourceToken::FLOAT:
-					if ( ! is_array )
-					{
-						delete argument_type;
-						argument_type = new PrimitiveType( "float" );
-					}
-					break;
-
-				case SourceToken::INTEGER:
-					if ( ! is_array )
-					{
-						delete argument_type;
-						argument_type = new PrimitiveType( "int" );
-					}
-					break;
+					#ifdef DEBUG_ASTRAL_COMPILATIONUNIT
+					fprintf( stderr, "CompilationUnit::recurseMethodArgument: value: %s\n", value );
+					#endif
 					
-				case SourceToken::DOUBLEQUOTE:
-					delete argument_type;
-					argument_type = new PrimitiveType( "String" );
-					break;
-					
-				case SourceToken::QUOTE:
-					delete argument_type;
-					argument_type = new PrimitiveType( "char" );
-					break;
+					Name name( value );
+				
+					switch ( p->getElement().getTokenType() )
+					{
+					case SourceToken::KEYWORD:
+						if ( invocation_class ) delete invocation_class;
 
+						invocation_class = this->resolveFQTypeOfName( name, scopes );
+						break;
+
+//					case SourceToken::NAME:
+//						{
+//							if ( invocation_class ) IO::err().printf( "CompilationUnit::recurseMethodArgument: invocation_class: %s\n", invocation_class->getValue().getChars() );
 //
-//	Removed because argument resolution is now based on actual types i.e. int etc.
-//				
-//				case SourceToken::INTEGER:
-//					if ( ! is_array )
-//					{
-//						delete argument_type;
-//						argument_type = new String( p->getElement().getTokenTypeString() );
-//					}
-//					break;
+//							Type* t = this->resolveTypeOfName( name, scopes );
+//							if ( t )
+//							{
+//								if ( invocation_class ) delete invocation_class;
+//								invocation_class = this->resolveFQTypeOfType( *t );
+//							}
+//							delete t;
+//						}
+//						break;
 
-				case SourceToken::METHODCALL:
-					delete argument_type;
-					argument_type = this->resolveMethodCallReturnType( codebase, tree, *p, scopes, *invocation_class );
-				default:
-					break;
+					case SourceToken::SYMBOL:
+						if ( p->getElement().getValue().contentEquals( "[" ) )
+						{
+							is_array = true;
+						}
+						break;
+
+					case SourceToken::FLOAT:
+						if ( ! is_array )
+						{
+							if ( argument_type ) delete argument_type;
+							argument_type = new PrimitiveType( "float" );
+						}
+						break;
+
+					case SourceToken::INTEGER:
+						if ( ! is_array )
+						{
+							if ( argument_type ) delete argument_type;
+							argument_type = new PrimitiveType( "int" );
+						}
+						break;
+						
+					case SourceToken::DOUBLEQUOTE:
+						if ( argument_type ) delete argument_type;
+						argument_type = new PrimitiveType( "String" );
+						break;
+						
+					case SourceToken::QUOTE:
+						if ( argument_type ) delete argument_type;
+						argument_type = new PrimitiveType( "char" );
+						break;
+
+	//				case SourceToken::METHODCALL:
+	//					if ( argument_type ) delete argument_type;
+	//					argument_type = this->resolveMethodCallReturnType( codebase, tree, *p, scopes, *invocation_class );
+	//					break;
+
+					default:
+						break;
+					}
 				}
 			}
 			delete p;
 		}
 		delete it;
-		delete invocation_class;
+		if ( invocation_class ) delete invocation_class;
 	}
 
-	const_cast<SourceToken&>( argument.getElement() ).setValue( new String( argument_type->getValue() ) );
+	if ( argument_type )
+	{
+		const_cast<SourceToken&>( argument.getElement() ).setValue( new String( argument_type->getValue() ) );
+	}
 	
 	return argument_type;
 }
@@ -905,7 +961,7 @@ CompilationUnit::save()
 	
 	Path             target_path( *this->location );
 	File             target_file( target_path );
-	FileOutputStream         fos( target_file );
+	FileOutputStream         fos( target_file ); fos.open();
 	PrintWriter           writer( fos );
 	
 	if ( target_file.exists() )

@@ -210,16 +210,19 @@ AdvancedHTMLPrintTour::visitExternal( openxds::adt::IPosition<SourceToken>& p, o
 			Name           name( value );
 			String this_keyword( "this" );
 
-			if ( this_keyword.contentEquals( value ) )
+			if ( name.getValue().contentEquals( "this" ) )
 			{
 				Type* fq_type = this->cu.resolveFQTypeOfName( name, *this->scopes );
+				if ( fq_type )
 				{
 					const String& fq_type_value = fq_type->getValue();
-				
-					//this->invocationClass->setLastType( fq_type_value );
 					this->expressionTypeStack->setLastType( *fq_type );
 
 					writer.print( openxds::base::FormattedString( "<span class='%s' title='%s'>%s</span>", ttype, fq_type_value.getChars(), value ) );
+				}
+				else
+				{
+					writer.print( openxds::base::FormattedString( "<span class='%s'>%s</span>", ttype, value ) );
 				}
 				delete fq_type;
 			}
@@ -245,22 +248,25 @@ AdvancedHTMLPrintTour::visitExternal( openxds::adt::IPosition<SourceToken>& p, o
 			{
 				if ( this->expressionTypeStack->hasEnclosingType() )
 				{
-					const char* enclosing_type = this->expressionTypeStack->getEnclosingType().getValue().getChars();
+					if ( this->expressionTypeStack->getEnclosingType().isUserType() )
+					{
+						const char* enclosing_type = this->expressionTypeStack->getEnclosingType().getValue().getChars();
 
-					MemberSignature* member_signature = this->codebase.completeMemberSignature( enclosing_type, value );
-					if ( member_signature->isValid() )
-					{
-						Type type( member_signature->getType() );
-					
-						fq_type = this->cu.resolveFQTypeOfType( type );
-						this->expressionTypeStack->setLastType( *fq_type );
+						MemberSignature* member_signature = this->codebase.completeMemberSignature( enclosing_type, value );
+						if ( member_signature->isValid() )
+						{
+							Type type( member_signature->getType() );
+						
+							fq_type = this->cu.resolveFQTypeOfType( type );
+							this->expressionTypeStack->setLastType( *fq_type );
+						}
+						else
+						{
+							this->expressionTypeStack->setUnknownName( Name( value ) );
+							//fq_class_of_value = new String();
+						}
+						delete member_signature;
 					}
-					else
-					{
-						this->expressionTypeStack->setUnknownName( Name( value ) );
-						//fq_class_of_value = new String();
-					}
-					delete member_signature;
 				}
 				else
 				{
@@ -301,8 +307,8 @@ AdvancedHTMLPrintTour::visitExternal( openxds::adt::IPosition<SourceToken>& p, o
 
 					default:
 						{
-							//const char* compound_string = this->expressionTypeStack->getCompoundString().getChars();
-							writer.printf( "<span class='%s' title='' style='color:#555'>%s</span>", ttype, value );
+							const char* _fq_class_of_value = fq_type->getValue().getChars();
+							writer.printf( "<span class='%s' title='%s' style='color:#555'>%s</span>", ttype, _fq_class_of_value, value );
 						}
 					}
 				}

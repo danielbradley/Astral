@@ -109,11 +109,11 @@ AST::parseFile( const char* location )
 		{
 			tokenizer = new JavaTokenizer( *this->location );
 		}
-		else
-		if ( file_path.endsWith( ".ix" ) )
-		{
-			tokenizer = new IxTokenizer( *this->location );
-		}
+//		else
+//		if ( file_path.endsWith( ".ix" ) )
+//		{
+//			tokenizer = new IxTokenizer( *this->location );
+//		}
 	
 		this->parseFromTokenizer( *tokenizer );
 	}

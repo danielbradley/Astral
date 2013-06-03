@@ -49,17 +49,57 @@ static void processPaths( CodeBase& astral, const IList<Path>& pathList, const c
 		const IPosition<Path>* p = it->next();
 		{
 			const Path& path = p->getElement();
-			AstralFactory::recursivelySearch( astral, path, extension );
+			AstralFactory::recursivelySearch( astral, path, "", "", extension );
 		}
 		delete p;
 	}
 	delete it;
 }
 
+//void
+//AstralFactory::recursivelySearch( CodeBase& codebase, const Path& path, const char* extension )
+//{
+//	Directory current( path.getAbsolute().getChars() );
+//	IList<String>* files = current.retrieveFileList();
+//	{
+//		IPIterator<String>* it = files->positions();
+//		while ( it->hasNext() )
+//		{
+//			IPosition<String>* p = it->next();
+//			{
+//				const String& filename = p->getElement();
+//				if ( ! filename.startsWith( "." ) )
+//				{
+//					Path* child = path.childPath( filename );
+//					if ( child->getExtension().contentEquals( extension ) )
+//					{
+//						//IO::out().printf( "AstralFactory::recursivelySearch: %s\n", child->getAbsolute().getChars() );
+//						codebase.addSourceFile( child->getAbsolute().getChars() );
+//					}
+//					else
+//					{
+//						Directory possible( child->getAbsolute().getChars() );
+//						if ( possible.exists() )
+//						{
+//							recursivelySearch( codebase, *child, extension );
+//						}
+//					}
+//					delete child;
+//				}
+//			}
+//			delete p;
+//		}
+//		delete it;
+//	}
+//	delete files;
+//
+//	codebase.refreshImports();
+//}
+
 void
-AstralFactory::recursivelySearch( CodeBase& codebase, const Path& path, const char* extension )
+AstralFactory::recursivelySearch( CodeBase& codebase, const Path& working, const String& project, const String& sourcePath, const char* extension )
 {
-	Directory current( path.getAbsolute().getChars() );
+	Directory current( working.getAbsolute().getChars() );
 	IList<String>* files = current.retrieveFileList();
 	{
 		IPIterator<String>* it = files->positions();
@@ -70,18 +110,18 @@ AstralFactory::recursivelySearch( CodeBase& codebase, const Path& path, const ch
 				const String& filename = p->getElement();
 				if ( ! filename.startsWith( "." ) )
 				{
-					Path* child = path.childPath( filename );
+					Path* child = working.childPath( filename );
 					if ( child->getExtension().contentEquals( extension ) )
 					{
 						//IO::out().printf( "AstralFactory::recursivelySearch: %s\n", child->getAbsolute().getChars() );
-						codebase.addSourceFile( child->getAbsolute().getChars() );
+						codebase.addSourceFile( child->getAbsolute().getChars(), project.getChars(), sourcePath.getChars() );
 					}
 					else
 					{
 						Directory possible( child->getAbsolute().getChars() );
 						if ( possible.exists() )
 						{
-							recursivelySearch( codebase, *child, extension );
+							recursivelySearch( codebase, *child, project, sourcePath, extension );
 						}
 					}
 					delete child;

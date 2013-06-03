@@ -16,7 +16,7 @@ public:
 	         IxTokenizer( const openxds::base::String& location )         : SourceTokenizer( location )       {};
 	         IxTokenizer( openxds::util::ITextTokenizer* aTextTokenizer ) : SourceTokenizer( aTextTokenizer ) {};
 	         IxTokenizer( openxds::io::Reader* aReader )                  : SourceTokenizer( aReader )        {};
-	virtual ~IxTokenizer()                                                                                    {};
+	virtual ~IxTokenizer();
 
 	virtual bool       isKeyword( const openxds::base::String& word ) const;
 	virtual bool      isModifier( const openxds::base::String& word ) const;

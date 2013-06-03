@@ -8,6 +8,7 @@
 #include "astral/Platform.h"
 #include "astral/SymbolDB.h"
 
+#include <openxds.h>
 #include <openxds.adt.std/Dictionary.h>
 #include <openxds.adt/IEntry.h>
 #include <openxds.adt/ISequence.h>
@@ -44,10 +45,9 @@ CodeBase::addBaseDirectory( const char* path )
 }
 
 void
-CodeBase::addSourceFile( const char* path )
+CodeBase::addSourceFile( const char* path, const char* project, const char* sourcePath )
 {
-	
-	CompilationUnit* cu = new CompilationUnit( *this, path );
+	CompilationUnit* cu = new CompilationUnit( *this, path, project, sourcePath );
 	cu->initialise();
     
 	IEntry<CompilationUnit>* entry = this->files->insert( path, cu );
@@ -55,6 +55,37 @@ CodeBase::addSourceFile( const char* path )
 		this->symbolDB->registerCU( *entry );
 	}
 	delete entry;
+}
+
+const String&
+CodeBase::getProjectOf( const ClassSignature& cs ) const
+{
+	const String* ret = &String::emptyString();
+
+	const IDictionary<const IEntry<CompilationUnit> >& classes = this->symbolDB->getClasses();
+	{
+		try
+		{
+			const String& ns = cs.getNamespace();
+		
+			const IEntry<const IEntry<CompilationUnit> >* e = classes.startsWith( ns.getChars() );
+			if ( e )
+			{
+				const CompilationUnit& cu = e->getValue().getValue();
+				
+				const String& project = cu.getProject();
+				
+				ret = &project;
+			}
+			delete e;
+		}
+		catch ( openxds::Exception* ex )
+		{
+			delete ex;
+		}
+	}
+	
+	return *ret;
 }
 
 void
@@ -176,7 +207,10 @@ CodeBase::completeMemberSignature( const char* fqClassType, const char* member )
 	{
 		const char* fq_member = member_signature->getFQMember().getChars();
 		const CompilationUnit& cu = this->symbolDB->getCompilationUnitForSymbol( fq_member );
-		Type* type = cu.resolveMemberType( Type( member ) );
+
+		Name _member( member );
+
+		Type* type = cu.resolveMemberType( _member );
 		{
 			delete member_signature;
 			member_signature = new MemberSignature( "", fqClassType, member, type->getValue().getChars() );
@@ -211,14 +245,10 @@ CodeBase::completeMethodSignature( const char* fqClass, const char* methodName, 
 		if ( ! signature )
 		{
 			Type* fqSuperclass = cu.resolveFQTypeOfType( Type( cu.getSuperclass().getChars() ) );
-			if ( ! fqSuperclass->getValue().contentEquals( "" ) )
+			if ( fqSuperclass && !fqSuperclass->getValue().contentEquals( "" ) )
 			{
 				signature = this->completeMethodSignature( fqSuperclass->getValue().getChars(), methodName, parameters );
 			}
-//			else
-//			{
-//				signature = new MethodSignature();
-//			}
 			delete fqSuperclass;
 		}
 	}
