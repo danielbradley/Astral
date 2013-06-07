@@ -19,25 +19,29 @@ MethodDiscoveryTour::visitPreorder( IPosition<SourceToken>& p, Result& r )
 	switch ( token.getTokenType() )
 	{
 	case SourceToken::METHOD:
-		if ( !this->methodP )
+		if ( 0 == this->methodDepth )
 		{
-			this->methodP = p.copy();
-		
-			delete this->current;
-			this->current = new StringBuffer();
-			delete this->type;
-			this->type = new String();
-//			this->current->append( *this->packageName );
-//			this->current->append( '.' );
-//			this->current->append( *this->className );
+			if ( !this->methodP )
+			{
+				this->methodP = p.copy();
+			
+				delete this->current;
+				this->current = new StringBuffer();
+				delete this->type;
+				this->type = new String();
+			}
 		}
+		this->methodDepth++;
 		break;
+
 	case SourceToken::PARAMETERS:
 		this->inParameters = true;
 		break;
+
 	case SourceToken::PACKAGE:
 		this->setPackageName( p );
 		break;
+
 	default:
 		break;
 	}
@@ -50,6 +54,10 @@ MethodDiscoveryTour::visitPostorder( IPosition<SourceToken>& p, Result& r )
 
 	switch ( token.getTokenType() )
 	{
+	case SourceToken::METHOD:
+		this->methodDepth--;
+		break;
+	
 	case SourceToken::PARAMETERS:
 		if ( this->methodP )
 		{
@@ -76,6 +84,7 @@ MethodDiscoveryTour::visitPostorder( IPosition<SourceToken>& p, Result& r )
 		}
 		this->inParameters = false;
 		break;
+
 	default:
 		break;
 	}

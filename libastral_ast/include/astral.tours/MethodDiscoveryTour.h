@@ -36,6 +36,7 @@ private:
 	openxds::base::StringBuffer* current;
 	openxds::adt::IPosition<astral::tokenizer::SourceToken>* methodP;
 	bool inParameters;
+	int   methodDepth;
 
 public:
 	MethodDiscoveryTour( openxds::adt::ITree<astral::tokenizer::SourceToken>& tree, openxds::adt::IDictionary<openxds::adt::IPosition<astral::tokenizer::SourceToken> >& mthds )
@@ -47,6 +48,7 @@ public:
 		this->current      = new openxds::base::StringBuffer();
 		this->methodP      = NULL;
 		this->inParameters = false;
+		this->methodDepth  = 0;
 	}
 
 	~MethodDiscoveryTour()
