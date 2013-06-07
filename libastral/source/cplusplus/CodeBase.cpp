@@ -211,6 +211,7 @@ CodeBase::completeMemberSignature( const char* fqClassType, const char* member )
 		Name _member( member );
 
 		Type* type = cu.resolveMemberType( _member );
+		if ( type )
 		{
 			delete member_signature;
 			member_signature = new MemberSignature( "", fqClassType, member, type->getValue().getChars() );

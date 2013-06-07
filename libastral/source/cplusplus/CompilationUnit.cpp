@@ -794,6 +794,11 @@ CompilationUnit::recurseMethodArguments( const CodeBase& codebase, const ITree<S
 						#endif
 
 						sb.append( argument_type->getValue() );
+						if ( argument_type->hasName() )
+						{
+							sb.append( " " );
+							sb.append( argument_type->getName() );
+						}
 						sb.append( "," );
 					}
 					delete argument_type;
@@ -856,19 +861,25 @@ CompilationUnit::recurseMethodArgument( const CodeBase& codebase, const ITree<So
 						invocation_class = this->resolveFQTypeOfName( name, scopes );
 						break;
 
-//					case SourceToken::NAME:
-//						{
-//							if ( invocation_class ) IO::err().printf( "CompilationUnit::recurseMethodArgument: invocation_class: %s\n", invocation_class->getValue().getChars() );
-//
-//							Type* t = this->resolveTypeOfName( name, scopes );
-//							if ( t )
-//							{
-//								if ( invocation_class ) delete invocation_class;
-//								invocation_class = this->resolveFQTypeOfType( *t );
-//							}
-//							delete t;
-//						}
-//						break;
+					case SourceToken::NAME:
+						{
+							#ifdef DEBUG_ASTRAL_COMPILATIONUNIT
+							if ( invocation_class ) IO::err().printf( "CompilationUnit::recurseMethodArgument: invocation_class: %s\n", invocation_class->getValue().getChars() );
+							#endif
+
+							Type* t = this->resolveTypeOfName( name, scopes );
+							if ( t )
+							{
+								if ( invocation_class ) delete invocation_class;
+								invocation_class = this->resolveFQTypeOfType( *t );
+								
+								if ( argument_type ) delete argument_type;
+								argument_type = t->copy();
+								argument_type->setName( value );
+							}
+							delete t;
+						}
+						break;
 
 					case SourceToken::SYMBOL:
 						if ( p->getElement().getValue().contentEquals( "[" ) )
