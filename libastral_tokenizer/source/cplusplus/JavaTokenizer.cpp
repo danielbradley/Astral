@@ -30,6 +30,7 @@ JavaTokenizer::isKeyword( const String& word ) const
 		||	word.contentEquals( "catch" )
 		||	word.contentEquals( "switch" )
 		||	word.contentEquals( "case" )
+		||	word.contentEquals( "default" )
 		||	word.contentEquals( "throws" )
 		||	word.contentEquals( "throw" )
 		||	word.contentEquals( "break" )

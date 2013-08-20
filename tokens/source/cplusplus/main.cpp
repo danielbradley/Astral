@@ -74,16 +74,6 @@ void tokenizeEachPath( const Sequence<Path>& paths )
 
 void tokenizePath( const Path& path )
 {
-	fprintf( stdout, "<style>\n" );
-	fprintf( stdout, "*                   { font-size:12px; font-family:'Lucida Console', 'Monaco', monospace; }\n" );
-	fprintf( stdout, ".KEYWORD, .MODIFIER { color:#800080; }\n" );
-	fprintf( stdout, ".MEMBER             { color:#00AA00; }\n" );
-	fprintf( stdout, ".NAME               { color:#555555; }\n" );
-	fprintf( stdout, ".TYPE               { color:#800080; }\n" );
-	fprintf( stdout, "</style>\n" );
-
-	fprintf( stdout, "<pre id='%s'>", path.getAbsolute().getChars() );
-
 	SourceTokenizer* tokenizer = SourceTokenizer::createFor( path.getAbsolute() );
 	while ( tokenizer->hasMoreTokens() )
 	{
@@ -94,31 +84,32 @@ void tokenizePath( const Path& path )
 		delete token;
 	}
 	delete tokenizer;
-
-	fprintf( stdout, "</pre" );
 }
 
 void printToken( const SourceToken& token )
 {
 	const char* type  = token.getTokenTypeString().getChars();
 	const char* value = token.getValue().getChars();
-	
-	String* encoded = String::htmlEncode( value );
-	{
-		value = encoded->getChars();
 
-		switch ( token.getTokenType() )
-		{
-		case SourceToken::SPACE:
-		case SourceToken::TAB:
-		case SourceToken::BLANKLINE:
-		case SourceToken::NEWLINE:
-			fprintf( stdout, "%s", value );
-			break;
-		default:
-			//fprintf( stdout, "<%s value='%s' />", type, value );
-			fprintf( stdout, "<span class='%s'>%s</span>", type, value );
-		}
+	switch ( token.getTokenType() )
+	{
+	case SourceToken::SPACE:
+		fprintf( stdout, "%20s\n", "SPACE" );
+		break;
+
+	case SourceToken::TAB:
+		fprintf( stdout, "%20s\n", "TAB" );
+		break;
+
+	case SourceToken::BLANKLINE:
+		fprintf( stdout, "%20s\n", "BLANKLINE" );
+		break;
+
+	case SourceToken::NEWLINE:
+		fprintf( stdout, "%20s\n", "NEWLINE" );
+		break;
+
+	default:
+		fprintf( stdout, "%20s : %s\n", type, value );
 	}
-	delete encoded;
 }

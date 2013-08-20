@@ -98,46 +98,52 @@ public:
 		const char* ttype = token.getTokenTypeString().getChars();
 		openxds::base::String* str = NULL;
 		
-		switch ( token.getTokenType() )
+		String* encoded = String::htmlEncode( value );
 		{
-		case SourceToken::SPACE:
-		case SourceToken::WHITESPACE:
-			writer.print( " " );
-			break;
-		case SourceToken::TAB:
-			writer.print( openxds::base::FormattedString( "<span class='%s'>\t</span>", ttype ) );
-			break;
-		case SourceToken::BLANKLINE:
-			writer.print( openxds::base::FormattedString( "<span class='%s'>\n</span>", ttype ) );
-			break;
-		case SourceToken::NEWLINE:
-			writer.print( openxds::base::FormattedString( "<span class='%s'>\n</span>", ttype ) );
-			break;
-		case SourceToken::STARTBLOCK:
-			writer.print( "<span>{</span>" );
-			break;
-		case SourceToken::ENDBLOCK:
-			writer.print( "<span>}</span>" );
-			break;
-		case SourceToken::STARTEXPRESSION:
-			writer.print( "<span>(</span>" );
-			break;
-		case SourceToken::ENDEXPRESSION:
-			writer.print( "<span>)</span>" );
-			break;
-		case SourceToken::COMMENT:
-			str = extract( value );
-			writer.print( openxds::base::FormattedString( "<pre class='COMMENT'>%s</pre>", str->getChars() ) );
-			delete str;
-			break;
-		case SourceToken::JAVADOC:
-			str = extract( value );
-			writer.print( openxds::base::FormattedString( "<pre class='JAVADOC'>%s</pre>", str->getChars() ) );
-			delete str;
-			break;
-		default:
-			writer.print( openxds::base::FormattedString( "<span class='%s'>%s</span>", ttype, value ) );
+			value = encoded->getChars();
+		
+			switch ( token.getTokenType() )
+			{
+			case SourceToken::SPACE:
+			case SourceToken::WHITESPACE:
+				writer.print( " " );
+				break;
+			case SourceToken::TAB:
+				writer.print( openxds::base::FormattedString( "<span class='%s'>\t</span>", ttype ) );
+				break;
+			case SourceToken::BLANKLINE:
+				writer.print( openxds::base::FormattedString( "<span class='%s'>\n</span>", ttype ) );
+				break;
+			case SourceToken::NEWLINE:
+				writer.print( openxds::base::FormattedString( "<span class='%s'>\n</span>", ttype ) );
+				break;
+			case SourceToken::STARTBLOCK:
+				writer.print( "<span>{</span>" );
+				break;
+			case SourceToken::ENDBLOCK:
+				writer.print( "<span>}</span>" );
+				break;
+			case SourceToken::STARTEXPRESSION:
+				writer.print( "<span>(</span>" );
+				break;
+			case SourceToken::ENDEXPRESSION:
+				writer.print( "<span>)</span>" );
+				break;
+			case SourceToken::COMMENT:
+				str = extract( value );
+				writer.print( openxds::base::FormattedString( "<pre class='COMMENT'>%s</pre>", str->getChars() ) );
+				delete str;
+				break;
+			case SourceToken::JAVADOC:
+				str = extract( value );
+				writer.print( openxds::base::FormattedString( "<pre class='JAVADOC'>%s</pre>", str->getChars() ) );
+				delete str;
+				break;
+			default:
+				writer.print( openxds::base::FormattedString( "<span class='%s'>%s</span>", ttype, value ) );
+			}
 		}
+		delete encoded;
 	}
 
 };

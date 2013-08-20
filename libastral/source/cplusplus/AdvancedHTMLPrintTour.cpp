@@ -258,7 +258,10 @@ AdvancedHTMLPrintTour::visitExternal( openxds::adt::IPosition<SourceToken>& p, o
 							Type type( member_signature->getType() );
 						
 							fq_type = this->cu.resolveFQTypeOfType( type );
-							this->expressionTypeStack->setLastType( *fq_type );
+							if ( fq_type )
+							{
+								this->expressionTypeStack->setLastType( *fq_type );
+							}
 						}
 						else
 						{
@@ -361,6 +364,7 @@ AdvancedHTMLPrintTour::visitExternal( openxds::adt::IPosition<SourceToken>& p, o
 								Type  return_type( method_signature->getReturnType() );
 								{
 									Type* fq_return_type = this->cu.resolveFQTypeOfType( return_type );
+									if ( fq_return_type )
 									{
 										this->expressionTypeStack->setLastType( *fq_return_type );
 
@@ -451,7 +455,7 @@ AdvancedHTMLPrintTour::visitExternal( openxds::adt::IPosition<SourceToken>& p, o
 
 	case SourceToken::TYPE:
 		{
-			bool platform_type = false;
+			//bool platform_type = false;
 		
 			Type type( value );
 			Type* fq_class = this->cu.resolveFQTypeOfType( type );

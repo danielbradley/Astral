@@ -113,7 +113,10 @@ AstralFactory::recursivelySearch( CodeBase& codebase, const Path& working, const
 					Path* child = working.childPath( filename );
 					if ( child->getExtension().contentEquals( extension ) )
 					{
-						//IO::out().printf( "AstralFactory::recursivelySearch: %s\n", child->getAbsolute().getChars() );
+						IO::out().printf( "AstralFactory::recursivelySearch: %s\n", child->getAbsolute().getChars() );
+						
+						//fprintf( stderr, "Adding: %s\n", sourcePath.getChars() );
+						
 						codebase.addSourceFile( child->getAbsolute().getChars(), project.getChars(), sourcePath.getChars() );
 					}
 					else

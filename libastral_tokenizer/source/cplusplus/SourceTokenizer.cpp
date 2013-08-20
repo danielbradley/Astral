@@ -3,6 +3,7 @@
 #include "astral.tokenizer/SourceTokenizer.h"
 #include "astral.tokenizer/SourceToken.h"
 
+#include <openxds/Exception.h>
 #include <openxds.util/ITextTokenizer.h>
 #include <openxds.util/ITextToken.h>
 #include <openxds.util/TextTokenizer.h>
@@ -14,6 +15,7 @@
 #include <openxds.adt.std/Sequence.h>
 
 using namespace astral::tokenizer;
+using namespace openxds;
 using namespace openxds::adt;
 using namespace openxds::adt::std;
 using namespace openxds::base;
@@ -112,55 +114,66 @@ static SourceToken::TokenType determineNumberType( const String& str )
 bool
 SourceTokenizer::hasMoreTokens() throw (IOException*)
 {
-	if ( ! this->tokenQueue->isEmpty() )
+	try
 	{
-		return true;
-	}
-	else if ( this->tt->hasMoreTokens() )
-	{
-		ITextToken* token           = this->tt->nextToken();
+		if ( ! this->tokenQueue->isEmpty() )
 		{
-			ITextToken::ITokenType type = token->getTokenType();
-			SourceToken* source_token = NULL;
-			String* str = token->getValue().asString();
-			SourceToken::TokenType ttype = SourceToken::TOKEN;
-
-			switch ( type )
-			{
-			case ITextToken::ESCAPED:
-				this->tokenQueue->addLast( new SourceToken( SourceToken::ESCAPED, str ) );
-				break;
-			case ITextToken::NUMBER:
-				this->tokenQueue->addLast( new SourceToken( determineNumberType( *str ), str ) );
-				break;
-			case ITextToken::NEWLINE:
-				this->tokenQueue->addLast( new SourceToken( SourceToken::NEWLINE, str ) );
-				break;
-			case ITextToken::SPACE:
-			case ITextToken::TAB:
-			case ITextToken::WHITESPACE:
-				delete str;
-				source_token = this->parseWhitespace( *token );
-				this->tokenQueue->addLast( source_token );
-				break;
-			case ITextToken::WORD:
-				source_token = this->parseWordToken( str );
-				this->tokenQueue->addLast( source_token );
-				break;
-			case ITextToken::SYMBOL:
-				source_token = this->parseSymbolToken( str );
-				this->tokenQueue->addLast( source_token );
-				break;
-			default:
-				this->tokenQueue->addLast( new SourceToken( ttype, str ) );
-			}
+			return true;
 		}
-		delete token;
+		else if ( this->tt->hasMoreTokens() )
+		{
+			ITextToken* token = this->tt->nextToken();
+			{
+				SourceToken::TokenType ttype = SourceToken::TOKEN;
+				ITextToken::ITokenType type  = token->getTokenType();
+				String*                str   = token->getValue().asString();
+				{
+					SourceToken* source_token = NULL;
 
-		return ! this->tokenQueue->isEmpty();
+					switch ( type )
+					{
+					case ITextToken::ESCAPED:
+						this->tokenQueue->addLast( new SourceToken( SourceToken::ESCAPED, str ) );
+						break;
+					case ITextToken::NUMBER:
+						this->tokenQueue->addLast( new SourceToken( determineNumberType( *str ), str ) );
+						break;
+					case ITextToken::NEWLINE:
+						this->tokenQueue->addLast( new SourceToken( SourceToken::NEWLINE, str ) );
+						break;
+					case ITextToken::SPACE:
+					case ITextToken::TAB:
+					case ITextToken::WHITESPACE:
+						delete str;
+						source_token = this->parseWhitespace( *token );
+						this->tokenQueue->addLast( source_token );
+						break;
+					case ITextToken::WORD:
+						source_token = this->parseWordToken( str );
+						this->tokenQueue->addLast( source_token );
+						break;
+					case ITextToken::SYMBOL:
+						source_token = this->parseSymbolToken( str );
+						this->tokenQueue->addLast( source_token );
+						break;
+					default:
+						this->tokenQueue->addLast( new SourceToken( ttype, str ) );
+					}
+				}
+			}
+			delete token;
+
+			return ! this->tokenQueue->isEmpty();
+		}
+		else
+		{
+			return false;
+		}
 	}
-	else
+	catch ( Exception* ex )
 	{
+		fprintf( stderr, "Exception caught in SourceTokenizer::hasMoreTokens: %s\n", ex->getMessage() );
+		delete ex;
 		return false;
 	}
 }
@@ -305,83 +318,117 @@ SourceTokenizer::parseWordToken( String* word )
 void
 SourceTokenizer::parseType( StringBuffer& sb )
 {
-	int generic_state = 0;
-	int array_state = 0;
+	fprintf( stderr, "SourceTokenizer::parseType: %s\n", sb.getContent().getChars() );
 
-	bool loop = true;
-	while ( loop == this->tt->hasMoreTokens() )
+	try
 	{
-		const ITextToken& token = this->tt->peekNextToken();
-			
-		switch ( token.getTokenType() )
+		int  generic_state = 0;
+		int  array_state   = 0;
+
+		bool loop = true;
+		while ( loop && this->tt->hasMoreTokens() )
 		{
-		case ITextToken::WORD:
-			sb.append( token.getValue() );
-			delete this->tt->nextToken();
-			break;
-
-		case ITextToken::NUMBER:
-			sb.append( token.getValue() );
-			delete this->tt->nextToken();
-			break;
-
-		case ITextToken::SYMBOL:
-			switch ( token.getValue().charAt( 0 ) )
+			const ITextToken& token = this->tt->peekNextToken();
+				
+			switch ( token.getTokenType() )
 			{
-			case '_':
-			case '.':
+			case ITextToken::WORD:
 				sb.append( token.getValue() );
 				delete this->tt->nextToken();
 				break;
 
-
-			case '<':
-				if ( 0 == generic_state )
-				{
-					sb.append( token.getValue() );
-					delete this->tt->nextToken();
-					generic_state = 1;
-				} else loop = false;
+			case ITextToken::NUMBER:
+				sb.append( token.getValue() );
+				delete this->tt->nextToken();
 				break;
 
-			case ',':
-				if ( 1 == generic_state )
+			case ITextToken::SYMBOL:
+				switch ( token.getValue().charAt( 0 ) )
+				{
+				case '_':
+				case '.':
+					sb.append( token.getValue() );
+					delete this->tt->nextToken();
+					break;
+
+				case '<':
+					generic_state++; fprintf( stderr, "\t < generic_state = %i\n", generic_state );
+					sb.append( token.getValue() );
+					delete this->tt->nextToken();
+					break;
+
+				case '>':
+					if ( 0 < generic_state )
+					{
+						generic_state--; fprintf( stderr, "\t > generic_state = %i\n", generic_state );
+						sb.append( token.getValue() );
+						delete this->tt->nextToken();
+
+						if ( 0 == generic_state ) loop = false;
+					}
+					else
+					{
+						loop = false;
+					}
+					break;
+
+				case ',':
+					if ( 0 < generic_state )
+					{
+						sb.append( token.getValue() );
+						delete this->tt->nextToken();
+					}
+					else loop = false;
+					break;
+
+				case '[':
+					if ( 0 == array_state )
+					{
+						sb.append( token.getValue() );
+						delete this->tt->nextToken();
+						array_state = 1;
+					} else loop = false;
+					break;
+
+				case ']':
+					if ( 0 < array_state )
+					{
+						sb.append( token.getValue() );
+						delete this->tt->nextToken();
+						array_state = 0;
+					}
+					else loop = false;
+					break;
+
+				default:
+					loop = false;
+				}
+				break;
+
+			case ITextToken::SPACE:
+			case ITextToken::WHITESPACE:
+			case ITextToken::NEWLINE:
+				if ( (0 < generic_state) || (0 < array_state) )
 				{
 					sb.append( token.getValue() );
 					delete this->tt->nextToken();
 				}
-				else loop = false;
-				break;
-
-			case '>':
-				sb.append( token.getValue() );
-				delete this->tt->nextToken();
-				generic_state = 2;
-				break;
-
-			case '[':
-				if ( 0 == array_state )
+				else
 				{
-					sb.append( token.getValue() );
-					delete this->tt->nextToken();
-					array_state = 1;
-				} else loop = false;
-				break;
-
-			case ']':
-				sb.append( token.getValue() );
-				delete this->tt->nextToken();
-				array_state = 0;
+					fprintf( stderr, "\t whitespace generic_state = %i\n", generic_state );
+					loop = false;
+				}
 				break;
 
 			default:
 				loop = false;
 			}
-			break;
-
-		default:
-			loop = false;
 		}
+	}
+	catch ( Exception* ex )
+	{
+		fprintf( stderr, "Exception caught in SourceTokenizer::parseType: %s\n", ex->getMessage() );
+		delete ex;
 	}
 }
 
@@ -1240,7 +1287,7 @@ SourceTokenizer::isType()
 				if ( ITextToken::WORD == word_token.getTokenType() )
 				{
 					const String& value = word_token.getValue();
-					const char* val = value.getChars();
+					//const char* val = value.getChars();
 				
 					is_type = !( this->isModifier( value ) || this->isKeyword( value ) || this->isPrimitiveType( value ) );
 					loop = false;

@@ -44,6 +44,7 @@ static void         parseExpression( ITree<SourceToken>& ast, IPosition<SourceTo
 static bool              parseBlock( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer, bool parseEnum );
 static void      parseEnumStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
 static void parseTrailingWhitespace( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
+static void   parseParameterisation( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer );
 
 static void pushbackTokens( SourceTokenizer& tokenizer, Sequence<SourceToken>& tokens );
 
@@ -191,15 +192,29 @@ static bool isMethodCall( SourceTokenizer& tokenizer )
 	bool loop = true;
 	while ( loop && tokenizer.hasMoreTokens() )
 	{
-		SourceToken* token = tokenizer.nextToken();
-		switch ( token->getTokenType() )
+		SourceToken*           token = tokenizer.nextToken();
+		const String&          value = token->getValue();
+		SourceToken::TokenType type  = token->getTokenType();
+		
+		switch ( type )
 		{
+		case SourceToken::WORD:
 		case SourceToken::SPACE:
 			break;
+
 		case SourceToken::STARTEXPRESSION:
-			ret = true;
+			ret  = true;
 			loop = false;
 			break;
+
+		case SourceToken::INFIXOP:
+			if ( ! (value.contentEquals( "<" ) || value.contentEquals( ">" )) ) loop = false;
+			break;
+			
+		case SourceToken::SYMBOL:
+			if ( !value.contentEquals( "," ) ) loop = false;
+			break;
+		
 		default:
 			loop = false;
 		}
@@ -215,6 +230,8 @@ static bool
 parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer, bool parseArg )
 {
 	bool status = true;
+	
+	bool skip_annotation = false;
 
 	SourceToken::TokenType looksie = tokenizer.sneakyPeek();
 	if ( parseArg )
@@ -249,6 +266,11 @@ parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceT
 			break;
 
 		case SourceToken::SYMBOL:
+			if ( '@' == _value[0] )
+			{
+				skip_annotation = true;
+			}
+
 			if ( parseArg && tokenizer.peekNextToken().getValue().contentEquals( "," ) )
 			{
 				handleStop( ast, parent, tokenizer );
@@ -348,11 +370,20 @@ parseStatement( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceT
 					break;
 
 				case SourceToken::METHOD:
+					if ( ! skip_annotation )
 					{
 						SourceToken* token = tokenizer.nextToken();
 						token->setType( SourceToken::METHODNAME );
 						parent.getElement().setValue( new String( token->getValue() ) );
 						delete ast.addChild( parent, token );
+					}
+					else
+					{
+						SourceToken* token = tokenizer.nextToken();
+						token->setType( SourceToken::ANNOTATION );
+						delete ast.addChild( parent, token );
+						
+						skip_annotation = false;
 					}
 					break;
 
@@ -685,7 +716,9 @@ static void handleMethodCall( ITree<SourceToken>& ast, IPosition<SourceToken>& p
 		delete ast.addChild( *methodcall, token );
 		
 		parseTrailingWhitespace( ast, *methodcall, tokenizer );
-		handleStartArguments( ast, *methodcall, tokenizer );
+		parseParameterisation  ( ast, *methodcall, tokenizer );
+		parseTrailingWhitespace( ast, *methodcall, tokenizer );
+		handleStartArguments   ( ast, *methodcall, tokenizer );
 	}
 	countup( ast, *methodcall );
 	delete methodcall;
@@ -904,6 +937,79 @@ static void parseTrailingWhitespace( ITree<SourceToken>& ast, IPosition<SourceTo
 	}
 }
 
+static void parseParameterisation( ITree<SourceToken>& ast, IPosition<SourceToken>& parent, SourceTokenizer& tokenizer )
+{
+	const SourceToken&     token = tokenizer.peekNextToken();
+	const String&          value = token.getValue();
+	SourceToken::TokenType ttype = token.getTokenType();
+
+	if ( SourceToken::INFIXOP == ttype && (value.contentEquals( "<" )) )
+	{
+		long depth = 0;
+		bool loop  = true;
+		while ( loop && tokenizer.hasMoreTokens() )
+		{
+			const SourceToken&     token = tokenizer.peekNextToken();
+			const String&          value = token.getValue();
+			SourceToken::TokenType ttype = token.getTokenType();
+
+			switch ( ttype )
+			{
+			case SourceToken::INFIXOP:
+				{
+					char ch = value.charAt(0);
+
+					switch ( ch )
+					{
+					case '<':
+						delete ast.addChild( parent, tokenizer.nextToken() );
+						depth++;
+						break;
+
+					case '>':
+						delete ast.addChild( parent, tokenizer.nextToken() );
+						depth--;
+						if ( 0 == depth ) loop = false;
+						break;
+					
+					default:
+						loop = false;
+					}
+				}
+				break;
+
+			case SourceToken::SYMBOL:
+				{
+					char ch = value.charAt(0);
+
+					switch ( ch )
+					{
+					case ',':
+					case '.':
+						delete ast.addChild( parent, tokenizer.nextToken() );
+						break;
+
+					default:
+						loop = false;
+					}
+				}
+				break;
+
+			case SourceToken::WORD:
+			case SourceToken::SPACE:
+			case SourceToken::TAB:
+			case SourceToken::WHITESPACE:
+			case SourceToken::NEWLINE:
+				delete ast.addChild( parent, tokenizer.nextToken() );
+				break;
+
+			default:
+				loop = false;
+			}
+		}
+	}
+}
+
 void
 AST::adjustOffsets( IPosition<SourceToken>& parent )
 {
@@ -1057,7 +1163,7 @@ AST::matchAndRemoveIndentFromLines( IPosition<SourceToken>& p, bool extractMatch
 	{
 		IPosition<SourceToken>* p = it->next();
 		{
-			SourceToken&           token  = p->getElement();
+			//SourceToken&           token  = p->getElement();
 			SourceToken::TokenType tType  = p->getElement().getTokenType();
 			const String&          tValue = p->getElement().getValue();
 			

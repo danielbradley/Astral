@@ -115,9 +115,11 @@ CompilationUnit::~CompilationUnit()
 	delete this->methodObjects;
 }
 
-void
+bool
 CompilationUnit::initialise()
 {
+	bool success = false;
+
 	this->ast->parseFile( this->location->getChars() );
 	
 	IPosition<SourceToken>* root = this->ast->getTree().root();
@@ -128,7 +130,7 @@ CompilationUnit::initialise()
 			PackageDiscoveryTour pdt( this->ast->getTree(), *imports, *import_positions );
 			pdt.doGeneralTour( *root );
 
-			this->packageName  = pdt.getPackageName().asString();
+			this->packageName  = pdt.getPackageName().isEmpty() ? new String( "default" ) : pdt.getPackageName().asString();
 			this->className    = pdt.getClassName().asString();
 			this->genericName  = pdt.getGenericName().asString();
 			this->fqName       = new FormattedString( "%s.%s", this->packageName->getChars(), this->className->getChars() );
@@ -146,18 +148,29 @@ CompilationUnit::initialise()
 			MemberDiscoveryTour mdt2( this->ast->getTree(), *this->members );
 			mdt2.doGeneralTour( *root );
 
-			this->declaration->initialise( fltt.copyLastTokenPosition() );
-			this->importsList->initialise( *import_positions );
-			this->enumsList->initialise();
-			this->membersList->initialise( *this->members );
+			{
+				IPosition<SourceToken>* pos = fltt.copyLastTokenPosition();
 
-			//this->initialiseImportObjects();
-			//this->imports->insertLast( new String( this->getNamespace() ) );
+				if ( pos )
+				{
+					this->declaration->initialise( fltt.copyLastTokenPosition() );
+					this->importsList->initialise( *import_positions );
+					this->enumsList->initialise();
+					this->membersList->initialise( *this->members );
+
+					success = true;
+
+					//this->initialiseImportObjects();
+					//this->imports->insertLast( new String( this->getNamespace() ) );
+				}
+			}
 		}
 		delete imports;
 		delete import_positions;
 	}
 	delete root;
+	
+	return success;
 }
 
 void

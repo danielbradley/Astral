@@ -164,8 +164,14 @@ MethodSignature::isValid() const
 bool
 MethodSignature::isComplete() const
 {
-	return (this->getNamespace().getLength() &&
-	        this->getClassName().getLength() &&
+//	This assumes that there is no code in the default namespace.
+//
+//	return (this->getNamespace().getLength() &&
+//	        this->getClassName().getLength() &&
+//			this->methodCall->getLength()    &&
+//			this->returnType->getLength() );
+
+	return (this->getClassName().getLength() &&
 			this->methodCall->getLength()    &&
 			this->returnType->getLength() );
 }
